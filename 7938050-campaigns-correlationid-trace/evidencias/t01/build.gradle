@@ -1,0 +1,18 @@
+plugins { id 'java' }
+java { toolchain { languageVersion = JavaLanguageVersion.of(21) } }
+repositories { mavenCentral() }
+dependencies {
+    implementation platform('org.springframework.boot:spring-boot-dependencies:4.1.1')
+    // Igual que engine_nlp_ms/infrastructure/entry-points/async-event-bus/build.gradle
+    implementation 'org.springframework.boot:spring-boot-starter-webflux'
+    implementation "org.reactivecommons:async-commons-rabbit-starter:7.0.6"
+    implementation 'com.fasterxml.jackson.core:jackson-databind:2.22.3'
+    compileOnly 'org.projectlombok:lombok:1.18.42'
+    annotationProcessor 'org.projectlombok:lombok:1.18.42'
+    testCompileOnly 'org.projectlombok:lombok:1.18.42'
+    testAnnotationProcessor 'org.projectlombok:lombok:1.18.42'
+    testImplementation 'org.junit.jupiter:junit-jupiter'
+    testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+    testImplementation 'io.projectreactor:reactor-test'
+}
+test { useJUnitPlatform(); testLogging { events 'passed', 'failed'; showStandardStreams = true; exceptionFormat 'full' } }
