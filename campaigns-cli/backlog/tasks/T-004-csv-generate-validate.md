@@ -27,8 +27,8 @@ others-test;WhatsApp;573232540390;13/10/2026;13/10/2026;martes;10;N-03-99-10;
 | Columna | Regla de validación (propuesta) |
 |---|---|
 | `app_id` | Obligatorio, no vacío. |
-| `canal` | Obligatorio. Valores conocidos: `WhatsApp`, `Teams` (confirmar lista con el ingester). |
-| `usuario` | Obligatorio. Para `WhatsApp`: solo dígitos, con indicativo de país. |
+| `canal` | Obligatorio. Valores usados por `Platform_test`: `WhatsApp` y `msteams` (datasets `whatsapp/DataSet.csv` y `teams/DataSet.csv`); confirmar la lista con el ingester. |
+| `usuario` | Obligatorio. Para `WhatsApp`: solo dígitos, con indicativo de país. Para `msteams`: email del usuario. |
 | `fecha_inicio`, `fecha_fin` | `dd/mm/yyyy`; `fecha_inicio <= fecha_fin`. |
 | `dias` | Días en español, en minúscula (`lunes`…`domingo`). Confirmar separador si hay varios. |
 | `horas` | Entero 0–23. Confirmar separador si hay varias. |

@@ -4,7 +4,7 @@ aliases: [T-000]
 title: ""
 status: backlog       # backlog | todo | doing | blocked | done
 priority: P2          # P0 | P1 | P2 | P3
-epic:                 # E-base | E-csv | E-ingesta | E-dynamo | E-logs | E-trace | E-calidad
+epic:                 # E-base | E-csv | E-ingesta | E-dynamo | E-logs | E-trace | E-calidad | E-entrega
 estimate: M           # S | M | L
 depends_on: []        # [T-0NN, ...]
 type: task

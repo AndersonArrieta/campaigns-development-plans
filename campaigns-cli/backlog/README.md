@@ -82,6 +82,7 @@ frontmatter, solo el id.
 - [[E-logs]] — CloudWatch Logs.
 - [[E-trace]] — prueba de punta a punta `trace run`.
 - [[E-calidad]] — validación en dev, CI y documentación.
+- [[E-entrega]] — verificación de entrega en el fake channel (Cognito + WhatsApp/Teams).
 
 ### Bugs y backlog vivo
 - **`done` es inmutable** (registro de auditoría). Un bug o mejora sobre código ya hecho
@@ -104,6 +105,7 @@ Del plan original; se convierten en tarjetas cuando haya alcance claro:
 - Grupo `kafka`: publicar un evento en el topic del scheduler (MSK con IAM) para probar `platform_campaigns_ms` aislado.
 - Grupo `mq`: inspeccionar las colas de RabbitMQ (Amazon MQ) vía API de administración.
 - `trace run` hasta los adapters out, validando `CorrelationId = notification_id` en cada componente (complementa la HU 7938050).
+- Endpoint del fake channel para enviar o limpiar mensajes: no existe en `Platform_test`; habría que revisarlo en el repo del microservicio del fake channel.
 - Escenarios guardados (`scenarios/*.yaml`) para correr baterías de pruebas con un comando.
 
 ## Plugins de Obsidian
@@ -125,18 +127,20 @@ queda en el mismo vault y los enlaces entre ambos funcionan.
 - [[T-006-dynamo-lectura|T-006]] — `dynamo get/find/list/logs` de solo lectura.
 - [[T-008-logs-cloudwatch|T-008]] — `logs groups/tail/search` sobre las lambdas.
 
-🟡 **todo (4)**
+🟡 **todo (5)**
 - [[T-004-csv-generate-validate|T-004]] — `csv generate` y `csv validate`.
 - [[T-011-validar-lectura-dev|T-011]] — probar en dev `config check`, `dynamo` y `logs` con datos reales.
 - [[T-012-dynamo-purge|T-012]] — `dynamo purge` de datos de `CLI_TEST_APP_ID`.
 - [[T-014-ci-github-actions|T-014]] — pipeline de GitHub Actions con umbral de cobertura.
+- [[T-015-fake-channel-messages|T-015]] — grupo `channel`: token de Cognito y mensajes del fake channel.
 
-🔵 **backlog (5)**
+🔵 **backlog (6)**
 - [[T-005-s3-commands|T-005]] — `s3 upload/ls/get/rm` (espera a T-004).
 - [[T-007-lambda-invoke|T-007]] — `lambda invoke` ingester/scheduler/genérico (espera a T-005).
 - [[T-009-trace-run|T-009]] — `trace run` hasta los logs del ingester (espera a T-004, T-005, T-012).
 - [[T-010-documentacion|T-010]] — README completo y cierre de los criterios de aceptación (espera a T-007, T-009).
 - [[T-013-trace-aguas-abajo|T-013]] — `trace run` con scheduler y microservicios (espera a T-007, T-009).
+- [[T-016-trace-entrega-canal|T-016]] — `trace run` verifica la entrega en el fake channel (espera a T-013, T-015).
 
 ## Grafo de dependencias (resumido)
 ```
@@ -148,5 +152,6 @@ trace:       T-004, T-005, T-006, T-008, T-012 ─► T-009 ─► T-013 ◄─ 
 docs:        T-007, T-009 ─► T-010
 validación:  T-003, T-006, T-008 ─► T-011
 ci:          T-001 ─► T-014
+entrega:     T-003 ─► T-015 ─► T-016 ◄─ T-013
 sin dependencias: T-001
 ```
