@@ -109,6 +109,43 @@ uv run campaigns logs search --id <campaign_id> -l ingester --from "2026-10-13 0
 - `search` usa Logs Insights: busca el texto literal (mínimo 6 caracteres), muestra un resumen por componente y sale con código 1 si no hay coincidencias.
 - Otros log groups (ej. `platform_campaigns_ms`): `--group <log group>` o `CAMPAIGNS_LOG_GROUPS` en el `.env`.
 
+### Log completo de una lambda en un rango horario
+
+`logs tail` con `--from` y `--to`. Por defecto solo muestra los **últimos 100 eventos** del rango; sube `-n` para verlo completo:
+
+```bash
+uv run campaigns logs tail -l scheduler --from "2026-10-13 08:00" --to "2026-10-13 10:00" -n 100000
+```
+
+- `-l ingester` o `-l scheduler` elige la lambda (o `-g <log group>` para cualquier otro).
+- Formatos de hora: `YYYY-MM-DD HH`, `YYYY-MM-DD HH:MM` o `YYYY-MM-DD HH:MM:SS`.
+- Muestra cada evento completo con su hora, en orden cronológico.
+- Si el rango tiene más eventos que `-n`, avisa que se cortó y conserva los más recientes.
+
+Guardarlo en un archivo:
+
+```bash
+# Texto, como se ve en pantalla
+uv run campaigns logs tail -l scheduler --from "2026-10-13 08:00" --to "2026-10-13 10:00" -n 100000 > scheduler.log
+
+# JSON (hora, log stream y mensaje completo por evento; útil con jq)
+uv run campaigns --output json logs tail -l scheduler --from "2026-10-13 08:00" --to "2026-10-13 10:00" -n 100000 > scheduler.json
+```
+
+`--output json` va **antes** de `logs` porque es una opción global.
+
+Variantes:
+
+```bash
+# Solo las líneas que contienen un texto en ese rango
+uv run campaigns logs tail -l ingester --from "2026-10-13 08:00" --to "2026-10-13 10:00" --filter "Campaign" -n 100000
+
+# Una ejecución concreta del scheduler (corre cada hora): basta un rango corto
+uv run campaigns logs tail -l scheduler --from "2026-10-13 09:00" --to "2026-10-13 09:05" -n 100000
+```
+
+La CLI trae todos los eventos del rango antes de mostrarlos: en rangos de muchas horas con mucho log puede tardar. Si es así, acota el rango o usa `--filter`.
+
 ## Notas
 
 - Ejecuta los comandos desde `campaigns-cli/`: el `.env` se busca en la carpeta actual. Desde otra carpeta usa `--env-file ruta/al/.env`.
