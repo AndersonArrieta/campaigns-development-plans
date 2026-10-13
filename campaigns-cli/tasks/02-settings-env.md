@@ -17,6 +17,13 @@ Cargar toda la configuración de entorno desde un archivo `.env` (o el que indiq
 | `src/campaigns_cli/commands/config_cmd.py` | Subgrupo `config` con `show` y `check`. |
 | `.env.example` | Todas las variables de §5.1 del plan, con comentarios. |
 | `tests/test_settings.py` | Pruebas de carga y validación. |
+| `src/campaigns_cli/state.py` | *(agregado al ejecutar)* `AppState` con carga perezosa de `Settings` y `get_state(ctx)`. |
+| `tests/conftest.py`, `tests/test_config_cmd.py` | *(agregado al ejecutar)* Aislamiento del `.env` real y pruebas de `config show/check`. |
+
+> **Notas de ejecución:**
+> - `Settings` se carga de forma perezosa en `AppState.settings`: un `.env` inválido sale con código 2, pero no rompe comandos que no lo usan (ej. `version`). La traducción global de errores se completa en la T-03.
+> - `--output` no tiene alias `-o`, porque `-o` se reserva para archivos de salida (`csv generate -o`, `s3 get -o`).
+> - `config check` sale con código 1 si falta alguna variable obligatoria.
 
 ## Pasos
 
@@ -75,7 +82,7 @@ Cargar toda la configuración de entorno desde un archivo `.env` (o el que indiq
 
 ## Criterios de terminado
 
-- [ ] No hay nombres de recursos quemados en el código.
-- [ ] `uv run campaigns config show` funciona aunque falten variables de recursos.
-- [ ] Pruebas, ruff y mypy en verde.
+- [x] No hay nombres de recursos quemados en el código.
+- [x] `uv run campaigns config show` funciona aunque falten variables de recursos.
+- [x] Pruebas (26), ruff y mypy en verde (2026-10-13).
 - [ ] Commit (lo hace el desarrollador).
