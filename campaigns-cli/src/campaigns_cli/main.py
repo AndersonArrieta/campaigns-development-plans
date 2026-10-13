@@ -5,7 +5,7 @@ import typer
 from typer.core import TyperGroup
 
 from campaigns_cli import __version__
-from campaigns_cli.commands import config_cmd, dynamo_cmd, logs_cmd
+from campaigns_cli.commands import channel_cmd, config_cmd, dynamo_cmd, logs_cmd
 from campaigns_cli.errors import translate
 from campaigns_cli.output import err_console, fail
 from campaigns_cli.settings import OutputFormat
@@ -39,6 +39,7 @@ app = typer.Typer(
 app.add_typer(config_cmd.app, name="config")
 app.add_typer(dynamo_cmd.app, name="dynamo")
 app.add_typer(logs_cmd.app, name="logs")
+app.add_typer(channel_cmd.app, name="channel")
 
 
 @app.callback()
@@ -65,7 +66,7 @@ def main(
 ) -> None:
     """Pruebas sobre los recursos AWS del flujo de campañas.
 
-    Códigos de salida: 0 OK, 1 prueba fallida, 2 uso/configuración, 3 AWS.
+    Códigos de salida: 0 OK, 1 prueba fallida, 2 uso/configuración, 3 AWS o servicio externo.
     """
     ctx.obj = AppState(
         env_file=env_file,

@@ -54,6 +54,35 @@ def test_loads_all_values_from_env_file(write_env) -> None:  # type: ignore[no-u
     assert settings.cli_test_app_id == "app-test"
 
 
+def test_fake_channel_settings(write_env) -> None:  # type: ignore[no-untyped-def]
+    write_env(
+        "COGNITO_TOKEN_URL=https://cognito.test\n"
+        "COGNITO_CLIENT_ID=cliente\n"
+        "COGNITO_CLIENT_SECRET=secreto\n"
+        "FAKE_CHANNEL_BASE_URL=https://fake.test/v1\n"
+        "FAKE_CHANNEL_VERIFY_SSL=false\n"
+    )
+
+    settings = load_settings()
+
+    assert settings.cognito_token_url == "https://cognito.test"
+    assert settings.cognito_client_id == "cliente"
+    assert settings.cognito_client_secret is not None
+    assert settings.cognito_client_secret.get_secret_value() == "secreto"
+    assert "secreto" not in repr(settings)
+    assert settings.fake_channel_base_url == "https://fake.test/v1"
+    assert settings.fake_channel_verify_ssl is False
+
+
+def test_fake_channel_defaults(write_env) -> None:  # type: ignore[no-untyped-def]
+    write_env("COGNITO_CLIENT_SECRET=\n")
+
+    settings = load_settings()
+
+    assert settings.cognito_client_secret is None
+    assert settings.fake_channel_verify_ssl is True
+
+
 def test_defaults_without_env_file() -> None:
     settings = load_settings()
 
@@ -71,6 +100,8 @@ def test_env_example_is_loadable() -> None:
     assert settings.campaigns_table_name is None
     assert settings.campaigns_log_groups == []
     assert settings.cli_test_app_id == "others-test"
+    assert settings.cognito_client_secret is None
+    assert settings.fake_channel_verify_ssl is True
 
 
 def test_process_env_overrides_env_file(write_env, monkeypatch: pytest.MonkeyPatch) -> None:  # type: ignore[no-untyped-def]

@@ -13,7 +13,7 @@ uv tool install --editable .                              # opcional: `campaigns
 - Python ≥ 3.12 (`.python-version`), build backend `uv_build`, entry point
   `campaigns = "campaigns_cli.main:app"`.
 - **WSL + OneDrive:** con el `.venv` dentro de `/mnt/c` la suite tarda ~220 s; en el disco Linux, ~30 s o menos.
-- Dependencias: `typer`, `rich`, `boto3`, `pydantic-settings`. Dev: `pytest`, `pytest-cov`,
+- Dependencias: `typer`, `rich`, `boto3`, `pydantic-settings`, `httpx`. Dev: `pytest`, `pytest-cov`,
   `moto[dynamodb,logs,s3]`, `ruff`, `mypy`, `boto3-stubs[dynamodb,lambda,logs,s3,sts]`.
 
 ## Comandos de calidad
@@ -39,13 +39,14 @@ uv run mypy src
 | `test_config_check.py` | `config check` | moto + cliente Lambda falso |
 | `test_dynamo_service.py`, `test_dynamo_cmd.py` (`dynamo_fixtures.py`) | Tablas con el mismo esquema que dev | moto |
 | `test_logs_service.py`, `test_logs_cmd.py` | Logs Insights, `filter_log_events` | `botocore.stub.Stubber` / clientes falsos |
+| `test_channel_service.py`, `test_channel_cmd.py` (`channel_fixtures.py`) | Cognito y fake channel | `httpx.MockTransport` con un servidor falso (`FakeServer`) |
 | `test_timeutils.py`, `test_cli.py` | Fechas; humo de la app | unitarias |
 
 Reglas:
-- **Nunca AWS real en la suite.** moto para S3, DynamoDB y STS; `Stubber` o clientes falsos
+- **Nunca AWS ni HTTP real en la suite.** moto para S3, DynamoDB y STS; `Stubber` o clientes falsos
   donde moto no alcanza (invocar Lambdas exige Docker; Logs Insights tiene soporte limitado).
 - Los servicios aceptan `sleep` y `clock` inyectables para probar polling y timeouts sin esperar.
-- Cobertura actual: 96 % (162 pruebas). El umbral de 80 % se fijará en CI ([T-014](../backlog/tasks/T-014-ci-github-actions.md)).
+- Cobertura actual: 97 % (213 pruebas). El umbral de 80 % se fijará en CI ([T-014](../backlog/tasks/T-014-ci-github-actions.md)).
 
 ## Cómo agregar un grupo de comandos
 

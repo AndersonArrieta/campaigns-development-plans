@@ -1,4 +1,4 @@
-"""Verificación de credenciales y existencia de los recursos configurados."""
+"""Verificación de credenciales y existencia de los recursos configurados (AWS y fake channel)."""
 
 from __future__ import annotations
 
@@ -8,15 +8,30 @@ from enum import StrEnum
 from functools import partial
 from typing import TYPE_CHECKING
 
+import httpx
 from botocore.exceptions import ClientError
 
-from campaigns_cli.errors import client_error_code, is_access_denied, is_not_found
+from campaigns_cli.errors import (
+    ExternalServiceError,
+    ServiceAuthError,
+    client_error_code,
+    is_access_denied,
+    is_not_found,
+)
+from campaigns_cli.services.channel_service import (
+    REQUIRED_SETTINGS as CHANNEL_SETTINGS,
+)
+from campaigns_cli.services.channel_service import (
+    Channel,
+    fake_channel_from,
+)
 from campaigns_cli.settings import Settings, env_var_name
 
 if TYPE_CHECKING:
     from mypy_boto3_sts import STSClient
 
     from campaigns_cli.aws import AwsClients
+    from campaigns_cli.http import HttpClients
 
 
 class Status(StrEnum):
@@ -133,7 +148,54 @@ def _check_log_groups(settings: Settings, aws: AwsClients) -> list[ResourceCheck
     return checks
 
 
-def check_resources(settings: Settings, aws: AwsClients) -> list[ResourceCheck]:
+# Usuario que no existe: el fake channel debe responder 404 "No messages found".
+PROBE_USER = "0000000000"
+
+
+def _probe_http[T](call: Callable[[], T]) -> tuple[Status, str]:
+    try:
+        call()
+    except ServiceAuthError as exc:
+        return Status.ACCESS_DENIED, str(exc)
+    except (ExternalServiceError, httpx.TransportError) as exc:
+        return Status.ERROR, str(exc)
+    return Status.OK, ""
+
+
+def _check_channel(settings: Settings, http: HttpClients) -> list[ResourceCheck]:
+    """Cognito y fake channel son opcionales: solo los usa el grupo `channel`."""
+    token_var = env_var_name("cognito_token_url")
+    base_var = env_var_name("fake_channel_base_url")
+    missing = [env_var_name(name) for name in CHANNEL_SETTINGS if not getattr(settings, name)]
+    if len(missing) == len(CHANNEL_SETTINGS):
+        detail = "sin configurar: el grupo channel no está disponible"
+        return [
+            ResourceCheck("Cognito", token_var, "", Status.OPTIONAL, detail),
+            ResourceCheck("Fake channel", base_var, "", Status.OPTIONAL, detail),
+        ]
+    if missing:
+        detail = "falta " + ", ".join(missing)
+        return [
+            ResourceCheck("Cognito", token_var, "", Status.MISSING_CONFIG, detail),
+            ResourceCheck("Fake channel", base_var, "", Status.MISSING_CONFIG, detail),
+        ]
+
+    channel = fake_channel_from(settings, http)
+    status, detail = _probe_http(channel.auth.token)
+    checks = [ResourceCheck("Cognito", token_var, channel.auth.url, status, detail)]
+    if status is not Status.OK:
+        checks.append(
+            ResourceCheck(
+                "Fake channel", base_var, channel.base_url, Status.ERROR, "sin token de Cognito"
+            )
+        )
+        return checks
+    status, detail = _probe_http(lambda: channel.messages(Channel.WHATSAPP, PROBE_USER))
+    checks.append(ResourceCheck("Fake channel", base_var, channel.base_url, status, detail))
+    return checks
+
+
+def check_resources(settings: Settings, aws: AwsClients, http: HttpClients) -> list[ResourceCheck]:
     checks: list[ResourceCheck] = []
 
     bucket = settings.campaigns_input_bucket
@@ -173,4 +235,5 @@ def check_resources(settings: Settings, aws: AwsClients) -> list[ResourceCheck]:
         checks.append(ResourceCheck("Lambda", env_var_name(field), name, status, detail))
 
     checks.extend(_check_log_groups(settings, aws))
+    checks.extend(_check_channel(settings, http))
     return checks

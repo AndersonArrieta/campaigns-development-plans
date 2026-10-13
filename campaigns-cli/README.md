@@ -146,10 +146,33 @@ uv run campaigns logs tail -l scheduler --from "2026-10-13 09:00" --to "2026-10-
 
 La CLI trae todos los eventos del rango antes de mostrarlos: en rangos de muchas horas con mucho log puede tardar. Si es así, acota el rango o usa `--filter`.
 
+## Comandos `channel` (fake channel, solo lectura)
+
+Verifican que el mensaje de una campaña llegó al usuario, como la prueba E2E de `Platform_test`.
+Requieren en el `.env` (valores del pipeline de `Platform_test`; el secreto nunca se versiona):
+
+```dotenv
+COGNITO_TOKEN_URL=https://chatbots-artemis-dev.auth.us-east-1.amazoncognito.com
+COGNITO_CLIENT_ID=...
+COGNITO_CLIENT_SECRET=...
+FAKE_CHANNEL_BASE_URL=https://informacion-ext-dev.apps.ambientesbc.com/artemis/platform/fake-channel/v1
+FAKE_CHANNEL_VERIFY_SSL=false   # solo si el certificado del ambiente no es de confianza
+```
+
+```bash
+uv run campaigns channel messages --canal whatsapp --user 574141179337
+uv run campaigns channel verify --canal whatsapp --user 574141179337 --text Campaig_e2e_test_delivered_successfully
+uv run campaigns channel messages --canal teams --user 27060555-ecc0-4aad-85b6-9a663cd04331
+```
+
+- En Teams, `--user` es el `recipient.id` (UUID), no el email del CSV. `--canal` acepta también `msteams`.
+- `verify` reintenta 5 veces cada 10 s (`--attempts`, `--interval`) y sale con 1 si el mensaje no llegó.
+- El fake channel no borra mensajes: uno de una corrida anterior con el mismo texto cuenta como entregado.
+
 ## Notas
 
 - Ejecuta los comandos desde `campaigns-cli/`: el `.env` se busca en la carpeta actual. Desde otra carpeta usa `--env-file ruta/al/.env`.
-- Códigos de salida: `0` OK, `1` prueba fallida, `2` error de uso o configuración, `3` error de AWS.
+- Códigos de salida: `0` OK, `1` prueba fallida, `2` error de uso o configuración, `3` error de AWS o de un servicio externo (Cognito, fake channel).
 - `--verbose` muestra el traceback completo de un error.
 
 ## Desarrollo

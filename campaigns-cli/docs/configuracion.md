@@ -32,6 +32,11 @@ carpeta desde la que se ejecuta la CLI. La plantilla versionada es
 | `CAMPAIGNS_LOGS_TABLE_NAME` | texto | Tabla de logs del ingester. | `dynamo logs` |
 | `INGESTER_LAMBDA_NAME` | texto | Nombre de `ingester_Lambda`; de él se deriva su log group. | `logs -l ingester`, `lambda` |
 | `SCHEDULER_LAMBDA_NAME` | texto | Nombre de `scheduler_Lambda`. | `logs -l scheduler`, `lambda` |
+| `COGNITO_TOKEN_URL` | texto | Dominio de Cognito; se agrega `/oauth2/token` si falta. | `channel` |
+| `COGNITO_CLIENT_ID` | texto | Cliente OAuth2 (`client_credentials`). | `channel` |
+| `COGNITO_CLIENT_SECRET` | secreto | Secreto del cliente; enmascarado en `config show`, nunca en mensajes. | `channel` |
+| `FAKE_CHANNEL_BASE_URL` | texto | Base del fake channel (`…/artemis/platform/fake-channel/v1`). | `channel` |
+| `FAKE_CHANNEL_VERIFY_SSL` | booleano · `true` | `false` desactiva la verificación del certificado del fake channel ([ADR-0008](adr/0008-cliente-http.md)). | — |
 | `CAMPAIGNS_LOG_GROUPS` | lista separada por comas | Log groups de `logs search`. Vacío = `/aws/lambda/<INGESTER>` y `/aws/lambda/<SCHEDULER>`. | `logs search` (si no se pasa `-g`/`-l`) |
 | `CLI_OUTPUT` | `table` \| `json` · `table` | Formato de salida por defecto (`--output` lo sobrescribe). | — |
 | `CLI_WAIT_TIMEOUT_SECONDS` | entero > 0 · `120` | Tope de espera (Logs Insights, `trace`). | — |
@@ -61,7 +66,16 @@ Patrones tomados de `Platform_test` e `ingester_Lambda` (`{env}` = `dev`, `qa`�
 | Ingester | `nu0284001-artemis-plc-{env}-campaigns-ingester-lambda` |
 | Scheduler | `nu0284001-artemis-plc-{env}-campaigns-scheduler-lambda` |
 | Log groups de las lambdas | `/aws/lambda/<nombre de la lambda>` |
+| Cognito (token) | `https://chatbots-artemis-{env}.auth.us-east-1.amazoncognito.com` |
+| Fake channel | `https://informacion-ext-{env}.apps.ambientesbc.com/artemis/platform/fake-channel/v1` |
 | Log groups de `platform_campaigns_ms` y `engine_nlp_ms` | **Sin confirmar.** Se descubren en [T-013](../backlog/tasks/T-013-trace-aguas-abajo.md); mientras tanto, `--group` o `CAMPAIGNS_LOG_GROUPS`. |
+
+## Credenciales del fake channel
+
+`COGNITO_CLIENT_ID` y `COGNITO_CLIENT_SECRET` son los de la prueba E2E de `Platform_test`
+(propiedades `-DclientId` y `-DclientSecret` de su pipeline). Van solo en el `.env` local. Las cuatro
+variables `COGNITO_*`/`FAKE_CHANNEL_BASE_URL` son opcionales en conjunto: sin ninguna, `config check`
+muestra Cognito y fake channel como `OPCIONAL`; con algunas, `FALTA CONFIG`.
 
 ## Permisos IAM
 

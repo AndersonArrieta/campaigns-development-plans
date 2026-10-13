@@ -9,17 +9,18 @@ campaigns <grupo> <acción> [opciones]
 main.py ─────────── CampaignsGroup: callback raíz (--env-file, --output, -v, -y)
    │                 y traducción de excepciones → mensaje + exit code
    ▼
-commands/ ───────── config_cmd · dynamo_cmd · logs_cmd
+commands/ ───────── config_cmd · dynamo_cmd · logs_cmd · channel_cmd
    │                 (parsean argumentos, arman servicios, muestran resultados)
    ▼
-services/ ───────── config_service · dynamo_service · logs_service
+services/ ───────── config_service · dynamo_service · logs_service · channel_service
    │                 (lógica sin Typer; reciben los clientes boto3 inyectados)
    ▼
 state.py ────────── AppState ─┬─ settings.py  (Settings desde .env)
-                              └─ aws.py       (AwsClients: sesión y clientes perezosos)
+                              ├─ aws.py       (AwsClients: sesión y clientes perezosos)
+                              └─ http.py      (HttpClients: clientes httpx perezosos)
    │
-   ▼  boto3
-STS · DynamoDB · CloudWatch Logs          (S3 y Lambda: pendientes)
+   ▼  boto3 / httpx
+STS · DynamoDB · CloudWatch Logs · Cognito · fake channel     (S3 y Lambda: pendientes)
 
 Transversales: output.py · errors.py · guards.py · timeutils.py
 ```
@@ -36,13 +37,15 @@ moto o con clientes falsos.
 | `main.py` | App raíz `campaigns`, opciones globales, registro de subgrupos (`app.add_typer`) y `CampaignsGroup.invoke`, que traduce excepciones. |
 | `state.py` | `AppState` en `ctx.obj`: `env_file`, `output_override`, `verbose`, `assume_yes`; carga perezosa de `settings` y `aws`. `get_state(ctx)` lo recupera en cada comando. |
 | `settings.py` | `Settings` (pydantic-settings), `load_settings`, `setting_sources` (origen de cada valor), enmascarado de secretos y `MissingSettingError`. |
+| `http.py` | `HttpClients`: clientes httpx para Cognito y el fake channel (timeouts, verificación SSL configurable). [ADR-0008](adr/0008-cliente-http.md). |
 | `aws.py` | `AwsClients`: crea la sesión boto3 la primera vez que se pide un cliente (`s3`, `dynamodb`, `lambda_`, `logs`, `sts`), con reintentos `standard` y 5 intentos. |
-| `errors.py` | `ExitCode`, jerarquía `CliError` (`UsageError`, `TestFailedError`, `AwsError`) y `translate(exc, settings)`. |
+| `errors.py` | `ExitCode`, jerarquía `CliError` (`UsageError`, `TestFailedError`, `AwsError`, `ExternalServiceError`, `ServiceAuthError`) y `translate(exc, settings)`. |
 | `output.py` | `render` (tabla rich o JSON), `to_json` (serializa `Decimal`, fechas, enums, sets) y mensajes `info/success/warn/fail` a stderr. |
 | `guards.py` | `ensure_not_prod` y `confirm_destructive`. |
 | `timeutils.py` | Zona de Colombia (UTC-5), `parse_since`, `parse_datetime` y conversiones a epoch ms y al formato de DynamoDB. |
 | `services/config_service.py` | Identidad STS y verificación de recursos (`ResourceCheck` con estado). |
 | `services/dynamo_service.py` | `CampaignsTable`, `LogsTable`, `parse_log_entry`, `follow_logs`. Esquemas en [recursos AWS](recursos-aws.md). |
+| `services/channel_service.py` | `CognitoAuth` (token `client_credentials` reutilizado hasta que vence), `FakeChannel` (`messages`, `wait_for`), `normalize_message`, `parse_channel`. |
 | `services/logs_service.py` | `LogsService`: Logs Insights (`search`), `filter_log_events` (`events`, `follow`) y `list_groups`. |
 
 ## Ciclo de una invocación
@@ -64,7 +67,7 @@ moto o con clientes falsos.
 | `0` | OK | — |
 | `1` | Prueba fallida | `TestFailedError`: `config check` con recursos en problema, `logs search` sin coincidencias, consulta de Logs Insights que no termina. |
 | `2` | Uso o configuración | `UsageError`, `SettingsError`, `MissingSettingError`, opciones inválidas. |
-| `3` | AWS | Credenciales ausentes o vencidas, permisos, recurso inexistente, conexión. |
+| `3` | AWS o servicio externo | Credenciales ausentes o vencidas, permisos, recurso inexistente, conexión; Cognito o fake channel rechazan o no responden. |
 
 `translate` reconoce:
 
@@ -75,6 +78,8 @@ moto o con clientes falsos.
 | `ClientError` `AccessDenied*`, `UnauthorizedOperation`, `403` | "Permiso denegado en `<operación>`". |
 | `ClientError` `ResourceNotFoundException`, `NoSuchBucket`, `NoSuchKey`, `404` | "No existe el recurso solicitado en `<operación>`". |
 | `ProfileNotFound`, `NoRegionError`, `EndpointConnectionError`, otros `BotoCoreError` | Mensaje específico, código 3. |
+| `httpx.TimeoutException` / `httpx.TransportError` | "El servicio no respondió a tiempo" / "No se pudo conectar con `<url>`", código 3. |
+| `ExternalServiceError`, `ServiceAuthError` (Cognito, fake channel) | Mensaje del servicio (sin el secreto), código 3. |
 
 Una excepción no reconocida se propaga con su traceback (es un bug).
 
@@ -90,7 +95,7 @@ Una excepción no reconocida se propaga con su traceback (es un bug).
 
 - `ensure_not_prod(settings, acción)`: con `CAMPAIGNS_ENV=prod` lanza `UsageError`. Todo
   comando que escriba (subir a S3, invocar lambdas, borrar) debe llamarlo. Los de lectura
-  (`config`, `dynamo get/find/list/logs`, `logs *`, `s3 ls`) están permitidos en prod.
+  (`config`, `dynamo get/find/list/logs`, `logs *`, `channel *`, `s3 ls`) están permitidos en prod.
 - `confirm_destructive(state, mensaje)`: pide confirmación salvo `--yes`; si se rechaza, sale
   con código 0 sin hacer nada.
 - `dynamo purge` ([T-012](../backlog/tasks/T-012-dynamo-purge.md)) solo borrará registros con

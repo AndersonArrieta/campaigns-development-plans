@@ -12,6 +12,7 @@ registra aquí. Las D-1…D-6 del plan original de la CLI se migraron como ADR-0
 | [0005](0005-ingesta-por-s3-y-por-invocacion.md) | Ingesta por subida a S3 y por invocación directa | proposed | D-5 |
 | [0006](0006-hora-colombia.md) | Hora Colombia en la entrada y salida de la CLI | accepted | T-006 / T-008 |
 | [0007](0007-ubicacion-del-codigo.md) | Código en `campaigns-cli/` dentro del repo de planes | accepted | D-6 |
+| [0008](0008-cliente-http.md) | Cliente HTTP httpx y verificación SSL configurable para el fake channel | accepted | T-015 |
 
 D-2 (nombres reales de recursos por ambiente) es configuración, no arquitectura: está en
 [configuración](../configuracion.md#nombres-de-recursos-por-ambiente).

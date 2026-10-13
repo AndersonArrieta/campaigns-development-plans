@@ -72,3 +72,17 @@ fecha/hora es próxima. Por eso `s3 upload` estará bloqueado en prod.
 
 `ingester_Lambda` (trigger S3, por confirmar) y `scheduler_Lambda` (programado cada hora). La
 invocación directa está prevista en [ADR-0005](adr/0005-ingesta-por-s3-y-por-invocacion.md).
+
+## Fake channel y Cognito (fuera de AWS SDK)
+
+No son recursos que la CLI consulte con boto3, sino servicios HTTP ([ADR-0008](adr/0008-cliente-http.md)):
+
+| Servicio | Petición | Respuesta |
+|---|---|---|
+| Cognito | `POST <COGNITO_TOKEN_URL>/oauth2/token`, form-urlencoded `grant_type=client_credentials&client_id=…&client_secret=…` | `{"access_token": "...", "expires_in": 3600, ...}` |
+| Fake channel WhatsApp | `GET <FAKE_CHANNEL_BASE_URL>/whatsapp/get-messages/{teléfono}` con `Authorization: Bearer <token>` | `[{"messaging_product":"whatsapp","text":{"body":"…"},"to":"…","type":"text"}]` |
+| Fake channel Teams | `GET <FAKE_CHANNEL_BASE_URL>/teams/get-messages/{recipient.id}` | `[{"channelId":"msteams","recipient":{"id":"…"},"text":"…","type":"message"}]` |
+| Sin mensajes | — | `404 {"error":"No messages found for user <id>"}` |
+
+El fake channel solo expone esas consultas: no hay endpoint para enviar ni para borrar mensajes, así
+que los mensajes de corridas anteriores siguen ahí.

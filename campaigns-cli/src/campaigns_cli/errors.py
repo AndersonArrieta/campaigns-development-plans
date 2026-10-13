@@ -1,7 +1,8 @@
-"""Excepciones de la CLI, códigos de salida y traducción de errores de AWS a mensajes cortos."""
+"""Excepciones de la CLI, códigos de salida y traducción de errores de AWS y HTTP a mensajes."""
 
 from enum import IntEnum
 
+import httpx
 from botocore.exceptions import (
     BotoCoreError,
     ClientError,
@@ -22,7 +23,7 @@ class ExitCode(IntEnum):
     OK = 0
     TEST_FAILED = 1
     USAGE = 2
-    AWS = 3
+    AWS = 3  # AWS o servicio externo (Cognito, fake channel)
 
 
 class CliError(Exception):
@@ -42,6 +43,16 @@ class TestFailedError(CliError):
 
 class AwsError(CliError):
     exit_code = ExitCode.AWS
+
+
+class ExternalServiceError(CliError):
+    """Error de un servicio externo por HTTP (Cognito, fake channel). Mismo código que AWS."""
+
+    exit_code = ExitCode.AWS
+
+
+class ServiceAuthError(ExternalServiceError):
+    """El servicio rechazó las credenciales o el token (HTTP 400/401/403)."""
 
 
 ACCESS_DENIED_CODES = frozenset(
@@ -130,4 +141,15 @@ def translate(exc: BaseException, settings: Settings | None = None) -> tuple[str
         return f"Error de AWS en `{operation}` ({code}): {message}", ExitCode.AWS
     if isinstance(exc, BotoCoreError):
         return f"Error de AWS: {exc}", ExitCode.AWS
+    if isinstance(exc, httpx.TimeoutException):
+        return f"El servicio no respondió a tiempo ({_request_url(exc)}).", ExitCode.AWS
+    if isinstance(exc, httpx.TransportError):
+        return f"No se pudo conectar con {_request_url(exc)}: {exc}", ExitCode.AWS
     return None
+
+
+def _request_url(exc: httpx.TransportError) -> str:
+    try:
+        return str(exc.request.url.copy_with(query=None))
+    except RuntimeError:
+        return "el servicio"

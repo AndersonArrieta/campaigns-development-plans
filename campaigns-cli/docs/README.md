@@ -29,9 +29,9 @@ CSV ──(S3)──> ingester_Lambda ──(DynamoDB)──> scheduler_Lambda �
 3. `scheduler_Lambda` corre cada hora, lee la partición de esa hora y publica en Kafka.
 4. `platform_campaigns_ms`, `engine_nlp_ms` y los adapters entregan el mensaje. En dev y qa los
    adapters entregan a un **fake channel** que guarda los mensajes por usuario y se consulta por
-   HTTP con un token de Cognito ([T-015](../backlog/tasks/T-015-fake-channel-messages.md)).
+   HTTP con un token de Cognito ([comandos](comandos.md), grupo `channel`).
 
-La CLI cubre los pasos 1–3 (S3, Lambdas, DynamoDB y CloudWatch Logs) y, cuando esté [T-015](../backlog/tasks/T-015-fake-channel-messages.md), la entrega final en el fake channel. Publicar o consumir
+La CLI cubre los pasos 1–3 (S3, Lambdas, DynamoDB y CloudWatch Logs) y la entrega final en el fake channel (grupo `channel`). Publicar o consumir
 directamente en Kafka o RabbitMQ y crear infraestructura quedan fuera del alcance.
 
 ## Objetivos de diseño
@@ -56,7 +56,7 @@ directamente en Kafka o RabbitMQ y crear infraestructura quedan fuera del alcanc
 | `s3` | S3 | ⏳ pendiente | [T-005](../backlog/tasks/T-005-s3-commands.md) |
 | `lambda` | Lambda | ⏳ pendiente | [T-007](../backlog/tasks/T-007-lambda-invoke.md) |
 | `trace` | S3 + DynamoDB + Logs | ⏳ pendiente | [T-009](../backlog/tasks/T-009-trace-run.md), [T-013](../backlog/tasks/T-013-trace-aguas-abajo.md), [T-016](../backlog/tasks/T-016-trace-entrega-canal.md) |
-| `channel` | Cognito + fake channel (HTTP) | ⏳ pendiente | [T-015](../backlog/tasks/T-015-fake-channel-messages.md) |
+| `channel` | Cognito + fake channel (HTTP) | ✅ implementado | [T-015](../backlog/tasks/T-015-fake-channel-messages.md), [T-016](../backlog/tasks/T-016-trace-entrega-canal.md) (en `trace`) |
 
 Validación contra la cuenta real de dev: [T-011](../backlog/tasks/T-011-validar-lectura-dev.md).
 CI: [T-014](../backlog/tasks/T-014-ci-github-actions.md). Documentación de uso final: [T-010](../backlog/tasks/T-010-documentacion.md).

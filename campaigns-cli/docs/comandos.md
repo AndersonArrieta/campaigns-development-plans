@@ -50,6 +50,25 @@ derivados de las lambdas.
 Formatos de fecha aceptados en `--from`/`--to`: `YYYY-MM-DD`, `YYYY-MM-DD HH`, `YYYY-MM-DD HH:MM`,
 `YYYY-MM-DD HH:MM:SS` (también con `T`). `--since`: número + `s`, `m`, `h` o `d`.
 
+## `channel` — [T-015](../backlog/tasks/T-015-fake-channel-messages.md) (solo lectura, permitido en prod)
+
+Consulta el **fake channel** de la plataforma con un token de Cognito (`client_credentials`),
+como el paso "I verify the campaign was delivered successfully" de la prueba E2E de `Platform_test`.
+
+| Comando | Qué hace |
+|---|---|
+| `channel messages --canal whatsapp\|teams --user ID [-n 50]` | Lista los mensajes recibidos por el usuario (canal, destinatario, texto, tipo). Sin mensajes (404 "No messages found") → "Sin resultados", código 0. |
+| `channel verify --canal whatsapp\|teams --user ID --text TEXTO [--attempts 5] [--interval 10]` | Reintenta hasta encontrar un mensaje con ese destinatario, texto y tipo (`text` en WhatsApp, `message` en Teams). Sale con 0 si llegó y con 1 si no, con el último motivo. |
+
+- `--canal` acepta `whatsapp`, `teams` o `msteams` (el valor de la columna `canal` del CSV).
+- `--user`: en WhatsApp, el teléfono con indicativo; en Teams, el `recipient.id` (UUID), **no** el
+  email que va en el CSV.
+- `verify` revisa todos los mensajes del usuario, no solo el primero (la prueba de `Platform_test`
+  solo mira el primero).
+- El token se pide una vez por ejecución y se reutiliza hasta que vence.
+- `config check` incluye las filas "Cognito" (obtiene un token) y "Fake channel" (consulta un
+  usuario inexistente y espera 200 o 404 "No messages found").
+
 ## Grupos planeados
 
 | Grupo | Comandos previstos | Tarjeta |
@@ -60,5 +79,4 @@ Formatos de fecha aceptados en `--from`/`--to`: `YYYY-MM-DD`, `YYYY-MM-DD HH`, `
 | `dynamo` | `purge --campaign-id` | [T-012](../backlog/tasks/T-012-dynamo-purge.md) |
 | `trace` | `run <csv>`: validar → subir → ingesta → IDs → logs del ingester | [T-009](../backlog/tasks/T-009-trace-run.md) |
 | `trace` | `--wait-schedule`, `--invoke-scheduler`: scheduler y microservicios | [T-013](../backlog/tasks/T-013-trace-aguas-abajo.md) |
-| `channel` | `messages --canal whatsapp\|teams --user ID`, `verify ... --text TEXTO` (token de Cognito + fake channel) | [T-015](../backlog/tasks/T-015-fake-channel-messages.md) |
 | `trace` | `--verify-delivery`: entrega del mensaje en el fake channel | [T-016](../backlog/tasks/T-016-trace-entrega-canal.md) |

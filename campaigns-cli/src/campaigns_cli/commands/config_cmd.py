@@ -51,7 +51,7 @@ def check(ctx: typer.Context) -> None:
     state = get_state(ctx)
     settings = state.settings
     identity = get_identity(state.aws.sts)
-    results = check_resources(settings, state.aws)
+    results = check_resources(settings, state.aws, state.http)
     problems = [r for r in results if r.failed]
 
     rows = [r.as_dict() for r in results]

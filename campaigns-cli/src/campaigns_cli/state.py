@@ -6,6 +6,7 @@ from pathlib import Path
 import typer
 
 from campaigns_cli.aws import AwsClients
+from campaigns_cli.http import HttpClients
 from campaigns_cli.settings import OutputFormat, Settings, load_settings
 
 
@@ -17,6 +18,7 @@ class AppState:
     assume_yes: bool = False
     _settings: Settings | None = field(default=None, repr=False)
     _aws: AwsClients | None = field(default=None, repr=False)
+    _http: HttpClients | None = field(default=None, repr=False)
 
     @property
     def settings(self) -> Settings:
@@ -30,6 +32,12 @@ class AppState:
         if self._aws is None:
             self._aws = AwsClients(self.settings)
         return self._aws
+
+    @property
+    def http(self) -> HttpClients:
+        if self._http is None:
+            self._http = HttpClients(self.settings)
+        return self._http
 
     @property
     def output(self) -> OutputFormat:

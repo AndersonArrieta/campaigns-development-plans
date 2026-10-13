@@ -63,6 +63,13 @@ class Settings(BaseSettings):
     ingester_lambda_name: str | None = None
     scheduler_lambda_name: str | None = None
 
+    # --- Fake channel (verificación de entrega) ---
+    cognito_token_url: str | None = None
+    cognito_client_id: str | None = None
+    cognito_client_secret: SecretStr | None = None
+    fake_channel_base_url: str | None = None
+    fake_channel_verify_ssl: bool = True
+
     # --- Logs ---
     campaigns_log_groups: Annotated[list[str], NoDecode] = Field(default_factory=list)
 
@@ -83,6 +90,10 @@ class Settings(BaseSettings):
         "campaigns_logs_table_name",
         "ingester_lambda_name",
         "scheduler_lambda_name",
+        "cognito_token_url",
+        "cognito_client_id",
+        "cognito_client_secret",
+        "fake_channel_base_url",
         mode="before",
     )
     @classmethod

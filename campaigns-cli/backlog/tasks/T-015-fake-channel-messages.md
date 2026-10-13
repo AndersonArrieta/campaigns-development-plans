@@ -2,7 +2,7 @@
 id: T-015
 aliases: [T-015]
 title: "Grupo channel: token de Cognito y mensajes del fake channel"
-status: todo
+status: done
 priority: P1
 epic: E-entrega
 estimate: L
@@ -50,32 +50,32 @@ Cómo lo hace hoy `Platform_test` (repo `NU0284001_Artemis_Chatbots_Platform_MR_
 - `src/campaigns_cli/errors.py` — traducir errores HTTP (conexión, 401/403, 5xx) a exit code 3
 - `src/campaigns_cli/services/config_service.py`, `commands/config_cmd.py` — filas "Cognito" y "Fake channel" en `config check`
 - `.env.example`
-- `tests/test_channel_service.py`, `tests/test_channel_cmd.py`, `tests/test_settings.py`, `tests/test_config_check.py`
-- `docs/configuracion.md`, `docs/comandos.md`, `docs/arquitectura.md`, `docs/README.md`
+- `tests/channel_fixtures.py`, `tests/test_channel_service.py`, `tests/test_channel_cmd.py`, `tests/test_settings.py`, `tests/test_config_check.py`
+- `docs/configuracion.md`, `docs/comandos.md`, `docs/arquitectura.md`, `docs/recursos-aws.md`, `docs/desarrollo.md`, `docs/README.md`, `docs/adr/README.md`, `README.md`
 - `docs/adr/0008-cliente-http.md`
 
 ## Tareas
-- [ ] Escribir ADR en `docs/adr/` (0008): cliente HTTP (`httpx` con `MockTransport` en pruebas vs. `urllib` de la librería estándar) y política de SSL (verificar por defecto; desactivable por ambiente con `FAKE_CHANNEL_VERIFY_SSL=false`, avisando por stderr).
-- [ ] Variables nuevas en `Settings` y `.env.example` (sin valores de `CLIENT_ID`/`CLIENT_SECRET`; comentario con el origen en el pipeline de `Platform_test`). El secreto nunca se imprime ni aparece en errores.
-- [ ] `CognitoAuth`: obtiene el token `client_credentials`, lo reutiliza dentro de la misma ejecución hasta `expires_in`; status ≠ 200 → error con el status y sin el cuerpo de la petición.
-- [ ] `FakeChannel.messages`: GET con Bearer; `200` + lista → mensajes normalizados; `404` "No messages found" → lista vacía; otro status → error.
-- [ ] `FakeChannel.wait_for`: reintenta hasta encontrar un mensaje cuyo destinatario, texto y tipo coincidan (busca en **todos** los mensajes de la lista, no solo el primero); `sleep` inyectable para pruebas.
-- [ ] Comandos:
+- [x] Escribir ADR en `docs/adr/` (0008): cliente HTTP (`httpx` con `MockTransport` en pruebas vs. `urllib` de la librería estándar) y política de SSL (verificar por defecto; desactivable por ambiente con `FAKE_CHANNEL_VERIFY_SSL=false`, avisando por stderr).
+- [x] Variables nuevas en `Settings` y `.env.example` (sin valores de `CLIENT_ID`/`CLIENT_SECRET`; comentario con el origen en el pipeline de `Platform_test`). El secreto nunca se imprime ni aparece en errores.
+- [x] `CognitoAuth`: obtiene el token `client_credentials`, lo reutiliza dentro de la misma ejecución hasta `expires_in`; status ≠ 200 → error con el status y sin el cuerpo de la petición.
+- [x] `FakeChannel.messages`: GET con Bearer; `200` + lista → mensajes normalizados; `404` "No messages found" → lista vacía; otro status → error.
+- [x] `FakeChannel.wait_for`: reintenta hasta encontrar un mensaje cuyo destinatario, texto y tipo coincidan (busca en **todos** los mensajes de la lista, no solo el primero); `sleep` inyectable para pruebas.
+- [x] Comandos:
   - `campaigns channel messages --canal whatsapp|teams --user ID [-n 50]`: lista los mensajes (tabla o JSON).
   - `campaigns channel verify --canal whatsapp|teams --user ID --text TEXTO [--attempts 5] [--interval 10]`: exit 0 si llegó; exit 1 (`TestFailedError`) con el último motivo si no.
   - `--canal` acepta también `msteams` como alias de `teams`.
-- [ ] `config check`: fila "Cognito" (`OK` si obtiene token, `FALTA CONFIG`, `SIN PERMISO` en 400/401) y "Fake channel" (`OK` si responde 200 o 404 con un usuario cualquiera).
-- [ ] Exit code 3 pasa a significar "AWS o servicio externo": actualizar `errors.py` y `docs/arquitectura.md`.
-- [ ] Documentar el grupo en `docs/comandos.md`, las variables en `docs/configuracion.md` y el estado en `docs/README.md`.
+- [x] `config check`: fila "Cognito" (`OK` si obtiene token, `FALTA CONFIG`, `SIN PERMISO` en 400/401) y "Fake channel" (`OK` si responde 200 o 404 con un usuario cualquiera).
+- [x] Exit code 3 pasa a significar "AWS o servicio externo": actualizar `errors.py` y `docs/arquitectura.md`.
+- [x] Documentar el grupo en `docs/comandos.md`, las variables en `docs/configuracion.md` y el estado en `docs/README.md`.
 
 ## Criterios de aceptación
-- [ ] Token: la petición lleva `grant_type=client_credentials`, `client_id` y `client_secret` en form-urlencoded; `/oauth2/token` se agrega si falta.
-- [ ] WhatsApp: una respuesta como `[{"messaging_product":"whatsapp","text":{"body":"Campaig_e2e_test_delivered_successfully"},"to":"574141179337","type":"text"}]` se normaliza y `verify --text Campaig_e2e_test_delivered_successfully` sale con 0.
-- [ ] Teams: `recipient.id`, `text` y `type: "message"` se normalizan igual.
-- [ ] `404 No messages found` en todos los intentos → `verify` sale con 1 tras `--attempts` intentos; `messages` muestra "Sin resultados" y sale con 0.
-- [ ] Token rechazado (401) o fake channel caído → exit 3 con mensaje corto; con `--verbose`, traceback.
-- [ ] `COGNITO_CLIENT_SECRET` no aparece en `config show` (enmascarado), en `repr` ni en mensajes de error.
-- [ ] Ninguna prueba hace llamadas HTTP reales.
+- [x] Token: la petición lleva `grant_type=client_credentials`, `client_id` y `client_secret` en form-urlencoded; `/oauth2/token` se agrega si falta.
+- [x] WhatsApp: una respuesta como `[{"messaging_product":"whatsapp","text":{"body":"Campaig_e2e_test_delivered_successfully"},"to":"574141179337","type":"text"}]` se normaliza y `verify --text Campaig_e2e_test_delivered_successfully` sale con 0.
+- [x] Teams: `recipient.id`, `text` y `type: "message"` se normalizan igual.
+- [x] `404 No messages found` en todos los intentos → `verify` sale con 1 tras `--attempts` intentos; `messages` muestra "Sin resultados" y sale con 0.
+- [x] Token rechazado (401) o fake channel caído → exit 3 con mensaje corto; con `--verbose`, traceback.
+- [x] `COGNITO_CLIENT_SECRET` no aparece en `config show` (enmascarado), en `repr` ni en mensajes de error.
+- [x] Ninguna prueba hace llamadas HTTP reales.
 
 ## Verificación
 ```bash
@@ -94,3 +94,5 @@ uv run campaigns channel verify --canal whatsapp --user 574141179337 --text Camp
 - `affects: [T-003]` porque amplía `config check` y la traducción de errores de esa tarjeta.
 - Si el fake channel no conserva mensajes viejos, el `verify` de la verificación en dev puede salir con 1 sin ser un fallo de la CLI; en ese caso basta con que `messages` responda 200 o 404.
 - Los valores de `clientId` y `clientSecret` están en las propiedades del pipeline de `Platform_test`; los pone el usuario en su `.env`.
+- **Cerrada (2026-10-13)** con la verificación local: 81 pruebas del módulo, suite de 213 en verde con 97 % de cobertura, ruff y mypy sin errores, `channel --help` y ADR-0008 presentes. Los comandos de dev del bloque de verificación no se corrieron porque el `.env` aún no tiene `COGNITO_*` ni `FAKE_CHANNEL_BASE_URL`; por decisión del usuario, lo que falle al probar en dev se registra como bug `B-0NN` con `affects: [T-015]`.
+- Cambio respecto a lo planeado: en `config check`, si **ninguna** variable del fake channel está configurada, Cognito y fake channel salen como `OPCIONAL` (no `FALTA CONFIG`), para no hacer fallar `config check` a quien no usa el grupo `channel`. Si faltan solo algunas, salen como `FALTA CONFIG`.
