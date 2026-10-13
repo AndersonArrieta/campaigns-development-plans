@@ -15,6 +15,7 @@ runner = CliRunner(env={"COLUMNS": "200"})
 REGION = "us-east-1"
 BUCKET = "campaigns-input-dev"
 TABLE = "campaigns-dev"
+LOGS_TABLE = "campaigns-logs-dev"
 INDEX = "campaign_id-index"
 INGESTER = "ingester-dev"
 SCHEDULER = "scheduler-dev"
@@ -25,6 +26,7 @@ AWS_REGION={REGION}
 CAMPAIGNS_INPUT_BUCKET={BUCKET}
 CAMPAIGNS_TABLE_NAME={TABLE}
 CAMPAIGNS_TABLE_CAMPAIGN_INDEX={INDEX}
+CAMPAIGNS_LOGS_TABLE_NAME={LOGS_TABLE}
 INGESTER_LAMBDA_NAME={INGESTER}
 SCHEDULER_LAMBDA_NAME={SCHEDULER}
 CAMPAIGNS_LOG_GROUPS={",".join(LOG_GROUPS)}
@@ -80,6 +82,21 @@ def fake_lambda(monkeypatch: pytest.MonkeyPatch) -> FakeLambda:
     return fake
 
 
+def _create_logs_table() -> None:
+    boto3.client("dynamodb", region_name=REGION).create_table(
+        TableName=LOGS_TABLE,
+        KeySchema=[
+            {"AttributeName": "app_id", "KeyType": "HASH"},
+            {"AttributeName": "datetime", "KeyType": "RANGE"},
+        ],
+        AttributeDefinitions=[
+            {"AttributeName": "app_id", "AttributeType": "S"},
+            {"AttributeName": "datetime", "AttributeType": "S"},
+        ],
+        BillingMode="PAY_PER_REQUEST",
+    )
+
+
 def _create_all(
     fake_lambda: FakeLambda, *, table_index: bool = True, skip: tuple[str, ...] = ()
 ) -> None:
@@ -87,6 +104,8 @@ def _create_all(
         boto3.client("s3", region_name=REGION).create_bucket(Bucket=BUCKET)
     if "table" not in skip:
         _create_table(with_index=table_index)
+    if "logs" not in skip:
+        _create_logs_table()
     for name in (INGESTER, SCHEDULER):
         if name not in skip:
             fake_lambda.functions.add(name)
@@ -147,13 +166,14 @@ def test_missing_bucket(write_env, fake_lambda: FakeLambda) -> None:  # type: ig
 @pytest.mark.usefixtures("mocked_aws")
 def test_missing_table_lambda_and_log_group(write_env, fake_lambda: FakeLambda) -> None:  # type: ignore[no-untyped-def]
     write_env(ENV)
-    _create_all(fake_lambda, skip=("table", SCHEDULER, LOG_GROUPS[1]))
+    _create_all(fake_lambda, skip=("table", "logs", SCHEDULER, LOG_GROUPS[1]))
 
     exit_code, report, _ = _check()
 
     statuses = _statuses(report)
     assert exit_code == 1
     assert statuses[f"DynamoDB tabla:{TABLE}"] == "NO EXISTE"
+    assert statuses[f"DynamoDB logs:{LOGS_TABLE}"] == "NO EXISTE"
     assert statuses[f"DynamoDB GSI:{INDEX}"] == "ERROR"
     assert statuses[f"Lambda:{SCHEDULER}"] == "NO EXISTE"
     assert statuses[f"Lambda:{INGESTER}"] == "OK"
@@ -194,6 +214,7 @@ def test_missing_variables(write_env, fake_lambda: FakeLambda) -> None:  # type:
     missing = {r["variable"] for r in report["recursos"] if r["estado"] == "FALTA CONFIG"}
     assert missing == {
         "CAMPAIGNS_TABLE_NAME",
+        "CAMPAIGNS_LOGS_TABLE_NAME",
         "INGESTER_LAMBDA_NAME",
         "SCHEDULER_LAMBDA_NAME",
         "CAMPAIGNS_LOG_GROUPS",

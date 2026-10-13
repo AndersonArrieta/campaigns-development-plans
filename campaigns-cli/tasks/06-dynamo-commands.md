@@ -8,11 +8,25 @@
 
 Consultar y limpiar la tabla de campañas que llena `ingester_Lambda` y lee `scheduler_Lambda`.
 
+> **Alcance ejecutado (2026-10-13): solo lectura.** Se agregó la **tabla de logs** del ingester para revisar las cargas de campañas (`dynamo logs`, con `--follow`). `dynamo purge` queda pendiente para una task posterior.
+
+## Esquema confirmado
+
+Fuentes: `ingester_Lambda/src/models/notification.py`, `src/controllers/processor.py`, `test/src/libs/test_database_management.py`, `scheduler_Lambda/test/config/config.json`, `docs/docs/ExternalServices.md`, y `Platform_test/.../ValidateCampaignDynamo.java`.
+
+| Tabla | Nombre (`{env}` = dev, qa…) | PK | SK | Atributos |
+|---|---|---|---|---|
+| Campañas | `nu0284001-artemis-chatbots-platform-{env}-scheduled-campaigns` | `datetime` (`YYYY-MM-DD HH:00:00`, hora Colombia) | `notification_id` | `campaign_id`, `app_id`, `channel`, `user`, `notification_node`, `retries`, `context` (mapa), `expiration_date` (TTL epoch) |
+| Logs | `nu0284001-artemis-chatbots-platform-{env}-scheduled-campaigns-logs` | `app_id` (`UNKNOWN` si falla la lectura del archivo) | `datetime` (`str(datetime.now())` de la Lambda, con microsegundos; se asume UTC) | `result`: JSON en texto con `status`, `stats` y `body_result` (de aquí se extraen `campaign_id` y la key del archivo) |
+
+- **D-4 resuelto:** la tabla de campañas **no tiene GSI**. Buscar por `campaign_id` o `user` usa scan (con aviso). `CAMPAIGNS_TABLE_CAMPAIGN_INDEX` se mantiene por si se crea uno.
+- Como la PK es la hora programada, `dynamo list` hace **un query por hora** del rango (sin scan), con un máximo de 31 días.
+
 ## Contexto de la tabla
 
 Del plan 7938050 (§2.1): la clave es `datetime` + `notification_id`, y cada registro guarda `campaign_id`. Formato de `datetime`: `yyyy-MM-dd HH:mm:ss`.
 
-> **Confirmar antes de empezar:** cuál es la partition key y cuál la sort key, si existe un GSI por `campaign_id` (D-4) y los nombres exactos de los atributos (`app_id`, `usuario`, estado, etc.). Leerlo con `aws dynamodb describe-table` en dev y ajustar esta task.
+> ~~Confirmar antes de empezar~~ → confirmado en el código (ver **Esquema confirmado**).
 
 ## Archivos
 
@@ -22,7 +36,21 @@ Del plan 7938050 (§2.1): la clave es `datetime` + `notification_id`, y cada reg
 | `src/campaigns_cli/commands/dynamo_cmd.py` | Subgrupo `dynamo` con `get`, `find`, `list`, `purge`. |
 | `tests/test_dynamo_service.py` | Pruebas con moto (tabla creada con el mismo esquema que dev). |
 
-## Pasos
+## Comandos implementados
+
+```text
+campaigns dynamo get  --notification-id ID [--datetime "2026-10-13 10"]   # get_item; sin --datetime, scan
+campaigns dynamo find [--campaign-id ID] [--user U] [--app-id A] [-n 200]   # scan filtrado (o GSI)
+campaigns dynamo list [--date 2026-10-13 [--hour 10] | --from ... --to ...] [--app-id] [--user] [-n 500]
+campaigns dynamo logs [--app-id A] [--since 24h | --from ... --to ...] [--details] [-f] [-n 50]
+```
+
+- `list` sin argumentos muestra el día actual en hora Colombia.
+- `logs` sin `--app-id` hace un scan de la tabla de logs filtrando por fecha (todas las apps); con `--app-id` hace un query.
+- `logs --follow` consulta cada `CLI_POLL_INTERVAL_SECONDS` y muestra solo las cargas nuevas, hasta Ctrl+C.
+- Todos son de solo lectura y están permitidos en prod.
+
+## Pasos (plan original)
 
 1. Usar el cliente de bajo nivel con `boto3.dynamodb.types.TypeDeserializer` (o el `resource` `Table`) y convertir `Decimal` a `int`/`float` antes de imprimir JSON.
 2. `dynamo get --notification-id ID [--datetime DT]`:
@@ -50,7 +78,8 @@ Del plan 7938050 (§2.1): la clave es `datetime` + `notification_id`, y cada reg
 
 ## Criterios de terminado
 
-- [ ] Esquema real de la tabla documentado en el docstring de `DynamoService`.
-- [ ] `campaigns dynamo find --campaign-id <id>` devuelve en dev los registros de una campaña cargada.
-- [ ] Pruebas, ruff y mypy en verde.
+- [x] Esquema real de las tablas documentado en el docstring de `services/dynamo_service.py`.
+- [ ] `campaigns dynamo find --campaign-id <id>` devuelve en dev los registros de una campaña cargada. *(pendiente: requiere `.env` de dev con credenciales)*
+- [ ] `campaigns dynamo purge` *(pendiente: fuera del alcance de solo lectura)*
+- [x] Pruebas (129, cobertura 96 %), ruff y mypy en verde (2026-10-13).
 - [ ] Commit (lo hace el desarrollador).

@@ -146,6 +146,21 @@ def check_resources(settings: Settings, aws: AwsClients) -> list[ResourceCheck]:
 
     checks.extend(_check_table(settings, aws))
 
+    logs_table = settings.campaigns_logs_table_name
+    if logs_table:
+        status, detail, _ = _probe(partial(aws.dynamodb.describe_table, TableName=logs_table))
+        checks.append(
+            ResourceCheck(
+                "DynamoDB logs",
+                env_var_name("campaigns_logs_table_name"),
+                logs_table,
+                status,
+                detail,
+            )
+        )
+    else:
+        checks.append(_missing("DynamoDB logs", "campaigns_logs_table_name"))
+
     for field in ("ingester_lambda_name", "scheduler_lambda_name"):
         name = getattr(settings, field)
         if not name:

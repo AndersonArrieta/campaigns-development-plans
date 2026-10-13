@@ -30,7 +30,7 @@ La CLI debe:
 | `csv` | — | Generar archivos CSV de campaña válidos (formato de `csv-test.csv`) y validar uno existente. |
 | `s3` | Bucket de entrada del ingester | Subir CSV, listar objetos, descargar, borrar archivos de prueba. |
 | `lambda` | `ingester_Lambda`, `scheduler_Lambda` | Invocar con un payload (evento S3 / evento programado), ver respuesta y log tail. |
-| `dynamo` | Tabla de campañas | Buscar por `notification_id`, por `campaign_id` (GSI o scan filtrado), listar por `datetime`, limpiar registros de prueba. |
+| `dynamo` | Tablas de campañas y de logs del ingester | Buscar por `notification_id`, por `campaign_id`/usuario (scan filtrado), listar por `datetime` (query por hora), revisar las cargas de campañas en la tabla de logs (`logs --follow`), limpiar registros de prueba. |
 | `logs` | CloudWatch Logs | Buscar un `notification_id` / `campaign_id` en los log groups de todos los componentes (Logs Insights). |
 | `trace` | S3 + Dynamo + Logs | Prueba de punta a punta: subir CSV → esperar ingesta → verificar registros en Dynamo → buscar trazas en logs. |
 
@@ -120,7 +120,8 @@ AWS_PROFILE=                           # alternativa: perfil / SSO
 CAMPAIGNS_INPUT_BUCKET=
 CAMPAIGNS_INPUT_PREFIX=campaigns/input/
 CAMPAIGNS_TABLE_NAME=
-CAMPAIGNS_TABLE_CAMPAIGN_INDEX=        # GSI por campaign_id (vacío => scan filtrado)
+CAMPAIGNS_TABLE_CAMPAIGN_INDEX=        # GSI por campaign_id (hoy no existe => scan filtrado)
+CAMPAIGNS_LOGS_TABLE_NAME=             # tabla de logs de ejecución del ingester
 INGESTER_LAMBDA_NAME=
 SCHEDULER_LAMBDA_NAME=
 
@@ -244,9 +245,9 @@ campaigns = "campaigns_cli.main:app"
 | ID | Decisión | Propuesta |
 |---|---|---|
 | D-1 | Framework CLI | **Typer** (alternativa: Click puro). |
-| D-2 | Nombres reales de recursos por ambiente (bucket, prefijo, tabla, GSI, lambdas, log groups) | Confirmar con el equipo y completar `.env.example`. |
+| D-2 | Nombres reales de recursos por ambiente (bucket, prefijo, tabla, GSI, lambdas, log groups) | Parcial (T-06): patrones de bucket, tablas de campañas y logs, y scheduler tomados de `Platform_test` (ver `.env.example`). Faltan ingester y log groups. |
 | D-3 | Autenticación AWS | ✅ Decidido (2026-10-13): credenciales en el `.env` (no versionado), con `AWS_PROFILE` como alternativa. |
-| D-4 | ¿Existe GSI por `campaign_id` en la tabla de campañas? | Si no existe, `dynamo find` usa scan filtrado con advertencia de costo. |
+| D-4 | ¿Existe GSI por `campaign_id` en la tabla de campañas? | ✅ Resuelto (T-06): **no existe**. `dynamo find` usa scan filtrado con aviso. |
 | D-5 | ¿Invocar el ingester directamente o solo vía subida a S3? | Soportar ambos: `s3 upload` (flujo real) y `lambda invoke ingester` (aislado). |
 | D-6 | Ubicación del código | Repo propio o carpeta `campaigns-cli/` dentro de este repo de planes. |
 

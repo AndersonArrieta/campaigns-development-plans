@@ -56,9 +56,10 @@ class Settings(BaseSettings):
 
     # --- Recursos ---
     campaigns_input_bucket: str | None = None
-    campaigns_input_prefix: str = "campaigns/input/"
+    campaigns_input_prefix: str = ""
     campaigns_table_name: str | None = None
     campaigns_table_campaign_index: str | None = None
+    campaigns_logs_table_name: str | None = None
     ingester_lambda_name: str | None = None
     scheduler_lambda_name: str | None = None
 
@@ -79,6 +80,7 @@ class Settings(BaseSettings):
         "campaigns_input_bucket",
         "campaigns_table_name",
         "campaigns_table_campaign_index",
+        "campaigns_logs_table_name",
         "ingester_lambda_name",
         "scheduler_lambda_name",
         mode="before",
