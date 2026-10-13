@@ -85,6 +85,30 @@ uv run campaigns dynamo logs -f                             # sigue las cargas n
 - `list` hace un query por cada hora del rango (máximo 31 días), sin scan.
 - `logs --since` usa UTC (se asume que la Lambda guarda la fecha en UTC). Si una carga reciente no aparece con `--since 2h`, prueba con `--since 1d` y revisa la diferencia de horas.
 
+## Comandos `logs` (CloudWatch, solo lectura)
+
+Requieren en el `.env` los nombres de las lambdas (los log groups se derivan como `/aws/lambda/<nombre>`):
+
+```dotenv
+INGESTER_LAMBDA_NAME=nu0284001-artemis-plc-dev-campaigns-ingester-lambda
+SCHEDULER_LAMBDA_NAME=nu0284001-artemis-plc-dev-campaigns-scheduler-lambda
+```
+
+Permisos: `logs:DescribeLogGroups`, `logs:FilterLogEvents`, `logs:StartQuery`, `logs:GetQueryResults` y `logs:StopQuery`.
+
+```bash
+uv run campaigns logs groups                                   # log groups de artemis (para descubrir nombres)
+uv run campaigns logs tail -l scheduler                        # últimos 15 min del scheduler
+uv run campaigns logs tail -l ingester --since 2h --filter "Campaign"
+uv run campaigns logs tail -l scheduler -f                     # seguir en vivo (Ctrl+C)
+uv run campaigns logs search --id <notification_id>            # en qué lambda aparece (últimas 24 h)
+uv run campaigns logs search --id <campaign_id> -l ingester --from "2026-10-13 08:00"
+```
+
+- Las horas (`--from`, `--to` y las que se muestran) son **hora Colombia**.
+- `search` usa Logs Insights: busca el texto literal (mínimo 6 caracteres), muestra un resumen por componente y sale con código 1 si no hay coincidencias.
+- Otros log groups (ej. `platform_campaigns_ms`): `--group <log group>` o `CAMPAIGNS_LOG_GROUPS` en el `.env`.
+
 ## Notas
 
 - Ejecuta los comandos desde `campaigns-cli/`: el `.env` se busca en la carpeta actual. Desde otra carpeta usa `--env-file ruta/al/.env`.

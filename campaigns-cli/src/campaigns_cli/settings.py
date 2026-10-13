@@ -110,6 +110,17 @@ class Settings(BaseSettings):
     def has_static_credentials(self) -> bool:
         return self.aws_access_key_id is not None
 
+    @property
+    def lambda_log_groups(self) -> dict[str, str]:
+        """Log group de cada Lambda configurada: {"ingester": "/aws/lambda/...", ...}."""
+        names = {"ingester": self.ingester_lambda_name, "scheduler": self.scheduler_lambda_name}
+        return {key: f"/aws/lambda/{name}" for key, name in names.items() if name}
+
+    @property
+    def effective_log_groups(self) -> list[str]:
+        """CAMPAIGNS_LOG_GROUPS si está definida; si no, los log groups de las Lambdas."""
+        return self.campaigns_log_groups or list(self.lambda_log_groups.values())
+
     def require(self, *fields: str) -> None:
         """Lanza MissingSettingError con las variables vacías que el comando necesita."""
         missing = [env_var_name(name) for name in fields if not getattr(self, name)]

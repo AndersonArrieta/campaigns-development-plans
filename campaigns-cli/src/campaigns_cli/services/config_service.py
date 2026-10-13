@@ -117,12 +117,15 @@ def _log_group_exists(aws: AwsClients, group: str) -> bool:
 
 
 def _check_log_groups(settings: Settings, aws: AwsClients) -> list[ResourceCheck]:
-    if not settings.campaigns_log_groups:
+    groups = settings.effective_log_groups
+    if not groups:
         return [_missing("Log group", "campaigns_log_groups")]
 
     checks = []
     variable = env_var_name("campaigns_log_groups")
-    for group in settings.campaigns_log_groups:
+    if not settings.campaigns_log_groups:
+        variable += " (derivado de las lambdas)"
+    for group in groups:
         status, detail, exists = _probe(partial(_log_group_exists, aws, group))
         if status is Status.OK and not exists:
             status = Status.NOT_FOUND

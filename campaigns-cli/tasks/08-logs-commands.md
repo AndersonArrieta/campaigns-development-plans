@@ -8,6 +8,22 @@
 
 Buscar un identificador (`notification_id`, `campaign_id` u otro texto) en los log groups de todos los componentes del flujo con CloudWatch Logs Insights, y mostrar en qué componente aparece y cuándo.
 
+> **Ejecución (2026-10-13), enfocada en las lambdas:**
+> - Log groups: `/aws/lambda/nu0284001-artemis-plc-{env}-campaigns-ingester-lambda` y `/aws/lambda/nu0284001-artemis-plc-{env}-campaigns-scheduler-lambda`. Si `CAMPAIGNS_LOG_GROUPS` está vacío, se derivan de `INGESTER_LAMBDA_NAME` y `SCHEDULER_LAMBDA_NAME` (también en `config check`).
+> - Comandos agregados además de `search`: `logs tail` (eventos recientes de una lambda, `--filter`, `-f`) y `logs groups` (descubrir log groups por prefijo).
+> - Horas de entrada y salida en **hora Colombia** (CloudWatch guarda epoch; Logs Insights devuelve UTC).
+> - La búsqueda usa `filter @message like "<texto>"` (literal, sin regex) en lugar de `re.escape`.
+> - `search` sale con código 1 si el texto no aparece en ningún log group.
+> - `platform_campaigns_ms` queda pendiente: falta saber a qué log group envía sus logs (se puede pasar con `--group` o `CAMPAIGNS_LOG_GROUPS`).
+
+## Comandos implementados
+
+```text
+campaigns logs groups [--prefix /aws/lambda/nu0284001-artemis]
+campaigns logs tail   (-l ingester|scheduler | -g GROUP) [--since 15m | --from .. --to ..] [--filter TEXTO] [-f] [-n 100]
+campaigns logs search --id TEXTO [-l ingester|scheduler ...] [-g GROUP ...] [--since 24h | --from .. --to ..] [-n 200]
+```
+
 ## Archivos
 
 | Archivo | Cambio |
@@ -53,6 +69,6 @@ Buscar un identificador (`notification_id`, `campaign_id` u otro texto) en los l
 
 ## Criterios de terminado
 
-- [ ] `campaigns logs search --id <notification_id> --since 1h` en dev muestra las trazas del ingester y del scheduler para un envío real.
-- [ ] Pruebas, ruff y mypy en verde.
+- [ ] `campaigns logs search --id <notification_id> --since 1h` en dev muestra las trazas del ingester y del scheduler para un envío real. *(pendiente: probar con credenciales de dev)*
+- [x] Pruebas (162, cobertura 96 %), ruff y mypy en verde (2026-10-13).
 - [ ] Commit (lo hace el desarrollador).

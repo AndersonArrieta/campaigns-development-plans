@@ -52,6 +52,15 @@ def parse_datetime(value: str) -> datetime:
     raise UsageError(f"Fecha inválida '{value}': usa YYYY-MM-DD o 'YYYY-MM-DD HH:MM:SS'.")
 
 
+def colombia_to_epoch_ms(value: datetime) -> int:
+    """Hora Colombia sin zona → epoch en milisegundos (formato de CloudWatch Logs)."""
+    return int(value.replace(tzinfo=COLOMBIA_TZ).timestamp() * 1000)
+
+
+def epoch_ms_to_colombia(value: int) -> datetime:
+    return datetime.fromtimestamp(value / 1000, COLOMBIA_TZ).replace(tzinfo=None)
+
+
 def to_dynamo(value: datetime) -> str:
     return value.strftime(DYNAMO_FORMAT)
 
