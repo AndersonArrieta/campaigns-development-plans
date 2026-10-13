@@ -1,17 +1,40 @@
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Any
 
 import typer
+from typer.core import TyperGroup
 
 from campaigns_cli import __version__
 from campaigns_cli.commands import config_cmd
+from campaigns_cli.errors import translate
+from campaigns_cli.output import err_console, fail
 from campaigns_cli.settings import OutputFormat
 from campaigns_cli.state import AppState
+
+
+class CampaignsGroup(TyperGroup):
+    """Grupo raíz: traduce las excepciones conocidas a un mensaje corto y su exit code."""
+
+    def invoke(self, ctx: typer.Context) -> Any:  # type: ignore[override]
+        try:
+            return super().invoke(ctx)
+        except Exception as exc:
+            state = ctx.obj if isinstance(ctx.obj, AppState) else AppState()
+            translated = translate(exc, state._settings)
+            if translated is None:
+                raise
+            message, exit_code = translated
+            fail(message)
+            if state.verbose:
+                err_console.print_exception()
+            raise typer.Exit(code=exit_code) from exc
+
 
 app = typer.Typer(
     name="campaigns",
     help="Pruebas sobre los recursos AWS del flujo de campañas.",
     no_args_is_help=True,
+    cls=CampaignsGroup,
 )
 app.add_typer(config_cmd.app, name="config")
 
@@ -38,7 +61,10 @@ def main(
     ] = False,
     yes: Annotated[bool, typer.Option("--yes", "-y", help="Omite las confirmaciones.")] = False,
 ) -> None:
-    """Pruebas sobre los recursos AWS del flujo de campañas."""
+    """Pruebas sobre los recursos AWS del flujo de campañas.
+
+    Códigos de salida: 0 OK, 1 prueba fallida, 2 uso/configuración, 3 AWS.
+    """
     ctx.obj = AppState(
         env_file=env_file,
         output_override=output,

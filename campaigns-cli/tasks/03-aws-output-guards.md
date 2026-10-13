@@ -21,6 +21,14 @@ Centralizar la creación de clientes boto3, el formato de salida (tabla / JSON),
 | `tests/conftest.py` | Fixtures: `settings` de prueba, `aws_credentials` falsas, `mocked_aws` (moto). |
 | `tests/test_guards.py`, `tests/test_output.py`, `tests/test_config_check.py` | Pruebas. |
 
+> **Notas de ejecución (2026-10-13):**
+> - **D-3 cambió:** las credenciales AWS van en el `.env` (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`) como `SecretStr` en `Settings`, con prioridad sobre `AWS_PROFILE`. Los mensajes de error de credenciales apuntan al `.env` en lugar de `aws sso login`.
+> - `translate(exc, settings)` en `errors.py` hace la traducción; la aplica `CampaignsGroup.invoke` en `main.py`, así que también funciona con `CliRunner`.
+> - La verificación de recursos vive en `services/config_service.py` (sin Typer).
+> - Las tablas usan `overflow="fold"`: los IDs y ARNs largos se parten en líneas en lugar de recortarse con "…".
+> - Las pruebas de Lambda usan un cliente falso: crear Lambdas en moto exige simular IAM (~7 s por prueba).
+> - **Rendimiento:** con el `.venv` dentro de OneDrive (`/mnt/c`) la suite tarda ~220 s; con `UV_PROJECT_ENVIRONMENT=$HOME/.venvs/campaigns-cli` (disco Linux) tarda ~5 s.
+
 ## Pasos
 
 1. Códigos de salida:
@@ -36,7 +44,7 @@ Centralizar la creación de clientes boto3, el formato de salida (tabla / JSON),
    | Excepción | Mensaje | Exit code |
    |---|---|---|
    | `MissingSettingError` | "Falta `X` en el .env" | 2 |
-   | `NoCredentialsError`, `TokenRetrievalError`, `SSOTokenLoadError` | "Sin credenciales. Ejecuta `aws sso login --profile <perfil>`" | 3 |
+   | `NoCredentialsError`, `TokenRetrievalError`, `SSOTokenLoadError` | "Sin credenciales. Revisa AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_SESSION_TOKEN en el .env" | 3 |
    | `ClientError` `AccessDenied*` | "Permiso denegado para `<operación>` sobre `<recurso>`" | 3 |
    | `ClientError` `ResourceNotFound*`, `NoSuchBucket`, `NoSuchKey` | "No existe `<recurso>`" | 3 |
    | `TestFailedError` | Resumen de la prueba | 1 |
@@ -56,11 +64,11 @@ Centralizar la creación de clientes boto3, el formato de salida (tabla / JSON),
 - `confirm_destructive` con `--yes` no pregunta; sin `--yes` y respuesta "n" no ejecuta la acción.
 - `render` en JSON produce texto que `json.loads` acepta.
 - `config check` con moto: bucket y tabla creados → `OK`; bucket sin crear → `NO EXISTE` y exit code 1.
-- Error `NoCredentialsError` simulado → exit code 3 y mensaje con `aws sso login`.
+- Error `NoCredentialsError` simulado → exit code 3 y mensaje que apunta a las credenciales del `.env`.
 
 ## Criterios de terminado
 
-- [ ] Ningún comando crea clientes boto3 por su cuenta: todos usan `AwsClients`.
-- [ ] `config check` en dev muestra el estado real de los recursos.
-- [ ] Pruebas, ruff y mypy en verde.
+- [x] Ningún comando crea clientes boto3 por su cuenta: todos usan `AwsClients`.
+- [ ] `config check` en dev muestra el estado real de los recursos. *(pendiente: requiere el `.env` de dev con credenciales y nombres reales, D-2)*
+- [x] Pruebas (68), ruff y mypy en verde (2026-10-13).
 - [ ] Commit (lo hace el desarrollador).

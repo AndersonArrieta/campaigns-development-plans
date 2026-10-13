@@ -108,8 +108,13 @@ campaigns-cli/
 ```dotenv
 # --- Entorno ---
 CAMPAIGNS_ENV=dev                      # dev | qa | prod
-AWS_PROFILE=finaipro-dev               # opcional si se usan llaves o SSO
 AWS_REGION=us-east-1
+
+# --- Credenciales AWS (prioridad sobre AWS_PROFILE) ---
+AWS_ACCESS_KEY_ID=
+AWS_SECRET_ACCESS_KEY=
+AWS_SESSION_TOKEN=                     # solo credenciales temporales
+AWS_PROFILE=                           # alternativa: perfil / SSO
 
 # --- Recursos ---
 CAMPAIGNS_INPUT_BUCKET=
@@ -136,7 +141,9 @@ CLI_TEST_APP_ID=others-test            # app_id usado para datos de prueba (y pa
 - `Settings` (pydantic-settings) lee, en este orden de prioridad: **variables de entorno del proceso > archivo `.env`** > valores por defecto.
 - Opción global `--env-file PATH` para usar otro archivo (ej. `.env.qa`) sin editar el principal.
 - Las variables obligatorias (bucket, tabla, nombres de lambdas) se validan **solo cuando el comando las necesita**, para que `campaigns config show` o `campaigns csv generate` funcionen aunque falten.
-- Las credenciales AWS **no** se ponen en `.env`: se usa `AWS_PROFILE` (perfil / SSO) y la cadena estándar de boto3. Si alguien necesita llaves, se documentan como excepción y nunca se versionan.
+- Las credenciales AWS se pasan por el `.env` (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY` y, si son temporales, `AWS_SESSION_TOKEN`) y tienen prioridad sobre `AWS_PROFILE`. Si no están, se usa `AWS_PROFILE` o la cadena estándar de boto3.
+- Las credenciales se manejan como `SecretStr`: no aparecen en `repr`, tracebacks ni mensajes de validación, y `config show` las muestra enmascaradas. `AWS_ACCESS_KEY_ID` y `AWS_SECRET_ACCESS_KEY` deben ir juntas.
+- El `.env` nunca se versiona; `.env.example` va sin valores.
 - `.env` y `.env.*` (excepto `.env.example`) van en `.gitignore`.
 
 ## 6. Diseño de comandos
@@ -181,7 +188,7 @@ campaigns trace run campaign.csv [--timeout 120]
 - **Protecciones (`guards.py`):**
   - Si `CAMPAIGNS_ENV=prod`, solo se permiten comandos de lectura (`config`, `dynamo get/find/list`, `logs search`, `s3 ls`).
   - Los comandos destructivos (`s3 rm`, `dynamo purge`) piden confirmación salvo `--yes`, y `purge` solo borra registros cuyo `app_id` sea `CLI_TEST_APP_ID`.
-- Errores de boto3 (`ClientError`, `NoCredentialsError`) se traducen a mensajes cortos con sugerencia (ej. "ejecuta `aws sso login --profile ...`").
+- Errores de boto3 (`ClientError`, `NoCredentialsError`) se traducen a mensajes cortos con sugerencia (ej. "revisa AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / AWS_SESSION_TOKEN en el .env").
 
 ## 7. Uso de uv
 
@@ -238,7 +245,7 @@ campaigns = "campaigns_cli.main:app"
 |---|---|---|
 | D-1 | Framework CLI | **Typer** (alternativa: Click puro). |
 | D-2 | Nombres reales de recursos por ambiente (bucket, prefijo, tabla, GSI, lambdas, log groups) | Confirmar con el equipo y completar `.env.example`. |
-| D-3 | Autenticación AWS | Perfiles SSO (`AWS_PROFILE`); sin llaves en `.env`. |
+| D-3 | Autenticación AWS | ✅ Decidido (2026-10-13): credenciales en el `.env` (no versionado), con `AWS_PROFILE` como alternativa. |
 | D-4 | ¿Existe GSI por `campaign_id` en la tabla de campañas? | Si no existe, `dynamo find` usa scan filtrado con advertencia de costo. |
 | D-5 | ¿Invocar el ingester directamente o solo vía subida a S3? | Soportar ambos: `s3 upload` (flujo real) y `lambda invoke ingester` (aislado). |
 | D-6 | Ubicación del código | Repo propio o carpeta `campaigns-cli/` dentro de este repo de planes. |

@@ -4,11 +4,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 
 import typer
-from rich.console import Console
 
-from campaigns_cli.settings import OutputFormat, Settings, SettingsError, load_settings
-
-err_console = Console(stderr=True)
+from campaigns_cli.aws import AwsClients
+from campaigns_cli.settings import OutputFormat, Settings, load_settings
 
 
 @dataclass
@@ -18,17 +16,20 @@ class AppState:
     verbose: bool = False
     assume_yes: bool = False
     _settings: Settings | None = field(default=None, repr=False)
+    _aws: AwsClients | None = field(default=None, repr=False)
 
     @property
     def settings(self) -> Settings:
         """Carga perezosa: un `.env` inválido no rompe los comandos que no lo usan."""
         if self._settings is None:
-            try:
-                self._settings = load_settings(self.env_file)
-            except SettingsError as exc:
-                err_console.print(f"[red]{exc}[/red]")
-                raise typer.Exit(code=2) from exc
+            self._settings = load_settings(self.env_file)
         return self._settings
+
+    @property
+    def aws(self) -> AwsClients:
+        if self._aws is None:
+            self._aws = AwsClients(self.settings)
+        return self._aws
 
     @property
     def output(self) -> OutputFormat:

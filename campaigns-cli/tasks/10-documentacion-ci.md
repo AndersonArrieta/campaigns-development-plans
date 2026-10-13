@@ -20,7 +20,8 @@ Dejar la CLI lista para que otra persona del equipo la instale y la use sin ayud
 ## Pasos
 
 1. `README.md` con estas secciones:
-   - **Requisitos:** uv, credenciales AWS por perfil o SSO.
+   - **Requisitos:** uv, credenciales AWS en el `.env` (o `AWS_PROFILE`).
+   - **WSL + OneDrive:** usar `UV_PROJECT_ENVIRONMENT=$HOME/.venvs/campaigns-cli` para que el `.venv` quede en el disco Linux (las pruebas pasan de ~220 s a ~5 s).
    - **Instalación:** `uv sync`; opcional `uv tool install --editable .`.
    - **Configuración:** copiar `.env.example` a `.env`, tabla de variables, uso de `--env-file .env.qa`.
    - **Comandos:** un ejemplo por grupo (`config`, `csv`, `s3`, `lambda`, `dynamo`, `logs`, `trace`).

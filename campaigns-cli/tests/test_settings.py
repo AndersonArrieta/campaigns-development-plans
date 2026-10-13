@@ -141,3 +141,39 @@ def test_is_sensitive(name: str, expected: bool) -> None:
 def test_mask_hides_value() -> None:
     assert mask("abc") == "****"
     assert mask("supersecreto") == "su****to"
+
+
+def test_aws_credentials_from_env_file(write_env) -> None:  # type: ignore[no-untyped-def]
+    write_env(
+        "AWS_ACCESS_KEY_ID=AKIAEJEMPLO\nAWS_SECRET_ACCESS_KEY=secreto\nAWS_SESSION_TOKEN=token\n"
+    )
+
+    settings = load_settings()
+
+    assert settings.has_static_credentials
+    assert settings.aws_access_key_id is not None
+    assert settings.aws_access_key_id.get_secret_value() == "AKIAEJEMPLO"
+    assert "secreto" not in repr(settings)
+
+
+def test_empty_aws_credentials_are_none(write_env) -> None:  # type: ignore[no-untyped-def]
+    write_env("AWS_ACCESS_KEY_ID=\nAWS_SECRET_ACCESS_KEY=\nAWS_SESSION_TOKEN=\n")
+
+    assert not load_settings().has_static_credentials
+
+
+@pytest.mark.parametrize(
+    "content",
+    [
+        "AWS_ACCESS_KEY_ID=AKIA\n",
+        "AWS_SECRET_ACCESS_KEY=secreto\n",
+        "AWS_SESSION_TOKEN=token\n",
+    ],
+)
+def test_incomplete_aws_credentials(write_env, content: str) -> None:  # type: ignore[no-untyped-def]
+    write_env(content)
+
+    with pytest.raises(SettingsError, match="AWS_") as exc_info:
+        load_settings()
+
+    assert "secreto" not in str(exc_info.value)

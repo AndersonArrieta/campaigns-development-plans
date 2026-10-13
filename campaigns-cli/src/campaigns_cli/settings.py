@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Annotated, Any
 
 from dotenv import dotenv_values
-from pydantic import Field, ValidationError, field_validator
+from pydantic import Field, SecretStr, ValidationError, field_validator, model_validator
 from pydantic_settings import BaseSettings, NoDecode, SettingsConfigDict
 
 DEFAULT_ENV_FILE = Path(".env")
@@ -46,8 +46,13 @@ class Settings(BaseSettings):
 
     # --- Entorno ---
     campaigns_env: Env = Env.DEV
-    aws_profile: str | None = None
     aws_region: str = "us-east-1"
+
+    # --- Credenciales AWS (tienen prioridad sobre AWS_PROFILE) ---
+    aws_access_key_id: SecretStr | None = None
+    aws_secret_access_key: SecretStr | None = None
+    aws_session_token: SecretStr | None = None
+    aws_profile: str | None = None
 
     # --- Recursos ---
     campaigns_input_bucket: str | None = None
@@ -67,6 +72,9 @@ class Settings(BaseSettings):
     cli_test_app_id: str = "others-test"
 
     @field_validator(
+        "aws_access_key_id",
+        "aws_secret_access_key",
+        "aws_session_token",
         "aws_profile",
         "campaigns_input_bucket",
         "campaigns_table_name",
@@ -87,6 +95,18 @@ class Settings(BaseSettings):
         if isinstance(value, str):
             return [item.strip() for item in value.split(",") if item.strip()]
         return value
+
+    @model_validator(mode="after")
+    def _keys_in_pairs(self) -> "Settings":
+        if bool(self.aws_access_key_id) != bool(self.aws_secret_access_key):
+            raise ValueError("AWS_ACCESS_KEY_ID y AWS_SECRET_ACCESS_KEY deben configurarse juntas")
+        if self.aws_session_token and not self.aws_access_key_id:
+            raise ValueError("AWS_SESSION_TOKEN requiere AWS_ACCESS_KEY_ID y AWS_SECRET_ACCESS_KEY")
+        return self
+
+    @property
+    def has_static_credentials(self) -> bool:
+        return self.aws_access_key_id is not None
 
     def require(self, *fields: str) -> None:
         """Lanza MissingSettingError con las variables vacías que el comando necesita."""
@@ -140,6 +160,10 @@ def mask(value: str) -> str:
 def _format_validation_error(exc: ValidationError) -> str:
     lines = ["Configuración inválida:"]
     for error in exc.errors():
-        name = env_var_name(str(error["loc"][0])) if error["loc"] else "?"
-        lines.append(f"  - {name}: {error['msg']} (valor: {error.get('input')!r})")
+        if not error["loc"]:
+            lines.append(f"  - {error['msg'].removeprefix('Value error, ')}")
+            continue
+        name = env_var_name(str(error["loc"][0]))
+        value = "****" if is_sensitive(name) else repr(error.get("input"))
+        lines.append(f"  - {name}: {error['msg']} (valor: {value})")
     return "\n".join(lines)

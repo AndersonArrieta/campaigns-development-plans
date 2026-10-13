@@ -1,11 +1,11 @@
 """Comandos `config`: muestran y validan la configuración cargada."""
 
-import json
-
 import typer
-from rich.console import Console
-from rich.table import Table
+from pydantic import SecretStr
 
+from campaigns_cli.errors import TestFailedError
+from campaigns_cli.output import render
+from campaigns_cli.services.config_service import check_resources, get_identity
 from campaigns_cli.settings import (
     OutputFormat,
     Settings,
@@ -18,22 +18,12 @@ from campaigns_cli.state import get_state
 
 app = typer.Typer(help="Muestra y valida la configuración del .env.", no_args_is_help=True)
 
-console = Console()
-
-# Variables de recursos que necesitan los comandos que tocan AWS.
-REQUIRED_RESOURCES = (
-    "campaigns_input_bucket",
-    "campaigns_table_name",
-    "ingester_lambda_name",
-    "scheduler_lambda_name",
-    "campaigns_log_groups",
-)
-OPTIONAL_RESOURCES = ("aws_profile", "campaigns_table_campaign_index")
-
 
 def _display(name: str, value: object) -> str:
     if value is None:
         return ""
+    if isinstance(value, SecretStr):
+        value = value.get_secret_value()
     text = ",".join(str(item) for item in value) if isinstance(value, list) else str(value)
     return mask(text) if is_sensitive(name) and text else text
 
@@ -52,60 +42,25 @@ def show(ctx: typer.Context) -> None:
         }
         for field in Settings.model_fields
     ]
-
-    if state.output is OutputFormat.JSON:
-        typer.echo(json.dumps(rows, ensure_ascii=False, indent=2))
-        return
-
-    table = Table(title=f"Configuración ({settings.campaigns_env})")
-    table.add_column("Variable", style="cyan")
-    table.add_column("Valor")
-    table.add_column("Origen", style="dim")
-    for row in rows:
-        table.add_row(row["variable"], row["valor"], row["origen"])
-    console.print(table)
+    render(rows, state.output, title=f"Configuración ({settings.campaigns_env})")
 
 
 @app.command()
 def check(ctx: typer.Context) -> None:
-    """Valida que estén configuradas las variables de recursos."""
+    """Valida el .env, las credenciales AWS y que existan los recursos configurados."""
     state = get_state(ctx)
     settings = state.settings
-    rows = []
-    for field in (*REQUIRED_RESOURCES, *OPTIONAL_RESOURCES):
-        configured = bool(getattr(settings, field))
-        required = field in REQUIRED_RESOURCES
-        if configured:
-            status = "OK"
-        elif required:
-            status = "FALTA CONFIG"
-        else:
-            status = "OPCIONAL"
-        rows.append(
-            {
-                "variable": env_var_name(field),
-                "obligatoria": required,
-                "estado": status,
-            }
-        )
-    missing = [row for row in rows if row["estado"] == "FALTA CONFIG"]
+    identity = get_identity(state.aws.sts)
+    results = check_resources(settings, state.aws)
+    problems = [r for r in results if r.failed]
 
+    rows = [r.as_dict() for r in results]
+    title = f"Recursos ({settings.campaigns_env} · cuenta {identity['cuenta']})"
     if state.output is OutputFormat.JSON:
-        typer.echo(json.dumps({"ok": not missing, "variables": rows}, indent=2))
+        render({"ok": not problems, "identidad": identity, "recursos": rows}, state.output)
     else:
-        table = Table(title=f"Chequeo de configuración ({settings.campaigns_env})")
-        table.add_column("Variable", style="cyan")
-        table.add_column("Obligatoria")
-        table.add_column("Estado")
-        colors = {"OK": "green", "FALTA CONFIG": "red", "OPCIONAL": "yellow"}
-        for row in rows:
-            status = str(row["estado"])
-            table.add_row(
-                str(row["variable"]),
-                "sí" if row["obligatoria"] else "no",
-                f"[{colors[status]}]{status}[/{colors[status]}]",
-            )
-        console.print(table)
+        render(identity, state.output, title="Identidad AWS")
+        render(rows, state.output, title=title)
 
-    if missing:
-        raise typer.Exit(code=1)
+    if problems:
+        raise TestFailedError(f"{len(problems)} recurso(s) con problemas.")

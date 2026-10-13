@@ -6,14 +6,6 @@ from campaigns_cli.main import app
 
 runner = CliRunner()
 
-COMPLETE_RESOURCES = """
-CAMPAIGNS_INPUT_BUCKET=bucket
-CAMPAIGNS_TABLE_NAME=tabla
-INGESTER_LAMBDA_NAME=ingester
-SCHEDULER_LAMBDA_NAME=scheduler
-CAMPAIGNS_LOG_GROUPS=/aws/lambda/ingester,/aws/lambda/scheduler
-"""
-
 
 def test_show_table(write_env) -> None:  # type: ignore[no-untyped-def]
     write_env("CAMPAIGNS_ENV=qa\nCAMPAIGNS_TABLE_NAME=tabla-qa\n")
@@ -92,29 +84,13 @@ def test_invalid_env_file_does_not_break_version(write_env) -> None:  # type: ig
     assert result.exit_code == 0
 
 
-def test_check_ok(write_env) -> None:  # type: ignore[no-untyped-def]
-    write_env(COMPLETE_RESOURCES)
+def test_show_masks_aws_credentials(write_env) -> None:  # type: ignore[no-untyped-def]
+    write_env("AWS_ACCESS_KEY_ID=AKIAEJEMPLO123\nAWS_SECRET_ACCESS_KEY=muysecretovalor\n")
 
-    result = runner.invoke(app, ["--output", "json", "config", "check"])
+    result = runner.invoke(app, ["--output", "json", "config", "show"])
 
     assert result.exit_code == 0
-    report = json.loads(result.stdout)
-    assert report["ok"] is True
-    statuses = {row["variable"]: row["estado"] for row in report["variables"]}
-    assert statuses["CAMPAIGNS_TABLE_CAMPAIGN_INDEX"] == "OPCIONAL"
-
-
-def test_check_reports_missing_resources(write_env) -> None:  # type: ignore[no-untyped-def]
-    write_env("CAMPAIGNS_INPUT_BUCKET=bucket\n")
-
-    result = runner.invoke(app, ["--output", "json", "config", "check"])
-
-    assert result.exit_code == 1
-    report = json.loads(result.stdout)
-    missing = {row["variable"] for row in report["variables"] if row["estado"] == "FALTA CONFIG"}
-    assert missing == {
-        "CAMPAIGNS_TABLE_NAME",
-        "INGESTER_LAMBDA_NAME",
-        "SCHEDULER_LAMBDA_NAME",
-        "CAMPAIGNS_LOG_GROUPS",
-    }
+    assert "muysecretovalor" not in result.stdout
+    assert "AKIAEJEMPLO123" not in result.stdout
+    rows = {row["variable"]: row["valor"] for row in json.loads(result.stdout)}
+    assert rows["AWS_SECRET_ACCESS_KEY"] == "mu****or"
