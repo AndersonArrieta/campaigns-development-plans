@@ -1,10 +1,65 @@
-# T-08 — Comandos `logs`
+---
+id: T-008
+aliases: [T-008]
+title: "Comandos logs para CloudWatch de las lambdas"
+status: done
+priority: P1
+epic: E-logs
+estimate: L
+depends_on: [T-003]
+type: task
+origin: tasks/08-logs-commands.md
+created: 2026-10-13
+---
+
+# T-008 — Comandos `logs` para CloudWatch de las lambdas
+
+## Objetivo
+Buscar un identificador (`notification_id`, `campaign_id` u otro texto) en los log groups del flujo con Logs Insights, leer los eventos de una lambda en un rango y descubrir log groups.
+
+## Archivos a crear/modificar
+- `src/campaigns_cli/services/logs_service.py`
+- `src/campaigns_cli/commands/logs_cmd.py`
+- `src/campaigns_cli/timeutils.py`
+- `src/campaigns_cli/settings.py`
+- `src/campaigns_cli/services/config_service.py`
+- `tests/test_logs_service.py`, `tests/test_logs_cmd.py`
+
+## Tareas
+- [x] `logs groups [--prefix]`.
+- [x] `logs tail (-l ingester|scheduler | -g GROUP) [--since | --from --to] [--filter] [-f] [-n]`.
+- [x] `logs search --id TEXTO [-l ...] [-g ...] [--since | --from --to] [-n]` con Logs Insights, lotes de 50 grupos, polling con timeout y `stop_query`.
+- [x] Log groups derivados de `INGESTER_LAMBDA_NAME` / `SCHEDULER_LAMBDA_NAME` si `CAMPAIGNS_LOG_GROUPS` está vacío.
+- [x] Horas de entrada y salida en hora Colombia.
+
+## Criterios de aceptación
+- [x] Término de menos de 6 caracteres → error de uso.
+- [x] `search` sin coincidencias → exit code 1, con resumen por componente.
+- [x] Consulta que no termina antes del timeout → `stop_query` y exit code 1.
+
+## Verificación
+```bash
+uv run pytest tests/test_logs_service.py tests/test_logs_cmd.py -q
+uv run campaigns logs --help
+uv run ruff check . && uv run ruff format --check .
+uv run mypy src
+```
+
+## Notas
+- Cerrada en el commit `c30bf7b` (receta de log completo por rango en `f8f8b2a`).
+- La búsqueda usa `filter @message like "<texto>"` (literal) en lugar de regex con `re.escape`.
+- Pendiente fuera de esta tarjeta: los log groups de `platform_campaigns_ms` y `engine_nlp_ms` (D-2), en [[T-013-trace-aguas-abajo|T-013]]. La prueba en dev, en [[T-011-validar-lectura-dev|T-011]].
+
+## Referencia del plan original
+
+> Contenido de `tasks/08-logs-commands.md` al migrar al backlog (2026-10-13).
+
 
 - **Grupo:** `logs`
 - **Secciones del plan:** §2.1, §6
 - **Depende de:** T-03
 
-## Objetivo
+### Objetivo
 
 Buscar un identificador (`notification_id`, `campaign_id` u otro texto) en los log groups de todos los componentes del flujo con CloudWatch Logs Insights, y mostrar en qué componente aparece y cuándo.
 
@@ -16,7 +71,7 @@ Buscar un identificador (`notification_id`, `campaign_id` u otro texto) en los l
 > - `search` sale con código 1 si el texto no aparece en ningún log group.
 > - `platform_campaigns_ms` queda pendiente: falta saber a qué log group envía sus logs (se puede pasar con `--group` o `CAMPAIGNS_LOG_GROUPS`).
 
-## Comandos implementados
+### Comandos implementados
 
 ```text
 campaigns logs groups [--prefix /aws/lambda/nu0284001-artemis]
@@ -24,7 +79,7 @@ campaigns logs tail   (-l ingester|scheduler | -g GROUP) [--since 15m | --from .
 campaigns logs search --id TEXTO [-l ingester|scheduler ...] [-g GROUP ...] [--since 24h | --from .. --to ..] [-n 200]
 ```
 
-## Archivos
+### Archivos
 
 | Archivo | Cambio |
 |---|---|
@@ -33,7 +88,7 @@ campaigns logs search --id TEXTO [-l ingester|scheduler ...] [-g GROUP ...] [--s
 | `src/campaigns_cli/timeutils.py` | `parse_since("15m" / "2h" / "1d" / ISO) -> datetime`. |
 | `tests/test_logs_service.py` | Pruebas con `Stubber`. |
 
-## Pasos
+### Pasos
 
 1. Firma:
    ```text
@@ -57,7 +112,7 @@ campaigns logs search --id TEXTO [-l ingester|scheduler ...] [-g GROUP ...] [--s
    - JSON: lista completa de `LogHit` + resumen.
 4. Permitido en prod (solo lectura).
 
-## Pruebas
+### Pruebas
 
 - Con `Stubber`: `start_query` recibe la consulta y los grupos esperados; `get_query_results` `Running` → `Complete` → devuelve los hits parseados.
 - `--since 2h` → `startTime` correcto (epoch en segundos).
@@ -67,7 +122,7 @@ campaigns logs search --id TEXTO [-l ingester|scheduler ...] [-g GROUP ...] [--s
 
 > El soporte de moto para Logs Insights es limitado; usar `Stubber` para estas pruebas.
 
-## Criterios de terminado
+### Criterios de terminado
 
 - [ ] `campaigns logs search --id <notification_id> --since 1h` en dev muestra las trazas del ingester y del scheduler para un envío real. *(pendiente: probar con credenciales de dev)*
 - [x] Pruebas (162, cobertura 96 %), ruff y mypy en verde (2026-10-13).

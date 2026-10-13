@@ -1,14 +1,70 @@
-# T-02 — Settings y carga del `.env`
+---
+id: T-002
+aliases: [T-002]
+title: "Settings y carga del .env"
+status: done
+priority: P0
+epic: E-base
+estimate: M
+depends_on: [T-001]
+type: task
+origin: tasks/02-settings-env.md
+created: 2026-10-13
+---
+
+# T-002 — Settings y carga del `.env`
+
+## Objetivo
+Cargar toda la configuración de entorno desde `.env` (o el archivo de `--env-file`) con `pydantic-settings` y exponer `config show` y `config check`, sin nombres de recursos quemados en el código.
+
+## Archivos a crear/modificar
+- `src/campaigns_cli/settings.py`
+- `src/campaigns_cli/state.py`
+- `src/campaigns_cli/main.py`
+- `src/campaigns_cli/commands/config_cmd.py`
+- `.env.example`
+- `tests/conftest.py`
+- `tests/test_settings.py`
+- `tests/test_config_cmd.py`
+
+## Tareas
+- [x] Clase `Settings` con `Env` (`dev | qa | prod`), recursos, log groups separados por coma y comportamiento (`CLI_*`).
+- [x] `settings.require(...)` lanza `MissingSettingError` con los nombres de las variables que faltan.
+- [x] Callback raíz con `--env-file`, `--output`, `--verbose`, `--yes`; estado en `AppState` (carga perezosa).
+- [x] `config show` (secretos enmascarados) y `config check` (versión inicial: variables faltantes).
+- [x] `.env.example` con todas las variables del plan §5.1.
+
+## Criterios de aceptación
+- [x] Prioridad: variables del proceso > `.env` > defecto.
+- [x] `config show` funciona aunque falten variables de recursos.
+- [x] `--env-file` inexistente → exit code 2; `CAMPAIGNS_ENV` inválido → error claro.
+
+## Verificación
+```bash
+uv run pytest tests/test_settings.py tests/test_config_cmd.py -q
+uv run campaigns config show
+uv run ruff check . && uv run ruff format --check .
+uv run mypy src
+```
+
+## Notas
+- Cerrada en el commit `08c9342`.
+- `--output` no tiene alias `-o`: `-o` se reserva para archivos de salida (`csv generate -o`, `s3 get -o`).
+
+## Referencia del plan original
+
+> Contenido de `tasks/02-settings-env.md` al migrar al backlog (2026-10-13).
+
 
 - **Grupo:** `config`
 - **Secciones del plan:** §5, §6
 - **Depende de:** T-01
 
-## Objetivo
+### Objetivo
 
 Cargar toda la configuración de entorno desde un archivo `.env` (o el que indique `--env-file`) con `pydantic-settings`, y exponer los comandos `config show` y `config check` (la parte de AWS de `check` se completa en la T-03).
 
-## Archivos
+### Archivos
 
 | Archivo | Cambio |
 |---|---|
@@ -25,7 +81,7 @@ Cargar toda la configuración de entorno desde un archivo `.env` (o el que indiq
 > - `--output` no tiene alias `-o`, porque `-o` se reserva para archivos de salida (`csv generate -o`, `s3 get -o`).
 > - `config check` sale con código 1 si falta alguna variable obligatoria.
 
-## Pasos
+### Pasos
 
 1. Definir `Settings`:
    ```python
@@ -71,7 +127,7 @@ Cargar toda la configuración de entorno desde un archivo `.env` (o el que indiq
 5. `config check` (versión inicial): reportar qué variables de recursos faltan, sin fallar por las opcionales. La verificación contra AWS se agrega en la T-03.
 6. Completar `.env.example` con las variables de §5.1 del plan.
 
-## Pruebas
+### Pruebas
 
 - `.env` temporal (`tmp_path`) con todas las variables → `Settings` con los valores esperados; `CAMPAIGNS_LOG_GROUPS="a, b,,c"` → `["a", "b", "c"]`.
 - Variable del proceso (`monkeypatch.setenv`) prevalece sobre `.env`.
@@ -80,7 +136,7 @@ Cargar toda la configuración de entorno desde un archivo `.env` (o el que indiq
 - `settings.require("campaigns_table_name")` con la variable vacía → `MissingSettingError` que nombra `CAMPAIGNS_TABLE_NAME`.
 - `config show` con `CliRunner` → muestra `CAMPAIGNS_ENV` y no muestra valores de secretos en claro.
 
-## Criterios de terminado
+### Criterios de terminado
 
 - [x] No hay nombres de recursos quemados en el código.
 - [x] `uv run campaigns config show` funciona aunque falten variables de recursos.

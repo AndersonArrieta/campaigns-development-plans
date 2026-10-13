@@ -1,14 +1,72 @@
-# T-03 — Fábrica AWS, salida y protecciones
+---
+id: T-003
+aliases: [T-003]
+title: "Fábrica AWS, salida, errores y protecciones"
+status: done
+priority: P0
+epic: E-base
+estimate: L
+depends_on: [T-002]
+type: task
+origin: tasks/03-aws-output-guards.md
+created: 2026-10-13
+---
+
+# T-003 — Fábrica AWS, salida, errores y protecciones
+
+## Objetivo
+Centralizar la creación de clientes boto3, el formato de salida (tabla / JSON), los códigos de salida, la traducción de errores de AWS y las protecciones de entorno, y completar `config check` contra AWS.
+
+## Archivos a crear/modificar
+- `src/campaigns_cli/aws.py`
+- `src/campaigns_cli/output.py`
+- `src/campaigns_cli/errors.py`
+- `src/campaigns_cli/guards.py`
+- `src/campaigns_cli/main.py`
+- `src/campaigns_cli/settings.py`
+- `src/campaigns_cli/services/config_service.py`
+- `src/campaigns_cli/commands/config_cmd.py`
+- `tests/conftest.py`, `tests/test_aws.py`, `tests/test_errors.py`, `tests/test_guards.py`, `tests/test_output.py`, `tests/test_config_check.py`
+
+## Tareas
+- [x] `AwsClients`: sesión boto3 perezosa, reintentos `standard`, credenciales del `.env` (`SecretStr`) con prioridad sobre `AWS_PROFILE`.
+- [x] `ExitCode` (0 OK, 1 prueba fallida, 2 uso/configuración, 3 AWS) y `translate(exc, settings)` aplicado en `CampaignsGroup.invoke`.
+- [x] `output.render`: tabla rich o JSON limpio en stdout; mensajes a stderr.
+- [x] `guards.ensure_not_prod` y `guards.confirm_destructive`.
+- [x] `config check`: `sts get-caller-identity` y estado `OK / FALTA CONFIG / NO EXISTE / SIN PERMISO` por recurso.
+- [x] Registrar D-3 (credenciales en el `.env`) en el plan §10.
+
+## Criterios de aceptación
+- [x] Ningún comando crea clientes boto3 por su cuenta: todos usan `AwsClients`.
+- [x] `NoCredentialsError` simulado → exit code 3 con mensaje que apunta al `.env`.
+- [x] `config check` con moto: recurso existente → `OK`; inexistente → `NO EXISTE` y exit code 1.
+
+## Verificación
+```bash
+uv run pytest tests/test_aws.py tests/test_errors.py tests/test_guards.py tests/test_output.py tests/test_config_check.py -q
+uv run ruff check . && uv run ruff format --check .
+uv run mypy src
+```
+
+## Notas
+- Cerrada en el commit `259a51c`.
+- El criterio original "`config check` en dev muestra el estado real de los recursos" necesita credenciales reales; se movió a [[T-011-validar-lectura-dev|T-011]].
+- Con el `.venv` en OneDrive la suite tarda ~220 s; con `UV_PROJECT_ENVIRONMENT=$HOME/.venvs/campaigns-cli`, unos segundos.
+
+## Referencia del plan original
+
+> Contenido de `tasks/03-aws-output-guards.md` al migrar al backlog (2026-10-13).
+
 
 - **Grupo:** — (infraestructura común) + completa `config check`
 - **Secciones del plan:** §6.1
 - **Depende de:** T-02
 
-## Objetivo
+### Objetivo
 
 Centralizar la creación de clientes boto3, el formato de salida (tabla / JSON), los códigos de salida, el manejo de errores de AWS y las protecciones de entorno, para que los comandos de las tasks siguientes solo tengan que usarlos.
 
-## Archivos
+### Archivos
 
 | Archivo | Cambio |
 |---|---|
@@ -29,7 +87,7 @@ Centralizar la creación de clientes boto3, el formato de salida (tabla / JSON),
 > - Las pruebas de Lambda usan un cliente falso: crear Lambdas en moto exige simular IAM (~7 s por prueba).
 > - **Rendimiento:** con el `.venv` dentro de OneDrive (`/mnt/c`) la suite tarda ~220 s; con `UV_PROJECT_ENVIRONMENT=$HOME/.venvs/campaigns-cli` (disco Linux) tarda ~5 s.
 
-## Pasos
+### Pasos
 
 1. Códigos de salida:
    ```python
@@ -58,7 +116,7 @@ Centralizar la creación de clientes boto3, el formato de salida (tabla / JSON),
    - Para cada recurso configurado: `s3.head_bucket`, `dynamodb.describe_table` (y que exista el GSI si `CAMPAIGNS_TABLE_CAMPAIGN_INDEX` tiene valor), `lambda.get_function`, `logs.describe_log_groups(logGroupNamePrefix=...)`.
    - Tabla con estado `OK` / `FALTA CONFIG` / `NO EXISTE` / `SIN PERMISO` por recurso; exit code 1 si alguno no está `OK`.
 
-## Pruebas
+### Pruebas
 
 - `ensure_not_prod` con `prod` lanza error; con `dev` no.
 - `confirm_destructive` con `--yes` no pregunta; sin `--yes` y respuesta "n" no ejecuta la acción.
@@ -66,7 +124,7 @@ Centralizar la creación de clientes boto3, el formato de salida (tabla / JSON),
 - `config check` con moto: bucket y tabla creados → `OK`; bucket sin crear → `NO EXISTE` y exit code 1.
 - Error `NoCredentialsError` simulado → exit code 3 y mensaje que apunta a las credenciales del `.env`.
 
-## Criterios de terminado
+### Criterios de terminado
 
 - [x] Ningún comando crea clientes boto3 por su cuenta: todos usan `AwsClients`.
 - [ ] `config check` en dev muestra el estado real de los recursos. *(pendiente: requiere el `.env` de dev con credenciales y nombres reales, D-2)*

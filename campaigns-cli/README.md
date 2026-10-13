@@ -2,7 +2,7 @@
 
 CLI de pruebas sobre los recursos AWS del flujo de campañas.
 
-Plan: [`plan-campaigns-cli.md`](plan-campaigns-cli.md) · Tasks: [`tasks/`](tasks/README.md)
+Documentación técnica: [`docs/`](docs/README.md) · Backlog: [`backlog/`](backlog/README.md) (vault de Obsidian, ejecutable por un agente)
 
 ## Inicio rápido
 

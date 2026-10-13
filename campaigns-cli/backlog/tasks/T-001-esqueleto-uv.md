@@ -1,14 +1,73 @@
-# T-01 — Esqueleto del proyecto con uv
+---
+id: T-001
+aliases: [T-001]
+title: "Esqueleto del proyecto con uv"
+status: done
+priority: P0
+epic: E-base
+estimate: S
+depends_on: []
+type: task
+origin: tasks/01-esqueleto-uv.md
+created: 2026-10-13
+---
+
+# T-001 — Esqueleto del proyecto con uv
+
+## Objetivo
+Crear el proyecto `campaigns-cli` gestionado con uv, con layout `src/`, el entry point `campaigns` y la app Typer raíz respondiendo a `--help`. Es la base sobre la que se montan todos los grupos de comandos.
+
+## Archivos a crear/modificar
+- `pyproject.toml` (metadatos, dependencias, `[project.scripts]`, configuración de ruff, mypy y pytest)
+- `uv.lock`
+- `.python-version`
+- `.gitignore`
+- `.env.example`
+- `src/campaigns_cli/__init__.py`
+- `src/campaigns_cli/main.py`
+- `src/campaigns_cli/commands/__init__.py`
+- `src/campaigns_cli/services/__init__.py`
+- `tests/test_cli.py`
+
+## Tareas
+- [x] `uv init --package` con Python 3.12 y dependencias (`typer`, `rich`, `boto3`, `pydantic-settings`; dev: `pytest`, `pytest-cov`, `moto`, `ruff`, `mypy`, `boto3-stubs`).
+- [x] Entry point `campaigns = "campaigns_cli.main:app"`.
+- [x] App Typer raíz con comando `version`.
+- [x] Configurar ruff (line-length 100, py312), mypy estricto y pytest.
+- [x] `.gitignore` con `.venv/`, cachés, `.coverage`, `.env`, `.env.*` y `!.env.example`.
+
+## Criterios de aceptación
+- [x] `uv sync && uv run campaigns --help` funciona.
+- [x] `uv run campaigns version` imprime `__version__`.
+- [x] `uv.lock` versionado; `.env` ignorado por git.
+
+## Verificación
+```bash
+uv sync --locked
+uv run campaigns --help
+uv run pytest tests/test_cli.py -q
+uv run ruff check . && uv run ruff format --check .
+uv run mypy src
+git check-ignore .env
+```
+
+## Notas
+- Cerrada en el commit `5ebf1d8`.
+
+## Referencia del plan original
+
+> Contenido de `tasks/01-esqueleto-uv.md` al migrar al backlog (2026-10-13).
+
 
 - **Grupo:** —
 - **Secciones del plan:** §3, §4, §7
 - **Depende de:** —
 
-## Objetivo
+### Objetivo
 
 Crear el proyecto `campaigns-cli` gestionado con uv, con layout `src/`, el entry point `campaigns` y la app Typer raíz respondiendo a `--help`.
 
-## Archivos
+### Archivos
 
 | Archivo | Cambio |
 |---|---|
@@ -21,7 +80,7 @@ Crear el proyecto `campaigns-cli` gestionado con uv, con layout `src/`, el entry
 | `src/campaigns_cli/commands/__init__.py`, `src/campaigns_cli/services/__init__.py` | Paquetes vacíos. |
 | `tests/test_cli.py` | Prueba de humo con `CliRunner`. |
 
-## Pasos
+### Pasos
 
 1. Inicializar el proyecto dentro de `campaigns-cli/`:
    ```bash
@@ -71,12 +130,12 @@ Crear el proyecto `campaigns-cli` gestionado con uv, con layout `src/`, el entry
    ```
 5. Ejecutar `uv sync` y confirmar que se genera `uv.lock` (se versiona).
 
-## Pruebas
+### Pruebas
 
 - `test_cli.py`: `CliRunner().invoke(app, ["--help"])` → exit code 0 y el texto de ayuda.
 - `test_cli.py`: `invoke(app, ["version"])` → imprime `__version__`.
 
-## Criterios de terminado
+### Criterios de terminado
 
 - [x] `uv sync && uv run campaigns --help` funciona (uv 0.13.0, Python 3.12, WSL).
 - [x] `uv run pytest` (2 pruebas), `uv run ruff check .` y `uv run mypy src` en verde (2026-10-13).
