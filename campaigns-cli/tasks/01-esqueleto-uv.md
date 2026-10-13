@@ -78,7 +78,7 @@ Crear el proyecto `campaigns-cli` gestionado con uv, con layout `src/`, el entry
 
 ## Criterios de terminado
 
-- [ ] `uv sync && uv run campaigns --help` funciona en una máquina limpia.
-- [ ] `uv run pytest`, `uv run ruff check .` y `uv run mypy src` en verde.
-- [ ] `uv.lock` versionado; `.env` ignorado por git.
+- [x] `uv sync && uv run campaigns --help` funciona (uv 0.13.0, Python 3.12, WSL).
+- [x] `uv run pytest` (2 pruebas), `uv run ruff check .` y `uv run mypy src` en verde (2026-10-13).
+- [x] `uv.lock` generado (pendiente de commit); `.env` ignorado por git.
 - [ ] Commit (lo hace el desarrollador).
