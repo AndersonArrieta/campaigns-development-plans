@@ -74,6 +74,16 @@ def test_fake_channel_settings(write_env) -> None:  # type: ignore[no-untyped-de
     assert settings.fake_channel_verify_ssl is False
 
 
+def test_eks_settings(write_env) -> None:  # type: ignore[no-untyped-def]
+    write_env("EKS_CLUSTER_NAME=eks-informacion-dev\nEKS_NAMESPACE=artemis-dev\nEKS_NAMESPACE=\n")
+
+    settings = load_settings()
+
+    assert settings.eks_cluster_name == "eks-informacion-dev"
+    assert settings.eks_namespace is None
+    assert settings.campaigns_pod_selector == "app=platform-campaigns-others-v2"
+
+
 def test_fake_channel_defaults(write_env) -> None:  # type: ignore[no-untyped-def]
     write_env("COGNITO_CLIENT_SECRET=\n")
 

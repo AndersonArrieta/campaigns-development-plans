@@ -47,5 +47,6 @@ uv run campaigns trace run --help | grep -E -- '--wait-schedule|--invoke-schedul
 ```
 
 ## Notas
+- Fuente para `platform_campaigns_ms`: sus logs **no** llegan a CloudWatch (Container Insights sin eventos desde 2024); se leen de sus pods con `PodsService` ([[T-017-pods-logs-eks|T-017]], [ADR-0009](../../docs/adr/0009-acceso-a-kubernetes.md)).
 - La búsqueda por `notification_id` en `platform_campaigns_ms` depende de que la HU 7938050 (`../7938050-campaigns-correlationid-trace/`) registre `correlationId` en sus logs; antes de eso puede no aparecer.
 - Invocar el scheduler en dev genera envíos reales a los usuarios del CSV: requiere confirmación del usuario.

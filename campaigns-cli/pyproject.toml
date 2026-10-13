@@ -24,7 +24,7 @@ build-backend = "uv_build"
 
 [dependency-groups]
 dev = [
-    "boto3-stubs[dynamodb,lambda,logs,s3,sts]>=1.43.112",
+    "boto3-stubs[dynamodb,eks,lambda,logs,s3,sts]>=1.43.112",
     "moto[dynamodb,logs,s3]>=5.2.4",
     "mypy>=2.4.0",
     "pytest>=9.1.1",

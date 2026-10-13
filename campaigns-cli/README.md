@@ -169,6 +169,27 @@ uv run campaigns channel messages --canal teams --user 27060555-ecc0-4aad-85b6-9
 - `verify` reintenta 5 veces cada 10 s (`--attempts`, `--interval`) y sale con 1 si el mensaje no llegó.
 - El fake channel no borra mensajes: uno de una corrida anterior con el mismo texto cuenta como entregado.
 
+## Comandos `pods` (logs de `platform_campaigns_ms` en EKS, solo lectura)
+
+Reemplazan `aws eks update-kubeconfig ...` + `kubectl logs -f -l app=platform-campaigns-others-v2 --tail 1000`,
+con las mismas credenciales del `.env` y sin `kubectl` instalado:
+
+```dotenv
+EKS_CLUSTER_NAME=eks-informacion-dev
+EKS_NAMESPACE=artemis-dev
+# CAMPAIGNS_POD_SELECTOR=app=platform-campaigns-others-v2   (valor por defecto)
+```
+
+```bash
+uv run campaigns pods ls                                   # pods del microservicio
+uv run campaigns pods logs --tail 1000 -f                  # como el kubectl logs -f de siempre
+uv run campaigns pods logs --since 1h --filter <notification_id>
+uv run campaigns --output json pods logs --since 30m > campaigns-ms.json
+```
+
+- Horas en hora Colombia; cada línea lleva el nombre del pod.
+- Permisos: `eks:DescribeCluster` y acceso RBAC a `pods` y `pods/log` en el namespace.
+
 ## Notas
 
 - Ejecuta los comandos desde `campaigns-cli/`: el `.env` se busca en la carpeta actual. Desde otra carpeta usa `--env-file ruta/al/.env`.

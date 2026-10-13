@@ -5,7 +5,7 @@ import typer
 from typer.core import TyperGroup
 
 from campaigns_cli import __version__
-from campaigns_cli.commands import channel_cmd, config_cmd, dynamo_cmd, logs_cmd
+from campaigns_cli.commands import channel_cmd, config_cmd, dynamo_cmd, logs_cmd, pods_cmd
 from campaigns_cli.errors import translate
 from campaigns_cli.output import err_console, fail
 from campaigns_cli.settings import OutputFormat
@@ -40,6 +40,7 @@ app.add_typer(config_cmd.app, name="config")
 app.add_typer(dynamo_cmd.app, name="dynamo")
 app.add_typer(logs_cmd.app, name="logs")
 app.add_typer(channel_cmd.app, name="channel")
+app.add_typer(pods_cmd.app, name="pods")
 
 
 @app.callback()

@@ -9,18 +9,19 @@ campaigns <grupo> <acción> [opciones]
 main.py ─────────── CampaignsGroup: callback raíz (--env-file, --output, -v, -y)
    │                 y traducción de excepciones → mensaje + exit code
    ▼
-commands/ ───────── config_cmd · dynamo_cmd · logs_cmd · channel_cmd
+commands/ ───────── config_cmd · dynamo_cmd · logs_cmd · channel_cmd · pods_cmd
    │                 (parsean argumentos, arman servicios, muestran resultados)
    ▼
-services/ ───────── config_service · dynamo_service · logs_service · channel_service
+services/ ───────── config_service · dynamo_service · logs_service · channel_service · k8s_service
    │                 (lógica sin Typer; reciben los clientes boto3 inyectados)
    ▼
 state.py ────────── AppState ─┬─ settings.py  (Settings desde .env)
                               ├─ aws.py       (AwsClients: sesión y clientes perezosos)
-                              └─ http.py      (HttpClients: clientes httpx perezosos)
+                              └─ http.py      (HttpClients: clientes httpx; también el de la API de Kubernetes)
    │
    ▼  boto3 / httpx
-STS · DynamoDB · CloudWatch Logs · Cognito · fake channel     (S3 y Lambda: pendientes)
+STS · DynamoDB · CloudWatch Logs · EKS · API de Kubernetes · Cognito · fake channel
+(S3 y Lambda: pendientes)
 
 Transversales: output.py · errors.py · guards.py · timeutils.py
 ```
@@ -46,6 +47,7 @@ moto o con clientes falsos.
 | `services/config_service.py` | Identidad STS y verificación de recursos (`ResourceCheck` con estado). |
 | `services/dynamo_service.py` | `CampaignsTable`, `LogsTable`, `parse_log_entry`, `follow_logs`. Esquemas en [recursos AWS](recursos-aws.md). |
 | `services/channel_service.py` | `CognitoAuth` (token `client_credentials` reutilizado hasta que vence), `FakeChannel` (`messages`, `wait_for`), `normalize_message`, `parse_channel`. |
+| `services/k8s_service.py` | `eks_token` (token de `aws eks get-token`), `EksTokenAuth`, `describe_cluster`, `PodsService` (`list_pods`, `logs`, `stream` con reconexión, `follow_many` con un hilo por pod). [ADR-0009](adr/0009-acceso-a-kubernetes.md). |
 | `services/logs_service.py` | `LogsService`: Logs Insights (`search`), `filter_log_events` (`events`, `follow`) y `list_groups`. |
 
 ## Ciclo de una invocación
@@ -95,7 +97,7 @@ Una excepción no reconocida se propaga con su traceback (es un bug).
 
 - `ensure_not_prod(settings, acción)`: con `CAMPAIGNS_ENV=prod` lanza `UsageError`. Todo
   comando que escriba (subir a S3, invocar lambdas, borrar) debe llamarlo. Los de lectura
-  (`config`, `dynamo get/find/list/logs`, `logs *`, `channel *`, `s3 ls`) están permitidos en prod.
+  (`config`, `dynamo get/find/list/logs`, `logs *`, `channel *`, `pods *`, `s3 ls`) están permitidos en prod.
 - `confirm_destructive(state, mensaje)`: pide confirmación salvo `--yes`; si se rechaza, sale
   con código 0 sin hacer nada.
 - `dynamo purge` ([T-012](../backlog/tasks/T-012-dynamo-purge.md)) solo borrará registros con

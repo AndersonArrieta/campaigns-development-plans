@@ -120,19 +120,20 @@ queda en el mismo vault y los enlaces entre ambos funcionan.
 
 ## Estado actual
 
-✅ **done (5)**
+✅ **done (7)**
 - [[T-001-esqueleto-uv|T-001]] — proyecto uv, entry point `campaigns`, ruff/mypy/pytest.
 - [[T-002-settings-env|T-002]] — `Settings`, `.env`/`--env-file`, `config show`.
 - [[T-003-aws-output-guards|T-003]] — `AwsClients`, salida tabla/JSON, exit codes, guards, `config check`.
 - [[T-006-dynamo-lectura|T-006]] — `dynamo get/find/list/logs` de solo lectura.
 - [[T-008-logs-cloudwatch|T-008]] — `logs groups/tail/search` sobre las lambdas.
+- [[T-015-fake-channel-messages|T-015]] — grupo `channel`: token de Cognito y mensajes del fake channel.
+- [[T-017-pods-logs-eks|T-017]] — grupo `pods`: logs de los pods de `platform_campaigns_ms` en EKS, sin `kubectl`.
 
-🟡 **todo (5)**
+🟡 **todo (4)**
 - [[T-004-csv-generate-validate|T-004]] — `csv generate` y `csv validate`.
 - [[T-011-validar-lectura-dev|T-011]] — probar en dev `config check`, `dynamo` y `logs` con datos reales.
 - [[T-012-dynamo-purge|T-012]] — `dynamo purge` de datos de `CLI_TEST_APP_ID`.
 - [[T-014-ci-github-actions|T-014]] — pipeline de GitHub Actions con umbral de cobertura.
-- [[T-015-fake-channel-messages|T-015]] — grupo `channel`: token de Cognito y mensajes del fake channel.
 
 🔵 **backlog (6)**
 - [[T-005-s3-commands|T-005]] — `s3 upload/ls/get/rm` (espera a T-004).
@@ -147,6 +148,7 @@ queda en el mismo vault y los enlaces entre ambos funcionan.
 base:        T-001 ─► T-002 ─► T-003
 dynamo:      T-003 ─► T-006 ─► T-012
 logs:        T-003 ─► T-008
+pods:        T-003, T-015 ─► T-017
 ingesta:     T-001 ─► T-004 ─► T-005 ─► T-007        (T-005 y T-007 también ─◄ T-003)
 trace:       T-004, T-005, T-006, T-008, T-012 ─► T-009 ─► T-013 ◄─ T-007
 docs:        T-007, T-009 ─► T-010

@@ -1,5 +1,6 @@
-"""Fábrica de clientes HTTP (Cognito y fake channel) a partir de Settings."""
+"""Fábrica de clientes HTTP (Cognito, fake channel y API de Kubernetes) a partir de Settings."""
 
+import ssl
 from functools import cached_property
 
 import httpx
@@ -30,3 +31,10 @@ class HttpClients:
         if not verify:
             warn("FAKE_CHANNEL_VERIFY_SSL=false: no se verifica el certificado del fake channel.")
         return httpx.Client(timeout=TIMEOUT, verify=verify, transport=self.transport)
+
+    def kubernetes(self, endpoint: str, ca_pem: str, auth: httpx.Auth) -> httpx.Client:
+        """Cliente de la API de un clúster: verifica el certificado con la CA del propio clúster."""
+        context = ssl.create_default_context(cadata=ca_pem)
+        return httpx.Client(
+            base_url=endpoint, timeout=TIMEOUT, verify=context, auth=auth, transport=self.transport
+        )

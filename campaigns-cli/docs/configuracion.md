@@ -37,6 +37,9 @@ carpeta desde la que se ejecuta la CLI. La plantilla versionada es
 | `COGNITO_CLIENT_SECRET` | secreto | Secreto del cliente; enmascarado en `config show`, nunca en mensajes. | `channel` |
 | `FAKE_CHANNEL_BASE_URL` | texto | Base del fake channel (`…/artemis/platform/fake-channel/v1`). | `channel` |
 | `FAKE_CHANNEL_VERIFY_SSL` | booleano · `true` | `false` desactiva la verificación del certificado del fake channel ([ADR-0008](adr/0008-cliente-http.md)). | — |
+| `EKS_CLUSTER_NAME` | texto | Clúster EKS donde corre `platform_campaigns_ms` (`eks-informacion-{env}`). | `pods` |
+| `EKS_NAMESPACE` | texto | Namespace de los pods (`artemis-{env}`). | `pods` |
+| `CAMPAIGNS_POD_SELECTOR` | texto · `app=platform-campaigns-others-v2` | Selector de etiquetas de los pods del microservicio. | `pods` |
 | `CAMPAIGNS_LOG_GROUPS` | lista separada por comas | Log groups de `logs search`. Vacío = `/aws/lambda/<INGESTER>` y `/aws/lambda/<SCHEDULER>`. | `logs search` (si no se pasa `-g`/`-l`) |
 | `CLI_OUTPUT` | `table` \| `json` · `table` | Formato de salida por defecto (`--output` lo sobrescribe). | — |
 | `CLI_WAIT_TIMEOUT_SECONDS` | entero > 0 · `120` | Tope de espera (Logs Insights, `trace`). | — |
@@ -68,6 +71,7 @@ Patrones tomados de `Platform_test` e `ingester_Lambda` (`{env}` = `dev`, `qa`�
 | Log groups de las lambdas | `/aws/lambda/<nombre de la lambda>` |
 | Cognito (token) | `https://chatbots-artemis-{env}.auth.us-east-1.amazoncognito.com` |
 | Fake channel | `https://informacion-ext-{env}.apps.ambientesbc.com/artemis/platform/fake-channel/v1` |
+| Clúster y namespace de `platform_campaigns_ms` | `eks-informacion-{env}` / `artemis-{env}`, pods `app=platform-campaigns-others-v2` |
 | Log groups de `platform_campaigns_ms` y `engine_nlp_ms` | **Sin confirmar.** Se descubren en [T-013](../backlog/tasks/T-013-trace-aguas-abajo.md); mientras tanto, `--group` o `CAMPAIGNS_LOG_GROUPS`. |
 
 ## Credenciales del fake channel
@@ -82,6 +86,7 @@ muestra Cognito y fake channel como `OPCIONAL`; con algunas, `FALTA CONFIG`.
 | Grupo | Acciones |
 |---|---|
 | `config check` | `sts:GetCallerIdentity`, `s3:ListBucket` (para `HeadBucket`), `dynamodb:DescribeTable`, `lambda:GetFunction`, `logs:DescribeLogGroups` |
+| `pods` | `eks:DescribeCluster` y, dentro del clúster, acceso de la identidad con permisos RBAC `get`/`list` sobre `pods` y `get` sobre `pods/log` en el namespace |
 | `dynamo` (lectura) | `dynamodb:GetItem`, `dynamodb:Query`, `dynamodb:Scan` sobre las dos tablas |
 | `logs` | `logs:DescribeLogGroups`, `logs:FilterLogEvents`, `logs:StartQuery`, `logs:GetQueryResults`, `logs:StopQuery` |
 | `dynamo purge` (pendiente) | `dynamodb:BatchWriteItem` sobre la tabla de campañas |

@@ -12,6 +12,7 @@ from campaigns_cli.http import HttpClients
 from campaigns_cli.main import app
 from campaigns_cli.state import AppState
 from tests.channel_fixtures import BASE_URL, CHANNEL_ENV, CLIENT_SECRET, TOKEN_URL, FakeServer
+from tests.k8s_fixtures import CLUSTER, EKS_ENV, NAMESPACE, FakeCluster, FakeEks, pod
 
 # Terminal ancha para que rich no parta los nombres de recursos en varias líneas.
 runner = CliRunner(env={"COLUMNS": "200"})
@@ -86,17 +87,37 @@ def fake_lambda(monkeypatch: pytest.MonkeyPatch) -> FakeLambda:
     return fake
 
 
+class Backends:
+    """Fake channel y API de Kubernetes falsos detrás de un único transporte httpx."""
+
+    def __init__(self) -> None:
+        self.channel = FakeServer()
+        self.cluster = FakeCluster()
+
+    def handler(self, request: httpx.Request) -> httpx.Response:
+        if request.url.host == "k8s.test":
+            return self.cluster.handler(request)
+        return self.channel.handler(request)
+
+
 @pytest.fixture
-def fake_channel(monkeypatch: pytest.MonkeyPatch) -> FakeServer:
-    server = FakeServer()
+def backends(monkeypatch: pytest.MonkeyPatch) -> Backends:
+    fake = Backends()
+    eks = FakeEks()
+    monkeypatch.setattr(AwsClients, "eks", property(lambda self: eks))
 
     def http(self: AppState) -> HttpClients:
         if self._http is None:
-            self._http = HttpClients(self.settings, transport=server.transport())
+            self._http = HttpClients(self.settings, transport=httpx.MockTransport(fake.handler))
         return self._http
 
     monkeypatch.setattr(AppState, "http", property(http))
-    return server
+    return fake
+
+
+@pytest.fixture
+def fake_channel(backends: Backends) -> FakeServer:
+    return backends.channel
 
 
 def _create_logs_table() -> None:
@@ -143,9 +164,12 @@ def _statuses(report: dict[str, Any]) -> dict[str, str]:
 
 
 @pytest.mark.usefixtures("mocked_aws")
-def test_all_resources_ok(write_env, fake_lambda: FakeLambda, fake_channel: FakeServer) -> None:  # type: ignore[no-untyped-def]
-    write_env(ENV + CHANNEL_ENV)
+def test_all_resources_ok(  # type: ignore[no-untyped-def]
+    write_env, fake_lambda: FakeLambda, fake_channel: FakeServer, backends: Backends
+) -> None:
+    write_env(ENV + CHANNEL_ENV + EKS_ENV)
     _create_all(fake_lambda)
+    backends.cluster.add(pod("p-1"))
 
     exit_code, report, _ = _check()
 
@@ -156,6 +180,9 @@ def test_all_resources_ok(write_env, fake_lambda: FakeLambda, fake_channel: Fake
     assert _statuses(report)[f"Cognito:{TOKEN_URL}/oauth2/token"] == "OK"
     assert _statuses(report)[f"Fake channel:{BASE_URL}"] == "OK"
     assert fake_channel.message_requests[0].url.path.endswith("/whatsapp/get-messages/0000000000")
+    eks = next(r for r in report["recursos"] if r["recurso"] == "EKS")
+    assert eks["nombre"] == f"{CLUSTER}/{NAMESPACE}"
+    assert eks["detalle"] == "1 pod(s) con app=platform-campaigns-others-v2"
 
 
 @pytest.mark.usefixtures("mocked_aws")
@@ -168,6 +195,43 @@ def test_channel_is_optional(write_env, fake_lambda: FakeLambda) -> None:  # typ
     assert exit_code == 0
     assert _statuses(report)["Cognito:"] == "OPCIONAL"
     assert _statuses(report)["Fake channel:"] == "OPCIONAL"
+    assert _statuses(report)["EKS:"] == "OPCIONAL"
+
+
+@pytest.mark.usefixtures("mocked_aws")
+def test_eks_partially_configured(write_env, fake_lambda: FakeLambda) -> None:  # type: ignore[no-untyped-def]
+    write_env(ENV + f"EKS_CLUSTER_NAME={CLUSTER}\n")
+    _create_all(fake_lambda)
+
+    exit_code, report, _ = _check()
+
+    eks = next(r for r in report["recursos"] if r["recurso"] == "EKS")
+    assert exit_code == 1
+    assert eks["estado"] == "FALTA CONFIG"
+    assert "EKS_NAMESPACE" in eks["detalle"]
+
+
+@pytest.mark.usefixtures("mocked_aws")
+def test_eks_forbidden(write_env, fake_lambda: FakeLambda, backends: Backends) -> None:  # type: ignore[no-untyped-def]
+    write_env(ENV + EKS_ENV)
+    _create_all(fake_lambda)
+    backends.cluster.status = 403
+
+    exit_code, report, _ = _check()
+
+    assert exit_code == 1
+    assert _statuses(report)[f"EKS:{CLUSTER}/{NAMESPACE}"] == "SIN PERMISO"
+
+
+@pytest.mark.usefixtures("mocked_aws")
+def test_eks_unknown_cluster(write_env, fake_lambda: FakeLambda, backends: Backends) -> None:  # type: ignore[no-untyped-def]
+    write_env(ENV + EKS_ENV.replace(CLUSTER, "eks-inexistente"))
+    _create_all(fake_lambda)
+
+    exit_code, report, _ = _check()
+
+    assert exit_code == 1
+    assert _statuses(report)[f"EKS:eks-inexistente/{NAMESPACE}"] == "NO EXISTE"
 
 
 @pytest.mark.usefixtures("mocked_aws")

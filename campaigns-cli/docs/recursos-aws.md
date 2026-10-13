@@ -86,3 +86,24 @@ No son recursos que la CLI consulte con boto3, sino servicios HTTP ([ADR-0008](a
 
 El fake channel solo expone esas consultas: no hay endpoint para enviar ni para borrar mensajes, así
 que los mensajes de corridas anteriores siguen ahí.
+
+## EKS: pods de `platform_campaigns_ms`
+
+| Dato | Valor en dev |
+|---|---|
+| Clúster | `eks-informacion-dev` |
+| Namespace | `artemis-dev` |
+| Selector | `app=platform-campaigns-others-v2` |
+| Contenedores | `platform-campaigns-others-v2` (principal) e `istio-proxy` |
+
+La CLI usa estos endpoints de la API de Kubernetes ([ADR-0009](adr/0009-acceso-a-kubernetes.md)):
+
+| Uso | Petición |
+|---|---|
+| Listar pods | `GET /api/v1/namespaces/{ns}/pods?labelSelector=...` |
+| Un pod | `GET /api/v1/namespaces/{ns}/pods/{pod}` |
+| Logs | `GET .../pods/{pod}/log?container=&tailLines=&sinceSeconds=&timestamps=true[&follow=true]` |
+| Reconexión del seguimiento | Igual, con `sinceTime=<última línea, RFC3339>` |
+
+Container Insights (`/aws/containerinsights/eks-informacion-dev/*`) existe pero no recibe eventos
+desde 2024: no sirve como fuente de estos logs.

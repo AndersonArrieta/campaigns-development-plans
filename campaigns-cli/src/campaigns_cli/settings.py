@@ -70,6 +70,11 @@ class Settings(BaseSettings):
     fake_channel_base_url: str | None = None
     fake_channel_verify_ssl: bool = True
 
+    # --- EKS (logs de los pods de platform_campaigns_ms) ---
+    eks_cluster_name: str | None = None
+    eks_namespace: str | None = None
+    campaigns_pod_selector: str = "app=platform-campaigns-others-v2"
+
     # --- Logs ---
     campaigns_log_groups: Annotated[list[str], NoDecode] = Field(default_factory=list)
 
@@ -94,6 +99,8 @@ class Settings(BaseSettings):
         "cognito_client_id",
         "cognito_client_secret",
         "fake_channel_base_url",
+        "eks_cluster_name",
+        "eks_namespace",
         mode="before",
     )
     @classmethod

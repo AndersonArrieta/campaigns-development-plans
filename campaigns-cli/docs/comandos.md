@@ -69,6 +69,23 @@ como el paso "I verify the campaign was delivered successfully" de la prueba E2E
 - `config check` incluye las filas "Cognito" (obtiene un token) y "Fake channel" (consulta un
   usuario inexistente y espera 200 o 404 "No messages found").
 
+## `pods` — [T-017](../backlog/tasks/T-017-pods-logs-eks.md) (solo lectura, permitido en prod)
+
+Logs de los pods de `platform_campaigns_ms` en EKS, sin `kubectl` ni `aws` instalados y sin tocar
+`~/.kube/config` ([ADR-0009](adr/0009-acceso-a-kubernetes.md)). Equivale a
+`aws eks update-kubeconfig ... && kubectl logs -n <ns> -l <selector> --tail N [-f]`.
+
+| Comando | Qué hace |
+|---|---|
+| `pods ls [-l SELECTOR]` | Pods del selector: estado, contenedores listos, reinicios, creación (hora Colombia), nodo y contenedores. |
+| `pods logs [-l SELECTOR] [--pod NOMBRE] [-c CONTENEDOR] [--tail 1000] [--since 1h] [--filter TEXTO]` | Últimas líneas de cada pod, mezcladas en orden cronológico con el nombre del pod y la hora (Colombia). Sale con 1 si no hay pods. |
+| `pods logs ... -f [--max-pods 5]` | Sigue todos los pods a la vez (un hilo por pod) hasta Ctrl+C; si la conexión se corta, reconecta desde la última línea sin repetir. Con `--output json`, un objeto JSON por línea. |
+
+- El selector por defecto es `CAMPAIGNS_POD_SELECTOR` (`app=platform-campaigns-others-v2`).
+- El contenedor por defecto es el principal del pod (no `istio-proxy`).
+- `--filter` busca el texto literal; útil con un `notification_id` o `campaign_id`.
+- `config check` incluye la fila "EKS" (describe el clúster y lista los pods del selector).
+
 ## Grupos planeados
 
 | Grupo | Comandos previstos | Tarjeta |

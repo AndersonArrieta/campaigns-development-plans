@@ -14,7 +14,7 @@ uv tool install --editable .                              # opcional: `campaigns
   `campaigns = "campaigns_cli.main:app"`.
 - **WSL + OneDrive:** con el `.venv` dentro de `/mnt/c` la suite tarda ~220 s; en el disco Linux, ~30 s o menos.
 - Dependencias: `typer`, `rich`, `boto3`, `pydantic-settings`, `httpx`. Dev: `pytest`, `pytest-cov`,
-  `moto[dynamodb,logs,s3]`, `ruff`, `mypy`, `boto3-stubs[dynamodb,lambda,logs,s3,sts]`.
+  `moto[dynamodb,logs,s3]`, `ruff`, `mypy`, `boto3-stubs[dynamodb,eks,lambda,logs,s3,sts]`.
 
 ## Comandos de calidad
 
@@ -40,13 +40,14 @@ uv run mypy src
 | `test_dynamo_service.py`, `test_dynamo_cmd.py` (`dynamo_fixtures.py`) | Tablas con el mismo esquema que dev | moto |
 | `test_logs_service.py`, `test_logs_cmd.py` | Logs Insights, `filter_log_events` | `botocore.stub.Stubber` / clientes falsos |
 | `test_channel_service.py`, `test_channel_cmd.py` (`channel_fixtures.py`) | Cognito y fake channel | `httpx.MockTransport` con un servidor falso (`FakeServer`) |
+| `test_k8s_service.py`, `test_pods_cmd.py` (`k8s_fixtures.py`) | Token de EKS, API de Kubernetes, seguimiento con reconexión | `FakeEks` + `FakeCluster` sobre `httpx.MockTransport`; CA de prueba tomada de `certifi` |
 | `test_timeutils.py`, `test_cli.py` | Fechas; humo de la app | unitarias |
 
 Reglas:
 - **Nunca AWS ni HTTP real en la suite.** moto para S3, DynamoDB y STS; `Stubber` o clientes falsos
   donde moto no alcanza (invocar Lambdas exige Docker; Logs Insights tiene soporte limitado).
 - Los servicios aceptan `sleep` y `clock` inyectables para probar polling y timeouts sin esperar.
-- Cobertura actual: 97 % (213 pruebas). El umbral de 80 % se fijará en CI ([T-014](../backlog/tasks/T-014-ci-github-actions.md)).
+- Cobertura actual: 96 % (248 pruebas). El umbral de 80 % se fijará en CI ([T-014](../backlog/tasks/T-014-ci-github-actions.md)).
 
 ## Cómo agregar un grupo de comandos
 

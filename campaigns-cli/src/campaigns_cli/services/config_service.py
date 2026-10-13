@@ -25,6 +25,8 @@ from campaigns_cli.services.channel_service import (
     Channel,
     fake_channel_from,
 )
+from campaigns_cli.services.k8s_service import REQUIRED_SETTINGS as EKS_SETTINGS
+from campaigns_cli.services.k8s_service import pods_service_from
 from campaigns_cli.settings import Settings, env_var_name
 
 if TYPE_CHECKING:
@@ -195,6 +197,37 @@ def _check_channel(settings: Settings, http: HttpClients) -> list[ResourceCheck]
     return checks
 
 
+def _check_eks(settings: Settings, aws: AwsClients, http: HttpClients) -> ResourceCheck:
+    """EKS es opcional: solo lo usa el grupo `pods`."""
+    variable = env_var_name("eks_cluster_name")
+    missing = [env_var_name(name) for name in EKS_SETTINGS if not getattr(settings, name)]
+    if len(missing) == len(EKS_SETTINGS):
+        detail = "sin configurar: el grupo pods no está disponible"
+        return ResourceCheck("EKS", variable, "", Status.OPTIONAL, detail)
+    if missing:
+        return ResourceCheck(
+            "EKS", variable, "", Status.MISSING_CONFIG, "falta " + ", ".join(missing)
+        )
+
+    name = f"{settings.eks_cluster_name}/{settings.eks_namespace}"
+    selector = settings.campaigns_pod_selector
+    try:
+        pods = pods_service_from(settings, aws, http).list_pods(selector)
+    except ClientError as exc:
+        if is_not_found(exc):
+            return ResourceCheck("EKS", variable, name, Status.NOT_FOUND)
+        if is_access_denied(exc):
+            return ResourceCheck("EKS", variable, name, Status.ACCESS_DENIED, exc.operation_name)
+        return ResourceCheck(
+            "EKS", variable, name, Status.ERROR, f"{client_error_code(exc)}: {exc}"
+        )
+    except ServiceAuthError as exc:
+        return ResourceCheck("EKS", variable, name, Status.ACCESS_DENIED, str(exc))
+    except (ExternalServiceError, httpx.TransportError) as exc:
+        return ResourceCheck("EKS", variable, name, Status.ERROR, str(exc))
+    return ResourceCheck("EKS", variable, name, Status.OK, f"{len(pods)} pod(s) con {selector}")
+
+
 def check_resources(settings: Settings, aws: AwsClients, http: HttpClients) -> list[ResourceCheck]:
     checks: list[ResourceCheck] = []
 
@@ -236,4 +269,5 @@ def check_resources(settings: Settings, aws: AwsClients, http: HttpClients) -> l
 
     checks.extend(_check_log_groups(settings, aws))
     checks.extend(_check_channel(settings, http))
+    checks.append(_check_eks(settings, aws, http))
     return checks

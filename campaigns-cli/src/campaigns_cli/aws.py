@@ -12,6 +12,7 @@ from campaigns_cli.settings import Settings
 
 if TYPE_CHECKING:
     from mypy_boto3_dynamodb import DynamoDBClient
+    from mypy_boto3_eks import EKSClient
     from mypy_boto3_lambda import LambdaClient
     from mypy_boto3_logs import CloudWatchLogsClient
     from mypy_boto3_s3 import S3Client
@@ -53,6 +54,10 @@ class AwsClients:
     @cached_property
     def dynamodb(self) -> DynamoDBClient:
         return self.session.client("dynamodb", config=CLIENT_CONFIG)
+
+    @cached_property
+    def eks(self) -> EKSClient:
+        return self.session.client("eks", config=CLIENT_CONFIG)
 
     @cached_property
     def lambda_(self) -> LambdaClient:
