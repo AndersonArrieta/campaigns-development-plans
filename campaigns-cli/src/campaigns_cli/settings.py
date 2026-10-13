@@ -74,6 +74,7 @@ class Settings(BaseSettings):
     eks_cluster_name: str | None = None
     eks_namespace: str | None = None
     campaigns_pod_selector: str = "app=platform-campaigns-others-v2"
+    engine_pod_selector: str = "app=platform-engine-nlp-others-campaigns"
 
     # --- Logs ---
     campaigns_log_groups: Annotated[list[str], NoDecode] = Field(default_factory=list)

@@ -9,6 +9,8 @@ Equivale a:
   `x-k8s-aws-id: <cluster>`, en base64url y con prefijo `k8s-aws-v1.`.
 - Contenedor por defecto: la anotación `kubectl.kubernetes.io/default-container` (la pone istio) o
   el primero del pod, como hace `kubectl`.
+- Componentes: `campaigns` (platform_campaigns_ms, `CAMPAIGNS_POD_SELECTOR`) y `engine`
+  (engine_nlp_ms, `ENGINE_POD_SELECTOR`).
 - Las horas se devuelven en hora Colombia, sin zona.
 """
 
@@ -20,8 +22,9 @@ import re
 import threading
 import time
 from collections.abc import Callable, Generator, Iterator, Sequence
-from dataclasses import dataclass, field
+from dataclasses import dataclass, field, replace
 from datetime import UTC, datetime
+from enum import StrEnum
 from typing import TYPE_CHECKING, Any
 
 import httpx
@@ -48,6 +51,18 @@ RECONNECT_DELAY_SECONDS = 2.0
 REQUIRED_SETTINGS = ("eks_cluster_name", "eks_namespace")
 
 _LOG_TIMESTAMP = re.compile(r"^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2})(?:\.(\d+))?Z$")
+
+
+class Component(StrEnum):
+    CAMPAIGNS = "campaigns"
+    ENGINE = "engine"
+
+
+def component_selectors(settings: Settings) -> dict[Component, str]:
+    return {
+        Component.CAMPAIGNS: settings.campaigns_pod_selector,
+        Component.ENGINE: settings.engine_pod_selector,
+    }
 
 
 # --- Autenticación ---
@@ -139,6 +154,7 @@ class Pod:
     node: str
     containers: tuple[str, ...]
     default_container: str | None
+    component: str | None = None
 
     @property
     def finished(self) -> bool:
@@ -146,6 +162,7 @@ class Pod:
 
     def as_dict(self) -> dict[str, Any]:
         return {
+            "componente": self.component,
             "pod": self.name,
             "estado": self.phase,
             "listos": self.ready,
@@ -184,9 +201,11 @@ class PodLogLine:
     pod: str
     timestamp: datetime | None
     message: str
+    component: str | None = None
 
     def as_dict(self) -> dict[str, Any]:
         return {
+            "componente": self.component,
             "pod": self.pod,
             "hora": self.timestamp.isoformat(sep=" ", timespec="milliseconds")
             if self.timestamp
@@ -195,17 +214,17 @@ class PodLogLine:
         }
 
 
-def parse_log_line(pod: str, line: str) -> PodLogLine:
+def parse_log_line(pod: str, line: str, component: str | None = None) -> PodLogLine:
     """`2026-10-13T15:04:05.123456789Z mensaje` (con `timestamps=true`) → línea en hora Colombia."""
     raw, _, message = line.partition(" ")
     match = _LOG_TIMESTAMP.match(raw)
     if not match:
-        return PodLogLine(pod, None, line)
+        return PodLogLine(pod, None, line, component)
     fraction = (match.group(2) or "0")[:6].ljust(6, "0")
     parsed = datetime.strptime(match.group(1), "%Y-%m-%dT%H:%M:%S").replace(
         microsecond=int(fraction), tzinfo=UTC
     )
-    return PodLogLine(pod, _to_colombia(parsed), message)
+    return PodLogLine(pod, _to_colombia(parsed), message, component)
 
 
 @dataclass(frozen=True)
@@ -272,11 +291,12 @@ class PodsService:
             f"La API de Kubernetes respondió HTTP {status} al {action}. {detail}".strip()
         )
 
-    def list_pods(self, selector: str) -> list[Pod]:
+    def list_pods(self, selector: str, component: str | None = None) -> list[Pod]:
         response = self.client.get(self._pods_path(), params={"labelSelector": selector})
         self._check(response, f"listar los pods con {selector}")
         items = response.json().get("items") or []
-        return sorted((parse_pod(item) for item in items), key=lambda pod: pod.name)
+        pods = (replace(parse_pod(item), component=component) for item in items)
+        return sorted(pods, key=lambda pod: pod.name)
 
     def get_pod(self, name: str) -> Pod:
         response = self.client.get(f"{self._pods_path()}/{name}")
@@ -309,7 +329,11 @@ class PodsService:
             params=self._log_params(pod, container, tail, since_seconds),
         )
         self._check(response, f"leer los logs de {pod.name}")
-        return [parse_log_line(pod.name, line) for line in response.text.splitlines() if line]
+        return [
+            parse_log_line(pod.name, line, pod.component)
+            for line in response.text.splitlines()
+            if line
+        ]
 
     def stream(
         self,
@@ -337,7 +361,7 @@ class PodsService:
                             return
                         if not raw:
                             continue
-                        line = parse_log_line(pod.name, raw)
+                        line = parse_log_line(pod.name, raw, pod.component)
                         if cursor.is_new(line):
                             cursor.advance(line)
                             yield line
@@ -386,6 +410,80 @@ class PodsService:
             if isinstance(item, StreamEnd):
                 remaining -= 1
             yield item
+
+
+# --- Búsqueda ---
+
+
+@dataclass(frozen=True)
+class SelectedLine:
+    line: PodLogLine
+    match: bool
+
+    def as_dict(self) -> dict[str, Any]:
+        return {**self.line.as_dict(), "coincide": self.match}
+
+
+def select_lines(lines: Sequence[PodLogLine], pattern: str, context: int = 0) -> list[SelectedLine]:
+    """Líneas que contienen `pattern` y, como `grep -C`, las `context` vecinas del mismo pod.
+
+    `lines` va en el orden en que las devolvió cada pod; las ventanas solapadas no se repiten.
+    """
+    selected: list[SelectedLine] = []
+    by_pod: dict[str, list[PodLogLine]] = {}
+    for line in lines:
+        by_pod.setdefault(line.pod, []).append(line)
+    for pod_lines in by_pod.values():
+        hits = [i for i, line in enumerate(pod_lines) if pattern in line.message]
+        keep: set[int] = set()
+        for index in hits:
+            keep.update(
+                range(max(index - context, 0), min(index + context, len(pod_lines) - 1) + 1)
+            )
+        matches = set(hits)
+        selected.extend(SelectedLine(pod_lines[i], i in matches) for i in sorted(keep))
+    return selected
+
+
+@dataclass(frozen=True)
+class ComponentSummary:
+    component: str
+    pods: int
+    matches: int
+    first: datetime | None
+    last: datetime | None
+
+    def as_dict(self) -> dict[str, Any]:
+        def fmt(value: datetime | None) -> str | None:
+            return value.isoformat(sep=" ", timespec="milliseconds") if value else None
+
+        return {
+            "componente": self.component,
+            "pods": self.pods,
+            "coincidencias": self.matches,
+            "primera": fmt(self.first),
+            "ultima": fmt(self.last),
+        }
+
+
+def summarize(
+    selected: Sequence[SelectedLine], pods: Sequence[Pod], components: Sequence[str]
+) -> list[ComponentSummary]:
+    """Coincidencias por componente (incluye los que no tuvieron ninguna)."""
+    summaries = []
+    for component in components:
+        hits = [s.line for s in selected if s.match and s.line.component == component]
+        times = sorted(line.timestamp for line in hits if line.timestamp)
+        summaries.append(
+            ComponentSummary(
+                component,
+                sum(1 for pod in pods if pod.component == component),
+                len(hits),
+                times[0] if times else None,
+                times[-1] if times else None,
+            )
+        )
+    return summaries
 
 
 def _api_message(response: httpx.Response) -> str:

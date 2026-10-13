@@ -12,7 +12,7 @@ from campaigns_cli.http import HttpClients
 from campaigns_cli.main import app
 from campaigns_cli.state import AppState
 from tests.channel_fixtures import BASE_URL, CHANNEL_ENV, CLIENT_SECRET, TOKEN_URL, FakeServer
-from tests.k8s_fixtures import CLUSTER, EKS_ENV, NAMESPACE, FakeCluster, FakeEks, pod
+from tests.k8s_fixtures import CLUSTER, EKS_ENV, ENGINE, NAMESPACE, FakeCluster, FakeEks, pod
 
 # Terminal ancha para que rich no parta los nombres de recursos en varias líneas.
 runner = CliRunner(env={"COLUMNS": "200"})
@@ -170,6 +170,7 @@ def test_all_resources_ok(  # type: ignore[no-untyped-def]
     write_env(ENV + CHANNEL_ENV + EKS_ENV)
     _create_all(fake_lambda)
     backends.cluster.add(pod("p-1"))
+    backends.cluster.add(pod("e-1", app=ENGINE))
 
     exit_code, report, _ = _check()
 
@@ -182,7 +183,7 @@ def test_all_resources_ok(  # type: ignore[no-untyped-def]
     assert fake_channel.message_requests[0].url.path.endswith("/whatsapp/get-messages/0000000000")
     eks = next(r for r in report["recursos"] if r["recurso"] == "EKS")
     assert eks["nombre"] == f"{CLUSTER}/{NAMESPACE}"
-    assert eks["detalle"] == "1 pod(s) con app=platform-campaigns-others-v2"
+    assert eks["detalle"] == "1 pod(s) campaigns, 1 pod(s) engine"
 
 
 @pytest.mark.usefixtures("mocked_aws")
@@ -209,6 +210,22 @@ def test_eks_partially_configured(write_env, fake_lambda: FakeLambda) -> None:  
     assert exit_code == 1
     assert eks["estado"] == "FALTA CONFIG"
     assert "EKS_NAMESPACE" in eks["detalle"]
+
+
+@pytest.mark.usefixtures("mocked_aws")
+def test_eks_component_without_pods(write_env, fake_lambda: FakeLambda, backends: Backends) -> None:  # type: ignore[no-untyped-def]
+    write_env(ENV + EKS_ENV)
+    _create_all(fake_lambda)
+    backends.cluster.add(pod("p-1"))
+
+    _, report, _ = _check()
+
+    eks = next(r for r in report["recursos"] if r["recurso"] == "EKS")
+    assert eks["estado"] == "OK"
+    assert (
+        eks["detalle"]
+        == "1 pod(s) campaigns, 0 pod(s) engine (un componente sin pods: ¿escalado a 0?)"
+    )
 
 
 @pytest.mark.usefixtures("mocked_aws")

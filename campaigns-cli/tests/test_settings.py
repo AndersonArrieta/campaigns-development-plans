@@ -82,6 +82,7 @@ def test_eks_settings(write_env) -> None:  # type: ignore[no-untyped-def]
     assert settings.eks_cluster_name == "eks-informacion-dev"
     assert settings.eks_namespace is None
     assert settings.campaigns_pod_selector == "app=platform-campaigns-others-v2"
+    assert settings.engine_pod_selector == "app=platform-engine-nlp-others-campaigns"
 
 
 def test_fake_channel_defaults(write_env) -> None:  # type: ignore[no-untyped-def]

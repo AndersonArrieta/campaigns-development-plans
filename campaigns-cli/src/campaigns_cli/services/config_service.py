@@ -26,7 +26,7 @@ from campaigns_cli.services.channel_service import (
     fake_channel_from,
 )
 from campaigns_cli.services.k8s_service import REQUIRED_SETTINGS as EKS_SETTINGS
-from campaigns_cli.services.k8s_service import pods_service_from
+from campaigns_cli.services.k8s_service import component_selectors, pods_service_from
 from campaigns_cli.settings import Settings, env_var_name
 
 if TYPE_CHECKING:
@@ -210,9 +210,12 @@ def _check_eks(settings: Settings, aws: AwsClients, http: HttpClients) -> Resour
         )
 
     name = f"{settings.eks_cluster_name}/{settings.eks_namespace}"
-    selector = settings.campaigns_pod_selector
     try:
-        pods = pods_service_from(settings, aws, http).list_pods(selector)
+        service = pods_service_from(settings, aws, http)
+        counts = {
+            component: len(service.list_pods(selector))
+            for component, selector in component_selectors(settings).items()
+        }
     except ClientError as exc:
         if is_not_found(exc):
             return ResourceCheck("EKS", variable, name, Status.NOT_FOUND)
@@ -225,7 +228,10 @@ def _check_eks(settings: Settings, aws: AwsClients, http: HttpClients) -> Resour
         return ResourceCheck("EKS", variable, name, Status.ACCESS_DENIED, str(exc))
     except (ExternalServiceError, httpx.TransportError) as exc:
         return ResourceCheck("EKS", variable, name, Status.ERROR, str(exc))
-    return ResourceCheck("EKS", variable, name, Status.OK, f"{len(pods)} pod(s) con {selector}")
+    detail = ", ".join(f"{count} pod(s) {component}" for component, count in counts.items())
+    if not all(counts.values()):
+        detail += " (un componente sin pods: ¿escalado a 0?)"
+    return ResourceCheck("EKS", variable, name, Status.OK, detail)
 
 
 def check_resources(settings: Settings, aws: AwsClients, http: HttpClients) -> list[ResourceCheck]:

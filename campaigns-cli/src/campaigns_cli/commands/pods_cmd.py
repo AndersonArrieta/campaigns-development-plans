@@ -1,7 +1,9 @@
-"""Comandos `pods`: logs de los pods de platform_campaigns_ms en EKS (solo lectura)."""
+"""Comandos `pods`: logs de los pods de campaigns y engine en EKS (solo lectura)."""
 
 import threading
+from dataclasses import dataclass
 from datetime import datetime
+from enum import StrEnum
 from typing import Annotated
 
 import typer
@@ -10,47 +12,103 @@ from rich.markup import escape
 from campaigns_cli.errors import TestFailedError, UsageError
 from campaigns_cli.output import console, info, render, to_json, warn
 from campaigns_cli.services.k8s_service import (
+    Component,
+    ComponentSummary,
     Pod,
     PodLogLine,
     PodsService,
+    SelectedLine,
     StreamEnd,
+    component_selectors,
     pods_service_from,
+    select_lines,
+    summarize,
 )
 from campaigns_cli.settings import OutputFormat
 from campaigns_cli.state import AppState, get_state
 from campaigns_cli.timeutils import parse_since
 
 app = typer.Typer(
-    help="Logs de los pods de platform_campaigns_ms en EKS (solo lectura, hora Colombia).",
+    help="Logs de los pods de campaigns y engine en EKS (solo lectura, hora Colombia).",
     no_args_is_help=True,
 )
+
+DEFAULT_TAIL = 1000
+NOTIFICATION_SINCE = "24h"
+MIN_TERM_LENGTH = 6
+
+
+class ComponentChoice(StrEnum):
+    CAMPAIGNS = "campaigns"
+    ENGINE = "engine"
+    ALL = "all"
+
 
 SelectorOption = Annotated[
     str | None,
     typer.Option(
-        "--selector", "-l", help="Selector de etiquetas (por defecto CAMPAIGNS_POD_SELECTOR)."
+        "--selector", "-l", help="Selector de etiquetas (tiene prioridad sobre --component)."
     ),
 ]
+ComponentOption = Annotated[
+    list[ComponentChoice] | None,
+    typer.Option(
+        "--component",
+        "-k",
+        help="campaigns, engine o all (se puede repetir). Por defecto campaigns.",
+    ),
+]
+
+
+@dataclass(frozen=True)
+class Target:
+    component: str | None
+    selector: str
 
 
 def _service(state: AppState) -> PodsService:
     return pods_service_from(state.settings, state.aws, state.http)
 
 
-def _selector(state: AppState, selector: str | None) -> str:
-    return selector or state.settings.campaigns_pod_selector
+def _targets(
+    state: AppState,
+    selector: str | None,
+    choices: list[ComponentChoice] | None,
+    default: list[Component],
+) -> list[Target]:
+    """-l > --component > `default` (campaigns, o todos con --notification-id)."""
+    if selector:
+        return [Target(None, selector)]
+    selectors = component_selectors(state.settings)
+    if not choices:
+        components = default
+    elif ComponentChoice.ALL in choices:
+        components = list(Component)
+    else:
+        components = [Component(choice.value) for choice in dict.fromkeys(choices)]
+    return [Target(c.value, selectors[c]) for c in components]
+
+
+def _pods(service: PodsService, targets: list[Target]) -> list[Pod]:
+    return [pod for t in targets for pod in service.list_pods(t.selector, t.component)]
+
+
+def _describe(targets: list[Target]) -> str:
+    return ", ".join(t.component or t.selector for t in targets)
 
 
 @app.command("ls")
-def list_(ctx: typer.Context, selector: SelectorOption = None) -> None:
-    """Lista los pods del selector con su estado, reinicios y nodo."""
+def list_(
+    ctx: typer.Context, selector: SelectorOption = None, component: ComponentOption = None
+) -> None:
+    """Lista los pods con su componente, estado, reinicios y nodo."""
     state = get_state(ctx)
-    chosen = _selector(state, selector)
-    pods = _service(state).list_pods(chosen)
+    targets = _targets(state, selector, component, [Component.CAMPAIGNS])
+    pods = _pods(_service(state), targets)
     render(
         [pod.as_dict() for pod in pods],
         state.output,
-        title=f"Pods con {chosen} en {state.settings.eks_namespace}",
+        title=f"Pods de {_describe(targets)} en {state.settings.eks_namespace}",
     )
 
 
@@ -58,20 +116,47 @@ def list_(ctx: typer.Context, selector: SelectorOption = None) -> None:
 def logs(
     ctx: typer.Context,
     selector: SelectorOption = None,
+    component: ComponentOption = None,
     pod: Annotated[
-        str | None, typer.Option("--pod", help="Un pod concreto (ignora el selector).")
+        str | None, typer.Option("--pod", help="Un pod concreto (ignora selector y componente).")
     ] = None,
     container: Annotated[
         str | None,
         typer.Option("--container", "-c", help="Contenedor (por defecto el principal del pod)."),
     ] = None,
-    tail: Annotated[int, typer.Option("--tail", min=0, help="Últimas líneas de cada pod.")] = 1000,
+    tail: Annotated[
+        int | None,
+        typer.Option(
+            "--tail",
+            min=0,
+            help=f"Últimas líneas de cada pod (por defecto {DEFAULT_TAIL}; "
+            "sin límite con --notification-id).",
+        ),
+    ] = None,
     since: Annotated[
-        str | None, typer.Option("--since", help="Solo lo de esta ventana: 30m, 2h, 1d.")
+        str | None,
+        typer.Option(
+            "--since",
+            help=f"Solo lo de esta ventana: 30m, 2h, 1d ({NOTIFICATION_SINCE} con "
+            "--notification-id).",
+        ),
     ] = None,
     pattern: Annotated[
         str | None, typer.Option("--filter", help="Solo líneas que contengan este texto.")
     ] = None,
+    notification_id: Annotated[
+        str | None,
+        typer.Option(
+            "--notification-id",
+            help="Busca este notification_id en campaigns y engine y resume dónde aparece.",
+        ),
+    ] = None,
+    context: Annotated[
+        int,
+        typer.Option(
+            "--context", "-C", min=0, help="Líneas vecinas a mostrar por coincidencia (grep -C)."
+        ),
+    ] = 0,
     follow: Annotated[
         bool, typer.Option("--follow", "-f", help="Sigue mostrando líneas nuevas (Ctrl+C).")
     ] = False,
@@ -79,14 +164,33 @@ def logs(
         int, typer.Option("--max-pods", min=1, help="Máximo de pods a seguir con -f.")
     ] = 5,
 ) -> None:
-    """Muestra los logs de los pods del microservicio (como kubectl logs -l ... --tail N)."""
+    """Muestra los logs de los pods (como kubectl logs -l ... --tail N)."""
+    if notification_id is not None:
+        if pattern:
+            raise UsageError("Usa --filter o --notification-id, no ambos.")
+        if len(notification_id.strip()) < MIN_TERM_LENGTH:
+            raise UsageError(
+                f"El notification_id debe tener al menos {MIN_TERM_LENGTH} caracteres."
+            )
+        pattern = notification_id.strip()
+        since = since or NOTIFICATION_SINCE
+    if context and not pattern:
+        raise UsageError("--context requiere --filter o --notification-id.")
+    if context and follow:
+        raise UsageError("--context no admite --follow.")
+
     state = get_state(ctx)
     service = _service(state)
-    chosen = _selector(state, selector)
-    pods = [service.get_pod(pod)] if pod else service.list_pods(chosen)
+    default = list(Component) if notification_id else [Component.CAMPAIGNS]
+    targets = _targets(state, selector, component, default)
+    pods = [service.get_pod(pod)] if pod else _pods(service, targets)
     if not pods:
-        raise TestFailedError(f"No hay pods con {chosen} en el namespace {service.namespace}.")
+        raise TestFailedError(
+            f"No hay pods de {_describe(targets)} en el namespace {service.namespace}."
+        )
     since_seconds = int(parse_since(since).total_seconds()) if since else None
+    if tail is None and notification_id is None:
+        tail = DEFAULT_TAIL
 
     if follow:
         if len(pods) > max_pods:
@@ -101,17 +205,58 @@ def logs(
         lines.extend(
             service.logs(item, container=container, tail=tail, since_seconds=since_seconds)
         )
-    lines = [line for line in lines if _matches(line, pattern)]
-    lines.sort(key=lambda line: (line.timestamp or datetime.max, line.pod))
+    selected = (
+        select_lines(lines, pattern, context)
+        if pattern
+        else [SelectedLine(line, False) for line in lines]
+    )
+    selected.sort(key=lambda s: (s.line.timestamp or datetime.max, s.line.pod))
+    summary = (
+        summarize(selected, pods, [t.component for t in targets if t.component])
+        if notification_id and not pod
+        else []
+    )
+    _print_lines(state, selected, summary, len(pods), with_marks=context > 0)
+    if notification_id and not any(s.match for s in selected):
+        raise TestFailedError(
+            f"El notification_id {notification_id} no aparece en los logs de {_describe(targets)} "
+            f"(ventana {since})."
+        )
+
+
+def _print_lines(
+    state: AppState,
+    selected: list[SelectedLine],
+    summary: list[ComponentSummary],
+    pod_count: int,
+    *,
+    with_marks: bool,
+) -> None:
     if state.output is OutputFormat.JSON:
-        render([line.as_dict() for line in lines], state.output)
+        rows = [s.as_dict() if with_marks else s.line.as_dict() for s in selected]
+        if summary:
+            render({"lineas": rows, "resumen": [s.as_dict() for s in summary]}, state.output)
+        else:
+            render(rows, state.output)
         return
-    if not lines:
+    if not selected:
         info("Sin líneas de log para los pods consultados.")
-        return
-    for line in lines:
-        console.print(_line(line), highlight=False)
-    info(f"{len(lines)} línea(s) de {len(pods)} pod(s). Horas en hora Colombia.")
+    for item in selected:
+        console.print(_line(item.line, dim=with_marks and not item.match), highlight=False)
+    if selected:
+        info(f"{len(selected)} línea(s) de {pod_count} pod(s). Horas en hora Colombia.")
+    for entry in summary:
+        if entry.matches:
+            span = (
+                f", de {entry.first:%H:%M:%S} a {entry.last:%H:%M:%S}"
+                if entry.first and entry.last
+                else ""
+            )
+            info(
+                f"{entry.component}: {entry.matches} coincidencia(s) en {entry.pods} pod(s){span}."
+            )
+        else:
+            warn(f"{entry.component}: sin coincidencias ({entry.pods} pod(s) revisados).")
 
 
 def _matches(line: PodLogLine, pattern: str | None) -> bool:
@@ -123,7 +268,7 @@ def _follow(
     service: PodsService,
     pods: list[Pod],
     container: str | None,
-    tail: int,
+    tail: int | None,
     since_seconds: int | None,
     pattern: str | None,
 ) -> None:
@@ -148,6 +293,10 @@ def _follow(
         stop.set()
 
 
-def _line(line: PodLogLine) -> str:
+def _line(line: PodLogLine, *, dim: bool = False) -> str:
     when = f"{line.timestamp:%Y-%m-%d %H:%M:%S}" if line.timestamp else "-"
-    return f"[cyan]{escape(line.pod)}[/cyan] [dim]{when}[/dim]  {escape(line.message)}"
+    prefix = f"[magenta]{escape(f'[{line.component}]')}[/magenta] " if line.component else ""
+    message = escape(line.message)
+    if dim:
+        message = f"[dim]{message}[/dim]"
+    return f"{prefix}[cyan]{escape(line.pod)}[/cyan] [dim]{when}[/dim]  {message}"

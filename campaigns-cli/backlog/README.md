@@ -120,7 +120,7 @@ queda en el mismo vault y los enlaces entre ambos funcionan.
 
 ## Estado actual
 
-✅ **done (7)**
+✅ **done (8)**
 - [[T-001-esqueleto-uv|T-001]] — proyecto uv, entry point `campaigns`, ruff/mypy/pytest.
 - [[T-002-settings-env|T-002]] — `Settings`, `.env`/`--env-file`, `config show`.
 - [[T-003-aws-output-guards|T-003]] — `AwsClients`, salida tabla/JSON, exit codes, guards, `config check`.
@@ -128,6 +128,7 @@ queda en el mismo vault y los enlaces entre ambos funcionan.
 - [[T-008-logs-cloudwatch|T-008]] — `logs groups/tail/search` sobre las lambdas.
 - [[T-015-fake-channel-messages|T-015]] — grupo `channel`: token de Cognito y mensajes del fake channel.
 - [[T-017-pods-logs-eks|T-017]] — grupo `pods`: logs de los pods de `platform_campaigns_ms` en EKS, sin `kubectl`.
+- [[T-018-pods-engine-notification-id|T-018]] — `pods`: componente engine y `--notification-id` en campaigns y engine.
 
 🟡 **todo (4)**
 - [[T-004-csv-generate-validate|T-004]] — `csv generate` y `csv validate`.
@@ -148,7 +149,7 @@ queda en el mismo vault y los enlaces entre ambos funcionan.
 base:        T-001 ─► T-002 ─► T-003
 dynamo:      T-003 ─► T-006 ─► T-012
 logs:        T-003 ─► T-008
-pods:        T-003, T-015 ─► T-017
+pods:        T-003, T-015 ─► T-017 ─► T-018
 ingesta:     T-001 ─► T-004 ─► T-005 ─► T-007        (T-005 y T-007 también ─◄ T-003)
 trace:       T-004, T-005, T-006, T-008, T-012 ─► T-009 ─► T-013 ◄─ T-007
 docs:        T-007, T-009 ─► T-010

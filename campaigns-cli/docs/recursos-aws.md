@@ -87,14 +87,19 @@ No son recursos que la CLI consulte con boto3, sino servicios HTTP ([ADR-0008](a
 El fake channel solo expone esas consultas: no hay endpoint para enviar ni para borrar mensajes, así
 que los mensajes de corridas anteriores siguen ahí.
 
-## EKS: pods de `platform_campaigns_ms`
+## EKS: pods de `platform_campaigns_ms` y `engine_nlp_ms`
 
 | Dato | Valor en dev |
 |---|---|
 | Clúster | `eks-informacion-dev` |
 | Namespace | `artemis-dev` |
-| Selector | `app=platform-campaigns-others-v2` |
-| Contenedores | `platform-campaigns-others-v2` (principal) e `istio-proxy` |
+| Selector campaigns | `app=platform-campaigns-others-v2` |
+| Contenedores campaigns | `platform-campaigns-others-v2` (principal) e `istio-proxy` |
+| Selector engine | `app=platform-engine-nlp-others-campaigns` |
+| Contenedores engine | `platform-engine-nlp-others-campaigns` (principal) e `istio-proxy` |
+
+En el engine, el `notification_id` aparece dentro del body JSON del mensaje recibido de RabbitMQ
+(`"data":{…,"notification_id":"…"}`), en una línea `GenericMessageListener … Body:`.
 
 La CLI usa estos endpoints de la API de Kubernetes ([ADR-0009](adr/0009-acceso-a-kubernetes.md)):
 

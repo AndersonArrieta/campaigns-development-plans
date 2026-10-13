@@ -13,6 +13,7 @@ NAMESPACE = "artemis-dev"
 SELECTOR = "app=platform-campaigns-others-v2"
 ENDPOINT = "https://k8s.test"
 APP = "platform-campaigns-others-v2"
+ENGINE = "platform-engine-nlp-others-campaigns"
 
 EKS_ENV = f"""
 AWS_REGION=us-east-1

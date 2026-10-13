@@ -169,7 +169,7 @@ uv run campaigns channel messages --canal teams --user 27060555-ecc0-4aad-85b6-9
 - `verify` reintenta 5 veces cada 10 s (`--attempts`, `--interval`) y sale con 1 si el mensaje no llegó.
 - El fake channel no borra mensajes: uno de una corrida anterior con el mismo texto cuenta como entregado.
 
-## Comandos `pods` (logs de `platform_campaigns_ms` en EKS, solo lectura)
+## Comandos `pods` (logs de campaigns y engine en EKS, solo lectura)
 
 Reemplazan `aws eks update-kubeconfig ...` + `kubectl logs -f -l app=platform-campaigns-others-v2 --tail 1000`,
 con las mismas credenciales del `.env` y sin `kubectl` instalado:
@@ -177,17 +177,20 @@ con las mismas credenciales del `.env` y sin `kubectl` instalado:
 ```dotenv
 EKS_CLUSTER_NAME=eks-informacion-dev
 EKS_NAMESPACE=artemis-dev
-# CAMPAIGNS_POD_SELECTOR=app=platform-campaigns-others-v2   (valor por defecto)
+# CAMPAIGNS_POD_SELECTOR=app=platform-campaigns-others-v2         (valor por defecto)
+# ENGINE_POD_SELECTOR=app=platform-engine-nlp-others-campaigns    (valor por defecto)
 ```
 
 ```bash
 uv run campaigns pods ls                                   # pods del microservicio
 uv run campaigns pods logs --tail 1000 -f                  # como el kubectl logs -f de siempre
-uv run campaigns pods logs --since 1h --filter <notification_id>
+uv run campaigns pods logs -k engine --tail 200             # el engine (-k campaigns|engine|all)
+uv run campaigns pods logs --notification-id <id> -C 2       # rastro de una notificación en campaigns y engine
 uv run campaigns --output json pods logs --since 30m > campaigns-ms.json
 ```
 
-- Horas en hora Colombia; cada línea lleva el nombre del pod.
+- Horas en hora Colombia; cada línea lleva `[componente]` y el nombre del pod.
+- `--notification-id` busca en los dos componentes (últimas 24 h), resume dónde apareció y sale con 1 si no está; `-C 2` muestra las líneas vecinas (en el engine el id va dentro del JSON y las líneas relacionadas no lo llevan).
 - Permisos: `eks:DescribeCluster` y acceso RBAC a `pods` y `pods/log` en el namespace.
 
 ## Notas

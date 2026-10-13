@@ -69,22 +69,30 @@ como el paso "I verify the campaign was delivered successfully" de la prueba E2E
 - `config check` incluye las filas "Cognito" (obtiene un token) y "Fake channel" (consulta un
   usuario inexistente y espera 200 o 404 "No messages found").
 
-## `pods` — [T-017](../backlog/tasks/T-017-pods-logs-eks.md) (solo lectura, permitido en prod)
+## `pods` — [T-017](../backlog/tasks/T-017-pods-logs-eks.md), [T-018](../backlog/tasks/T-018-pods-engine-notification-id.md) (solo lectura, permitido en prod)
 
-Logs de los pods de `platform_campaigns_ms` en EKS, sin `kubectl` ni `aws` instalados y sin tocar
+Logs de los pods de `platform_campaigns_ms` (componente `campaigns`) y `engine_nlp_ms` (componente `engine`) en EKS, sin `kubectl` ni `aws` instalados y sin tocar
 `~/.kube/config` ([ADR-0009](adr/0009-acceso-a-kubernetes.md)). Equivale a
 `aws eks update-kubeconfig ... && kubectl logs -n <ns> -l <selector> --tail N [-f]`.
 
 | Comando | Qué hace |
 |---|---|
-| `pods ls [-l SELECTOR]` | Pods del selector: estado, contenedores listos, reinicios, creación (hora Colombia), nodo y contenedores. |
-| `pods logs [-l SELECTOR] [--pod NOMBRE] [-c CONTENEDOR] [--tail 1000] [--since 1h] [--filter TEXTO]` | Últimas líneas de cada pod, mezcladas en orden cronológico con el nombre del pod y la hora (Colombia). Sale con 1 si no hay pods. |
+| `pods ls [-k campaigns\|engine\|all] [-l SELECTOR]` | Pods de cada componente: estado, contenedores listos, reinicios, creación (hora Colombia), nodo y contenedores. |
+| `pods logs [-k ...] [-l SELECTOR] [--pod NOMBRE] [-c CONTENEDOR] [--tail 1000] [--since 1h] [--filter TEXTO] [-C N]` | Últimas líneas de cada pod, mezcladas en orden cronológico con `[componente]`, pod y hora (Colombia). Sale con 1 si no hay pods. |
+| `pods logs --notification-id ID [-k ...] [--since 24h] [-C N]` | Busca el id en **campaigns y engine** (últimas 24 h, sin límite de líneas) y resume por componente cuántas coincidencias hubo y entre qué horas. Sale con 1 si no aparece en ninguno. |
 | `pods logs ... -f [--max-pods 5]` | Sigue todos los pods a la vez (un hilo por pod) hasta Ctrl+C; si la conexión se corta, reconecta desde la última línea sin repetir. Con `--output json`, un objeto JSON por línea. |
 
-- El selector por defecto es `CAMPAIGNS_POD_SELECTOR` (`app=platform-campaigns-others-v2`).
+- Componentes: `campaigns` → `CAMPAIGNS_POD_SELECTOR` (`app=platform-campaigns-others-v2`) y `engine` →
+  `ENGINE_POD_SELECTOR` (`app=platform-engine-nlp-others-campaigns`). Sin `-k`, `campaigns`; con
+  `--notification-id`, los dos. `-l` tiene prioridad sobre `-k`.
+- `-C N` (`--context`) muestra las N líneas anteriores y posteriores de cada coincidencia en el mismo
+  pod, como `grep -C`; las vecinas salen atenuadas (en JSON, `coincide: false`). En el engine el
+  `notification_id` va dentro del body JSON y las líneas relacionadas (`Message null Headers`,
+  `Sending message to Retry DLQ`) no lo llevan: `-C` las muestra.
 - El contenedor por defecto es el principal del pod (no `istio-proxy`).
 - `--filter` busca el texto literal; útil con un `notification_id` o `campaign_id`.
-- `config check` incluye la fila "EKS" (describe el clúster y lista los pods del selector).
+- `config check` incluye la fila "EKS": describe el clúster y cuenta los pods de cada componente.
+- Con `--output json` y `--notification-id`, la salida es `{"lineas": [...], "resumen": [...]}`.
 
 ## Grupos planeados
 

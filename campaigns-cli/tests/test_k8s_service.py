@@ -12,11 +12,13 @@ from campaigns_cli.services.k8s_service import (
     EksTokenAuth,
     PodLogLine,
     PodsService,
+    SelectedLine,
     StreamEnd,
     describe_cluster,
     eks_token,
     parse_log_line,
     parse_pod,
+    select_lines,
 )
 from tests.k8s_fixtures import (
     APP,
@@ -256,3 +258,46 @@ def test_follow_many_reports_errors(cluster: FakeCluster) -> None:
     assert len(items) == 1
     assert isinstance(items[0], StreamEnd)
     assert "HTTP 403" in items[0].reason
+
+
+# --- búsqueda con contexto ---
+
+
+def _lines(pod_name: str, *messages: str) -> list[PodLogLine]:
+    return [
+        PodLogLine(pod_name, datetime(2026, 10, 13, 16, 0, i), m) for i, m in enumerate(messages)
+    ]
+
+
+def test_select_lines_without_context() -> None:
+    selected = select_lines(_lines("p", "a", "id-1", "b"), "id-1")
+
+    assert [(s.line.message, s.match) for s in selected] == [("id-1", True)]
+
+
+def test_select_lines_merges_overlapping_windows() -> None:
+    lines = _lines("p", "x0", "id-1", "x2", "id-1 otra", "x4", "x5", "x6")
+
+    selected = select_lines(lines, "id-1", context=1)
+
+    assert [(s.line.message, s.match) for s in selected] == [
+        ("x0", False),
+        ("id-1", True),
+        ("x2", False),
+        ("id-1 otra", True),
+        ("x4", False),
+    ]
+
+
+def test_select_lines_context_stays_within_pod() -> None:
+    lines = _lines("a", "a0", "id-1") + _lines("b", "id-1", "b1")
+
+    selected = select_lines(lines, "id-1", context=3)
+
+    assert [(s.line.pod, s.line.message) for s in selected] == [
+        ("a", "a0"),
+        ("a", "id-1"),
+        ("b", "id-1"),
+        ("b", "b1"),
+    ]
+    assert SelectedLine(lines[1], True).as_dict()["coincide"] is True
