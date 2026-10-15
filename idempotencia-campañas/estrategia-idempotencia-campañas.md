@@ -59,6 +59,23 @@ Todos estos datos ya viajan en el evento, así que **no hay que cambiar el contr
    - **Vigencia más corta:** la entrega es inmediata, así que basta con conservar el registro unas horas o días.
    - **Acuerdo con el productor:** el productor debe generar un `notification_id` único por notificación y **reutilizar el mismo id cuando reintenta el envío**. Si genera un id nuevo en cada intento, los duplicados no se pueden detectar.
 
+### 4.1 Solución unificada batch + online
+
+Los dos flujos comparten **un solo mecanismo**: la misma tabla y el mismo caso de uso de idempotencia. Solo cambia cómo se arma la clave.
+
+- **Cómo se distinguen:** por el **consumidor que recibe el evento**, es decir, por el tópico. No se usa el contenido del mensaje. Cada caso de uso (batch u online) arma su clave con un prefijo de flujo.
+
+| Flujo | Clave | Vigencia del registro |
+|---|---|---|
+| Batch | `batch#notification_id#datetime#retries` | Días (según la vigencia de la campaña) |
+| Online | `online#notification_id` | Horas o pocos días |
+
+- **Para qué sirve el prefijo:**
+  - separa los dos espacios de claves en la tabla;
+  - permite aplicar una vigencia distinta por flujo;
+  - facilita las métricas y la búsqueda en logs por flujo (por ejemplo, duplicados batch frente a online).
+- **Atributo de flujo:** el registro guarda además el flujo (`batch`/`online`) como atributo, para monitoreo.
+
 **Ubicación en la arquitectura:** un puerto de dominio para el registro de idempotencia, un caso de uso que envuelve el procesamiento actual y un adapter en el módulo `dynamo-db` existente.
 
 ## 5. Garantías y límites
