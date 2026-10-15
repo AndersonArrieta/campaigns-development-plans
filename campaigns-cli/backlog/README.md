@@ -130,15 +130,16 @@ queda en el mismo vault y los enlaces entre ambos funcionan.
 - [[T-017-pods-logs-eks|T-017]] — grupo `pods`: logs de los pods de `platform_campaigns_ms` en EKS, sin `kubectl`.
 - [[T-018-pods-engine-notification-id|T-018]] — `pods`: componente engine y `--notification-id` en campaigns y engine.
 
-🟡 **todo (4)**
+🟡 **todo (5)**
 - [[T-004-csv-generate-validate|T-004]] — `csv generate` y `csv validate`.
 - [[T-011-validar-lectura-dev|T-011]] — probar en dev `config check`, `dynamo` y `logs` con datos reales.
 - [[T-012-dynamo-purge|T-012]] — `dynamo purge` de datos de `CLI_TEST_APP_ID`.
 - [[T-014-ci-github-actions|T-014]] — pipeline de GitHub Actions con umbral de cobertura.
+- [[T-019-scheduler-invoke|T-019]] — `scheduler run`: invocar `scheduler_Lambda` a demanda, una ejecución por invocación (sin reintentos que la repitan).
 
 🔵 **backlog (6)**
 - [[T-005-s3-commands|T-005]] — `s3 upload/ls/get/rm` (espera a T-004).
-- [[T-007-lambda-invoke|T-007]] — `lambda invoke` ingester/scheduler/genérico (espera a T-005).
+- [[T-007-lambda-invoke|T-007]] — `lambda invoke` ingester/genérico (espera a T-005, T-019).
 - [[T-009-trace-run|T-009]] — `trace run` hasta los logs del ingester (espera a T-004, T-005, T-012).
 - [[T-010-documentacion|T-010]] — README completo y cierre de los criterios de aceptación (espera a T-007, T-009).
 - [[T-013-trace-aguas-abajo|T-013]] — `trace run` con scheduler y microservicios (espera a T-007, T-009).
@@ -151,6 +152,7 @@ dynamo:      T-003 ─► T-006 ─► T-012
 logs:        T-003 ─► T-008
 pods:        T-003, T-015 ─► T-017 ─► T-018
 ingesta:     T-001 ─► T-004 ─► T-005 ─► T-007        (T-005 y T-007 también ─◄ T-003)
+scheduler:   T-003, T-006, T-008 ─► T-019 ─► T-007
 trace:       T-004, T-005, T-006, T-008, T-012 ─► T-009 ─► T-013 ◄─ T-007
 docs:        T-007, T-009 ─► T-010
 validación:  T-003, T-006, T-008 ─► T-011
