@@ -12,7 +12,7 @@ ingester_Lambda ──(DynamoDB)──> scheduler_Lambda ──(Kafka)──> pl
                                        └──── nuevo ítem en DynamoDB ──┘  (reprogramación por horario / reintento)
 ```
 
-![Diagrama de idempotencia en campañas](Diagrama%20de%20idempotencia%20en%20campañas.png)
+![Diagrama de idempotencia en campañas](diagrama-idempotencia-campanas.png)
 
 - **ingester_Lambda:** convierte cada fila del CSV en un ítem de DynamoDB por cada combinación **día × hora** programada. Cada ítem recibe su propio `notification_id`. La clave de la tabla es `datetime + notification_id`, así que **cada ítem es un intento de entrega**.
 - **scheduler_Lambda:** cada hora consulta los ítems de esa hora y los publica en Kafka.
