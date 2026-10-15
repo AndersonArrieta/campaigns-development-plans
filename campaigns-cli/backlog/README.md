@@ -93,8 +93,8 @@ frontmatter, solo el id.
 - La épica de un bug es la **capacidad afectada** (`E-dynamo`, `E-logs`…); no existe `E-bugs`.
 - Funcionalidades nuevas: `_templates/task.md`, siguiente `T-0NN` libre.
 - **Triage** (escala de este proyecto):
-  - `P0` la CLI no arranca, una protección falla (escribe en prod, borra datos que no son de
-    `CLI_TEST_APP_ID`) o se filtran credenciales; o bloquea todo lo demás.
+  - `P0` la CLI no arranca, una protección falla (escribe en prod, borra más de lo que el
+    comando indica) o se filtran credenciales; o bloquea todo lo demás.
   - `P1` la prueba da un resultado incorrecto (falso OK/FALLA, IDs equivocados) o el trabajo
     está en el camino crítico hacia `trace run`.
   - `P2` molestia con workaround o mejora con valor claro (opciones nuevas, CI, documentación).
@@ -130,12 +130,13 @@ queda en el mismo vault y los enlaces entre ambos funcionan.
 - [[T-017-pods-logs-eks|T-017]] — grupo `pods`: logs de los pods de `platform_campaigns_ms` en EKS, sin `kubectl`.
 - [[T-018-pods-engine-notification-id|T-018]] — `pods`: componente engine y `--notification-id` en campaigns y engine.
 
-🟡 **todo (5)**
+🟡 **todo (6)**
 - [[T-004-csv-generate-validate|T-004]] — `csv generate` y `csv validate`.
 - [[T-011-validar-lectura-dev|T-011]] — probar en dev `config check`, `dynamo` y `logs` con datos reales.
 - [[T-012-dynamo-purge|T-012]] — `dynamo purge` de datos de `CLI_TEST_APP_ID`.
 - [[T-014-ci-github-actions|T-014]] — pipeline de GitHub Actions con umbral de cobertura.
 - [[T-019-scheduler-invoke|T-019]] — `scheduler run`: invocar `scheduler_Lambda` a demanda, una ejecución por invocación (sin reintentos que la repitan).
+- [[T-020-dynamo-historial-y-limpieza|T-020]] — `dynamo history/campaign/dump` con reprogramaciones y `dynamo clean`, que vacía las tablas de campañas y de logs o borra solo lo de un CSV (espera a T-012).
 
 🔵 **backlog (6)**
 - [[T-005-s3-commands|T-005]] — `s3 upload/ls/get/rm` (espera a T-004).
@@ -148,7 +149,7 @@ queda en el mismo vault y los enlaces entre ambos funcionan.
 ## Grafo de dependencias (resumido)
 ```
 base:        T-001 ─► T-002 ─► T-003
-dynamo:      T-003 ─► T-006 ─► T-012
+dynamo:      T-003 ─► T-006 ─► T-012 ─► T-020
 logs:        T-003 ─► T-008
 pods:        T-003, T-015 ─► T-017 ─► T-018
 ingesta:     T-001 ─► T-004 ─► T-005 ─► T-007        (T-005 y T-007 también ─◄ T-003)
