@@ -15,8 +15,8 @@ Demostrar que con un solo `notification_id` se reconstruye el recorrido completo
 2. **Scheduler:** esperar o forzar la ejecución en la hora programada.
    - En CloudWatch: `Message published to Kafka` con `Correlation Id = <notification_id>` y `Campaign Id = <campaign_id>`.
 3. **platform_campaigns_ms:** logs `[batch_message_usecase] ... correlationId=<notification_id>, ..., campaignId=<campaign_id>`. No debe aparecer `correlationId=null`.
-   - Log `[engine_sender]` con `messageId=<notification_id>`.
-4. **engine_nlp_ms:** logs `[QueueHandler] Objeto recibido...` con `message_id` y `campaign_id` en el payload, y `QueueEventProcessor:received` y `[MSG_TRACE]` con `traceId=<notification_id>` en el MDC.
+   - Log `[engine_sender]` con `notification_id=<notification_id>` en el body (T-17: ya no se envía `messageId`).
+4. **engine_nlp_ms:** logs `[QueueHandler] Objeto recibido...` con `notification_id` en el payload (sin `message_id` ni `campaign_id`, ver T-17), y `QueueEventProcessor:received` y `[MSG_TRACE]` con `traceId=<notification_id>` en el MDC.
 5. **Adapter out (batch, vía engine_nlp_ms):** en el log `publish:serialized`, `OutboundEngineResponse.message_id=<notification_id>`, y el adapter o mapper_out del canal registra ese mismo id.
 6. **Reintento** (requiere T-16): provocar una `NullSessionException` (notificación a un usuario sin sesión o conversación).
    - engine_nlp_ms registra `notifyCampaignReschedule` con `traceId=<notification_id>` y `POST /v1/retry` responde 200.
@@ -45,7 +45,7 @@ Demostrar que con un solo `notification_id` se reconstruye el recorrido completo
 
 - [ ] Todo mensaje del scheduler lleva `CorrelationId = notification_id` y `campaign_id`.
 - [ ] platform_campaigns_ms registra `correlationId` (nunca `null`) y `campaignId` en batch, online y reintentos.
-- [ ] El mensaje al engine tiene `data.message_id = notification_id` y los headers AMQP de correlación.
+- [ ] El mensaje al engine tiene `data.notification_id` y engine_nlp_ms registra `traceId = notification_id` (T-17: sin `message_id` ni headers AMQP de correlación).
 - [ ] El mensaje al adapter-out tiene `MessageIdentifier = notification_id` y el header `CorrelationId`.
 - [ ] Recorrido completo reconstruible con un solo `notification_id`.
 - [ ] Evidencias adjuntas a la HU 7938050. Aprobación para promover a QA.

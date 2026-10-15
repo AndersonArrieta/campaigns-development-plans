@@ -12,8 +12,8 @@ El orden sigue la estrategia de despliegue del plan: primero **platform_campaign
 | 02 | [Headers de entrada `campaign_id`](02-pcms-headers-entrada.md) | platform_campaigns_ms | P-1, P-2, P-3 | — |
 | 03 | [`TraceContext` de dominio](03-pcms-trace-context.md) | platform_campaigns_ms | P-4 | 02 |
 | 04 | [Trazas en `BatchMessageUseCase`](04-pcms-batch-usecase-trazas.md) | platform_campaigns_ms | P-5 | 03 |
-| 05 | [`message_id` y `campaign_id` en el mensaje al engine](05-pcms-engine-message-id.md) | platform_campaigns_ms | P-7, P-8, P-9 | 01, 04 |
-| 06 | [Headers AMQP de correlación en `EngineMessageSender`](06-pcms-engine-sender-headers.md) | platform_campaigns_ms | P-10 | 05 |
+| 05 | ~~[`message_id` y `campaign_id` en el mensaje al engine](05-pcms-engine-message-id.md)~~ ↩️ revertida en T-17 | platform_campaigns_ms | P-7, P-8, P-9 | 01, 04 |
+| 06 | ~~[Headers AMQP de correlación en `EngineMessageSender`](06-pcms-engine-sender-headers.md)~~ ↩️ revertida en T-17 | platform_campaigns_ms | P-10 | 05 |
 | 07 | [`MessageIdentifier = notification_id` en el flujo online](07-pcms-adapter-message-id.md) | platform_campaigns_ms | P-6, P-11 | 01, 03 |
 | 08 | [Header `CorrelationId` en `AdapterOutKafkaService`](08-pcms-adapter-out-kafka-header.md) | platform_campaigns_ms | P-12 | 07 |
 | 09 | [Trazas en el flujo de reintentos](09-pcms-retry-trazas.md) | platform_campaigns_ms | P-13, P-14 | — |
@@ -24,6 +24,9 @@ El orden sigue la estrategia de despliegue del plan: primero **platform_campaign
 | 14 | [Logs de trazabilidad en el ingester](14-ingester-logs.md) | ingester_Lambda | I-1, I-2, I-3 | — |
 | 15 | [Validación de punta a punta en dev](15-validacion-e2e.md) | Todos | §6, §9 | 01–14, 16 |
 | 16 | [Corregir el feedback de reintento de engine_nlp_ms](16-engine-nlp-feedback-reintento.md) ⚠️ sujeta a D-6 | engine_nlp_ms | §2.5, D-6 | 01 |
+| 17 | [Revertir `message_id`, `campaign_id` y headers AMQP hacia el engine](17-pcms-revertir-correlacion-engine.md) | platform_campaigns_ms | revierte P-7…P-10 | 05, 06 |
+
+> **2026-10-14:** T-05 y T-06 se revirtieron con T-17. Después de desplegarlas, el `traceId` dejó de verse en engine_nlp_ms. El mensaje al engine vuelve a llevar solo `notification_id`, que el engine usa como `messageId`/`traceId` por su fallback.
 
 ## Convenciones
 

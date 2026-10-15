@@ -80,6 +80,7 @@ Logs de los pods de `platform_campaigns_ms` (componente `campaigns`) y `engine_n
 | `pods ls [-k campaigns\|engine\|all] [-l SELECTOR]` | Pods de cada componente: estado, contenedores listos, reinicios, creación (hora Colombia), nodo y contenedores. |
 | `pods logs [-k ...] [-l SELECTOR] [--pod NOMBRE] [-c CONTENEDOR] [--tail 1000] [--since 1h] [--filter TEXTO] [-C N]` | Últimas líneas de cada pod, mezcladas en orden cronológico con `[componente]`, pod y hora (Colombia). Sale con 1 si no hay pods. |
 | `pods logs --notification-id ID [-k ...] [--since 24h] [-C N]` | Busca el id en **campaigns y engine** (últimas 24 h, sin límite de líneas) y resume por componente cuántas coincidencias hubo y entre qué horas. Sale con 1 si no aparece en ninguno. |
+| `pods scan ID [-k campaigns -k engine] [--since 24h] [-c CONTENEDOR] [-C N]` | Busca el id **microservicio por microservicio** en el orden de `-k` (por defecto campaigns y luego engine): por cada uno imprime un encabezado, sus líneas en orden cronológico y su resumen antes de pasar al siguiente. Sale con 1 si no aparece en ninguno. |
 | `pods logs ... -f [--max-pods 5]` | Sigue todos los pods a la vez (un hilo por pod) hasta Ctrl+C; si la conexión se corta, reconecta desde la última línea sin repetir. Con `--output json`, un objeto JSON por línea. |
 
 - Componentes: `campaigns` → `CAMPAIGNS_POD_SELECTOR` (`app=platform-campaigns-others-v2`) y `engine` →
@@ -93,6 +94,8 @@ Logs de los pods de `platform_campaigns_ms` (componente `campaigns`) y `engine_n
 - `--filter` busca el texto literal; útil con un `notification_id` o `campaign_id`.
 - `config check` incluye la fila "EKS": describe el clúster y cuenta los pods de cada componente.
 - Con `--output json` y `--notification-id`, la salida es `{"lineas": [...], "resumen": [...]}`.
+- Con `--output json`, `pods scan` devuelve una lista con un objeto por componente: `{"componente", "pods",
+  "coincidencias", "primera", "ultima", "lineas": [...]}`.
 
 ## Grupos planeados
 

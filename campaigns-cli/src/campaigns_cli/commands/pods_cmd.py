@@ -10,7 +10,7 @@ import typer
 from rich.markup import escape
 
 from campaigns_cli.errors import TestFailedError, UsageError
-from campaigns_cli.output import console, info, render, to_json, warn
+from campaigns_cli.output import console, err_console, info, render, to_json, warn
 from campaigns_cli.services.k8s_service import (
     Component,
     ComponentSummary,
@@ -168,11 +168,7 @@ def logs(
     if notification_id is not None:
         if pattern:
             raise UsageError("Usa --filter o --notification-id, no ambos.")
-        if len(notification_id.strip()) < MIN_TERM_LENGTH:
-            raise UsageError(
-                f"El notification_id debe tener al menos {MIN_TERM_LENGTH} caracteres."
-            )
-        pattern = notification_id.strip()
+        pattern = _check_notification_id(notification_id)
         since = since or NOTIFICATION_SINCE
     if context and not pattern:
         raise UsageError("--context requiere --filter o --notification-id.")
@@ -224,6 +220,87 @@ def logs(
         )
 
 
+def _check_notification_id(notification_id: str) -> str:
+    term = notification_id.strip()
+    if len(term) < MIN_TERM_LENGTH:
+        raise UsageError(f"El notification_id debe tener al menos {MIN_TERM_LENGTH} caracteres.")
+    return term
+
+
+@app.command()
+def scan(
+    ctx: typer.Context,
+    notification_id: Annotated[str, typer.Argument(help="notification_id a buscar.")],
+    component: Annotated[
+        list[ComponentChoice] | None,
+        typer.Option(
+            "--component",
+            "-k",
+            help="campaigns, engine o all, en el orden de búsqueda (se puede repetir). "
+            "Por defecto campaigns y luego engine.",
+        ),
+    ] = None,
+    container: Annotated[
+        str | None,
+        typer.Option("--container", "-c", help="Contenedor (por defecto el principal del pod)."),
+    ] = None,
+    since: Annotated[
+        str, typer.Option("--since", help="Solo lo de esta ventana: 30m, 2h, 1d.")
+    ] = NOTIFICATION_SINCE,
+    context: Annotated[
+        int,
+        typer.Option(
+            "--context", "-C", min=0, help="Líneas vecinas a mostrar por coincidencia (grep -C)."
+        ),
+    ] = 0,
+) -> None:
+    """Busca un notification_id microservicio por microservicio: un bloque por componente."""
+    pattern = _check_notification_id(notification_id)
+    state = get_state(ctx)
+    service = _service(state)
+    targets = _targets(state, None, component, list(Component))
+    since_seconds = int(parse_since(since).total_seconds())
+    sections: list[dict[str, object]] = []
+    found = False
+    for target in targets:
+        pods = service.list_pods(target.selector, target.component)
+        if state.output is not OutputFormat.JSON:
+            err_console.rule(f"[magenta]{target.component}[/magenta] ({len(pods)} pod(s))")
+        lines: list[PodLogLine] = []
+        for found_pod in pods:
+            lines.extend(service.logs(found_pod, container=container, since_seconds=since_seconds))
+        selected = select_lines(lines, pattern, context)
+        selected.sort(key=lambda s: (s.line.timestamp or datetime.max, s.line.pod))
+        summary = summarize(selected, pods, [str(target.component)])[0]
+        found = found or summary.matches > 0
+        if state.output is OutputFormat.JSON:
+            rows = [s.as_dict() if context else s.line.as_dict() for s in selected]
+            sections.append({**summary.as_dict(), "lineas": rows})
+            continue
+        for item in selected:
+            console.print(_line(item.line, dim=context > 0 and not item.match), highlight=False)
+        _print_summary(summary)
+    if state.output is OutputFormat.JSON:
+        render(sections, state.output)
+    if not found:
+        raise TestFailedError(
+            f"El notification_id {pattern} no aparece en los logs de {_describe(targets)} "
+            f"(ventana {since})."
+        )
+
+
+def _print_summary(entry: ComponentSummary) -> None:
+    if entry.matches:
+        span = (
+            f", de {entry.first:%H:%M:%S} a {entry.last:%H:%M:%S}"
+            if entry.first and entry.last
+            else ""
+        )
+        info(f"{entry.component}: {entry.matches} coincidencia(s) en {entry.pods} pod(s){span}.")
+    else:
+        warn(f"{entry.component}: sin coincidencias ({entry.pods} pod(s) revisados).")
+
+
 def _print_lines(
     state: AppState,
     selected: list[SelectedLine],
@@ -246,17 +323,7 @@ def _print_lines(
     if selected:
         info(f"{len(selected)} línea(s) de {pod_count} pod(s). Horas en hora Colombia.")
     for entry in summary:
-        if entry.matches:
-            span = (
-                f", de {entry.first:%H:%M:%S} a {entry.last:%H:%M:%S}"
-                if entry.first and entry.last
-                else ""
-            )
-            info(
-                f"{entry.component}: {entry.matches} coincidencia(s) en {entry.pods} pod(s){span}."
-            )
-        else:
-            warn(f"{entry.component}: sin coincidencias ({entry.pods} pod(s) revisados).")
+        _print_summary(entry)
 
 
 def _matches(line: PodLogLine, pattern: str | None) -> bool:

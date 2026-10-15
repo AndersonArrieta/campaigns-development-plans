@@ -186,11 +186,14 @@ uv run campaigns pods ls                                   # pods del microservi
 uv run campaigns pods logs --tail 1000 -f                  # como el kubectl logs -f de siempre
 uv run campaigns pods logs -k engine --tail 200             # el engine (-k campaigns|engine|all)
 uv run campaigns pods logs --notification-id <id> -C 2       # rastro de una notificación en campaigns y engine
+uv run campaigns pods scan <id> -C 2                         # lo mismo, primero campaigns y luego engine
+uv run campaigns pods scan <id> -k engine -k campaigns       # otro orden, o un solo componente con -k
 uv run campaigns --output json pods logs --since 30m > campaigns-ms.json
 ```
 
 - Horas en hora Colombia; cada línea lleva `[componente]` y el nombre del pod.
 - `--notification-id` busca en los dos componentes (últimas 24 h), resume dónde apareció y sale con 1 si no está; `-C 2` muestra las líneas vecinas (en el engine el id va dentro del JSON y las líneas relacionadas no lo llevan).
+- `pods scan` hace la misma búsqueda microservicio por microservicio en el orden de `-k`: un bloque por componente con encabezado, líneas y resumen, en vez de mezclar las líneas de los dos.
 - Permisos: `eks:DescribeCluster` y acceso RBAC a `pods` y `pods/log` en el namespace.
 
 ## Notas

@@ -4,6 +4,8 @@
 - **Ítems del plan:** P-7, P-8, P-9
 - **Depende de:** T-04, T-01 (confirmación de que engine_nlp_ms tolera `campaign_id`)
 
+> ↩️ **Revertida en [T-17](17-pcms-revertir-correlacion-engine.md) (2026-10-14).** Después de desplegarla, el `traceId` dejó de verse en engine_nlp_ms. El código volvió a su estado anterior a esta task.
+
 ## Objetivo
 
 Que el body enviado a engine_nlp_ms por RabbitMQ incluya `data.message_id = notification_id` y `data.campaign_id`.

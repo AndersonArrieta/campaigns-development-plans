@@ -22,7 +22,7 @@ Que AsyncAPI y la documentación funcional reflejen el nuevo contrato de trazabi
    - Schema `EventHeaders`: agregar `campaign_id` y describir `CorrelationId` como "= `notification_id` de la notificación; si falta, el servicio usa `notification_id` del body".
    - Ejemplos de los mensajes batch: `CorrelationId` igual al `identifier` de la notificación del ejemplo, y agregar `campaign_id`.
    - `AdapterOutMetadata.MessageIdentifier`: cambiar "UUID aleatorio" por "`notification_id` de la notificación". Documentar el header `CorrelationId` y la key del registro.
-   - `EngineCampaignMessage`: agregar `message_id` y `campaign_id` al payload, y los headers AMQP `CorrelationId`, `campaign_id` y las props `messageId`/`correlationId`.
+   - ~~`EngineCampaignMessage`: agregar `message_id` y `campaign_id` al payload, y los headers AMQP `CorrelationId`, `campaign_id` y las props `messageId`/`correlationId`.~~ ↩️ Revertido en T-17; documentación del repo ya corregida (2026-10-14).
 2. `SequenceDiagrams.md`: diagrama mermaid ingester → scheduler → campaigns → engine → adapter, con el `notification_id` en cada salto y el ciclo de reintento.
 3. `Functionalities.md`: tabla de identificadores (§4 del plan) y cómo buscar una notificación en los logs.
 4. Validar el YAML (por ejemplo, `npx @asyncapi/cli validate docs/docs/asyncapi.yaml`, si está disponible) y que `mkdocs build` no falle.

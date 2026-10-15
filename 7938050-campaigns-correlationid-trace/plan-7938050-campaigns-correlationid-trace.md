@@ -18,7 +18,7 @@ Así un mismo valor sirve para buscar en los logs de todos los componentes y en 
 
 1. **scheduler_Lambda** envía en cada registro Kafka los headers `CorrelationId = notification_id` y `campaign_id`.
 2. **platform_campaigns_ms** lee esos headers y registra `correlationId` y `campaignId` en todos sus logs. Si falta el header, usa `notificationId` del body.
-3. **platform_campaigns_ms** envía `message_id = notification_id` al engine (RabbitMQ) y a los adapters (Kafka adapter-out).
+3. **platform_campaigns_ms** envía `message_id = notification_id` a los adapters (Kafka adapter-out). Hacia el engine (RabbitMQ) solo envía `notification_id`, que engine_nlp_ms usa como `messageId`/`traceId` (ver §3.3.3, T-17).
 
 ## 2. Situación actual (hallazgos)
 
@@ -136,6 +136,8 @@ headers = [
 
 #### 3.3.3 Salida hacia el engine (RabbitMQ)
 
+> ↩️ **Revertido (2026-10-14, T-17).** P-7 … P-10 se implementaron (T-05, T-06) y se revirtieron: después de desplegarlos, el `traceId` dejó de verse en engine_nlp_ms. No se encontró la causa en el código, así que se volvió al contrato anterior. El body hacia el engine lleva solo `notification_id`, sin `message_id` ni `campaign_id`, y el único header AMQP es `x-consumer-id`. engine_nlp_ms sigue usando `notification_id` como `messageId`/`traceId` por su fallback (§2.4). Las tablas siguientes quedan como registro de lo que se intentó.
+
 | # | Archivo | Cambio |
 |---|---|---|
 | P-7 | `domain/model/.../engine/EngineMessage.java` | Agregar `String messageId` y `String campaignId`. |
@@ -187,8 +189,8 @@ Body resultante hacia el engine:
 |---|---|---|---|
 | ingester → Dynamo | DynamoDB | atributo `notification_id` (SK) | atributo `campaign_id` |
 | scheduler → platform_campaigns_ms | Kafka | key, header `CorrelationId`, header `message_id`, `data.campaign.notification.identifier` | header `campaign_id`, `data.campaign.identifier` |
-| platform_campaigns_ms → engine | RabbitMQ | `data.message_id`, `data.notification_id`, header `CorrelationId`, props `messageId`/`correlationId` | `data.campaign_id`, header `campaign_id` |
-| engine_nlp_ms (logs internos) | MDC | `traceId` = `message_id` (= `notification_id`) | — (se ignora) |
+| platform_campaigns_ms → engine | RabbitMQ | `data.notification_id` (T-17: se revirtieron `data.message_id`, header `CorrelationId` y props `messageId`/`correlationId`) | — (T-17: se revirtieron `data.campaign_id` y header `campaign_id`) |
+| engine_nlp_ms (logs internos) | MDC | `traceId` = `message_id`, que el engine toma de `notification_id` | — |
 | engine_nlp_ms → adapter_gateway / mapper_out (batch) | RabbitMQ / REST | `message_id` en `OutboundEngineResponse` | — |
 | engine_nlp_ms → platform_campaigns_ms (retry) | HTTP | body `notification_id` (**requiere T-16**) | (se obtiene del ítem en Dynamo) |
 | platform_campaigns_ms → adapter out (online) | Kafka | key, header `CorrelationId`, `metadata.MessageIdentifier` | — |
@@ -199,7 +201,7 @@ Body resultante hacia el engine:
 |---|---|---|
 | D-1 | ¿`metadata.Id` del evento Kafka del scheduler debe ser igual a `notification_id`? | **No.** Se mantiene un UUID por publicación (semántica CloudEvents: id único del evento). La correlación va en `CorrelationId`. |
 | D-2 | ¿`eventId` del wrapper RabbitMQ debe ser igual a `notification_id`? | **No**, por la misma razón. Un reintento produce un evento nuevo con el mismo `message_id`. |
-| D-3 | ¿Enviar `campaign_id` al engine si hoy no lo usa? | **Sí.** Es aditivo, engine_nlp_ms lo ignora (`@JsonIgnoreProperties(ignoreUnknown = true)`; validarlo en T-01) y queda disponible para métricas futuras. |
+| D-3 | ¿Enviar `campaign_id` al engine si hoy no lo usa? | ~~**Sí.**~~ **No (T-17, 2026-10-14):** se revirtió junto con `message_id`. Propuesta original: **Sí.** Es aditivo, engine_nlp_ms lo ignora (`@JsonIgnoreProperties(ignoreUnknown = true)`; validarlo en T-01) y queda disponible para métricas futuras. |
 | D-4 | ¿Usar MDC/Reactor Context en lugar de campos explícitos en los logs? | **Fuera del alcance.** El dominio usa `java.util.logging` (`@Log`) y el flujo es reactivo; los campos explícitos con `TraceContext.toLog()` son más simples y suficientes. Se puede evaluar en una historia aparte. |
 | D-5 | ¿Algún otro productor del topic online envía `CorrelationId` distinto de `notification_id`? | Confirmar con los productores. Si es así, se respeta el header y solo se registra el warning de P-4. |
 | D-6 | ¿Se corrige `NotificationEndpoint` de engine_nlp_ms (§2.5) dentro de esta HU? | **Sí, como task acotada (T-16)** en engine_nlp_ms. Sin ella, el criterio "trazabilidad incluyendo reintentos" no se puede cumplir. Si el equipo prefiere una HU aparte, ese criterio de §9 queda condicionado a ella. |
@@ -214,9 +216,9 @@ Body resultante hacia el engine:
   - `TraceContextTest`: header presente, header vacío (fallback), headers `null`, header distinto (warning).
   - `KafkaBatchEventMapperTest` / `KafkaOnlineEventMapperTest`: mapeo de `campaign_id`.
   - `BatchMessageHandlerTest`: headers extra (`content_type`, `message_id`) no rompen la deserialización.
-  - `BatchMessageUseCaseTest`: `EngineCampaignSenderUseCase` recibe un `EngineMessage` con `messageId == notificationId`.
-  - `EngineCampaignSenderUseCaseTest` / `EngineMapperTest`: `message_id` y `campaign_id` en el DTO.
-  - `EngineMessageSenderTest`: headers AMQP `CorrelationId`, `campaign_id`, `x-consumer-id` y las props `messageId`/`correlationId`.
+  - ~~`BatchMessageUseCaseTest`: `EngineCampaignSenderUseCase` recibe un `EngineMessage` con `messageId == notificationId`.~~ (T-17)
+  - ~~`EngineCampaignSenderUseCaseTest` / `EngineMapperTest`: `message_id` y `campaign_id` en el DTO.~~ (T-17: pruebas restauradas a su versión anterior)
+  - ~~`EngineMessageSenderTest`: headers AMQP `CorrelationId`, `campaign_id`, `x-consumer-id` y las props `messageId`/`correlationId`.~~ (T-17)
   - `OnlineMessageUseCaseTest` / `AdapterMessageUseCase`: `messageIdentifier == notificationId` y el fallback a UUID.
   - `AdapterOutKafkaService`: header `CorrelationId` y key del registro.
   - `AdapterOutMapperTest`: sin cambios de forma.
@@ -249,7 +251,8 @@ Los cambios son **aditivos y compatibles hacia atrás**: platform_campaigns_ms t
 | Diferencia de mayúsculas en el nombre del header (`CorrelationId` vs `correlationId`). | Constante compartida y documentada. Prueba de `BatchMessageHandler` con un header real. |
 | ~~Algún consumidor del adapter-out deduplica por `MessageIdentifier`~~ | **Descartado en T-01:** whatsapp/teams adapter out y webchat_mapper_out no deduplican. En el flujo batch ya reciben `notification_id` como message id vía engine_nlp_ms. |
 | ~~engine_nlp_ms rechaza el body por `campaign_id`~~ | **Descartado en T-01:** la anotación `ignoreUnknown` del DTO prevalece. |
-| Confusión con el header de request-reply de reactive-commons (`x-correlation-id`). | Usar exactamente `CorrelationId` (P-10). Verificado en T-01 que reactive-commons no usa las props AMQP `correlationId`/`messageId` en `listenQueue`. |
+| Después de enviar `message_id`/`campaign_id` y los headers AMQP, el `traceId` dejó de verse en engine_nlp_ms (causa no identificada). | **Materializado.** Se revirtieron P-7 … P-10 en T-17 (2026-10-14). |
+| Confusión con el header de request-reply de reactive-commons (`x-correlation-id`). | Usar exactamente `CorrelationId` (P-10, revertido en T-17). Verificado en T-01 que reactive-commons no usa las props AMQP `correlationId`/`messageId` en `listenQueue`. |
 | El ciclo de reintentos no se puede trazar porque falla el feedback de engine_nlp_ms (§2.5). | T-16 (D-6). |
 | Más volumen de logs. | Detalle por registro en DEBUG (ingester). En los demás componentes solo se agregan campos a logs que ya existen. |
 | Los headers Kafka cuentan para el tamaño del mensaje. | Son ~80 bytes extra por registro; despreciable frente al body. |
@@ -258,7 +261,7 @@ Los cambios son **aditivos y compatibles hacia atrás**: platform_campaigns_ms t
 
 - [ ] Todo mensaje del scheduler lleva los headers `CorrelationId = notification_id` y `campaign_id`.
 - [ ] platform_campaigns_ms registra `correlationId` (nunca `null` si hay `notificationId`) y `campaignId` en cada log del flujo batch, online y de reintentos.
-- [ ] El mensaje al engine tiene `data.message_id = notification_id` y los headers AMQP de correlación.
+- [ ] ~~El mensaje al engine tiene `data.message_id = notification_id` y los headers AMQP de correlación.~~ El mensaje al engine tiene `data.notification_id` y engine_nlp_ms registra `traceId = notification_id` (T-17).
 - [ ] El mensaje al adapter-out tiene `metadata.MessageIdentifier = notification_id` y el header `CorrelationId`.
 - [ ] Con un solo `notification_id` se reconstruye el recorrido completo en los logs (ingester → scheduler → campaigns → engine → adapter, incluidos los reintentos).
 - [ ] Pruebas unitarias en verde y cobertura dentro del umbral.

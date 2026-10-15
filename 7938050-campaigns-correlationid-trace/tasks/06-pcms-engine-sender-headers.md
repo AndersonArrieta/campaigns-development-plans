@@ -4,6 +4,8 @@
 - **Ítems del plan:** P-10
 - **Depende de:** T-05
 
+> ↩️ **Revertida en [T-17](17-pcms-revertir-correlacion-engine.md) (2026-10-14).** Después de desplegarla, el `traceId` dejó de verse en engine_nlp_ms. El código volvió a su estado anterior a esta task.
+
 ## Objetivo
 
 Propagar la correlación también en los metadatos del mensaje RabbitMQ (headers y propiedades AMQP), no solo en el body.

@@ -309,3 +309,60 @@ def test_usage_errors(cluster: FakeCluster, args: list[str], message: str) -> No
     assert result.exit_code == 2
     assert message in result.stderr
     assert cluster.requests == []
+
+
+# --- pods scan: un bloque por componente ---
+
+
+def test_scan_campaigns_then_engine(cluster: FakeCluster) -> None:
+    _engine_and_campaigns(cluster)
+
+    result = runner.invoke(app, ["pods", "scan", NID])
+
+    assert result.exit_code == 0, result.output
+    assert [line.split()[0] for line in result.stdout.splitlines()] == ["[campaigns]", "[engine]"]
+    assert cluster.log_requests("cms-1")[0].url.params["sinceSeconds"] == "86400"
+    campaigns = result.stderr.index("campaigns: 1 coincidencia(s)")
+    assert campaigns < result.stderr.index("engine (1 pod(s))")
+    assert campaigns < result.stderr.index("engine: 1 coincidencia(s)")
+
+
+def test_scan_order_follows_component_option(cluster: FakeCluster) -> None:
+    _engine_and_campaigns(cluster)
+
+    result = runner.invoke(
+        app, ["--output", "json", "pods", "scan", NID, "-k", "engine", "-k", "campaigns", "-C", "1"]
+    )
+
+    sections = json.loads(result.stdout)
+    assert [(s["componente"], s["coincidencias"]) for s in sections] == [
+        ("engine", 1),
+        ("campaigns", 1),
+    ]
+    assert [line["coincide"] for line in sections[0]["lineas"]] == [False, True, False]
+
+
+def test_scan_only_one_component(cluster: FakeCluster) -> None:
+    _engine_and_campaigns(cluster)
+
+    result = runner.invoke(app, ["pods", "scan", NID, "-k", "engine"])
+
+    assert result.exit_code == 0
+    assert cluster.log_requests("cms-1") == []
+
+
+def test_scan_not_found_exit_1(cluster: FakeCluster) -> None:
+    _engine_and_campaigns(cluster)
+
+    result = runner.invoke(app, ["pods", "scan", "no-existe-123"])
+
+    assert result.exit_code == 1
+    assert "campaigns: sin coincidencias" in result.stderr
+    assert "engine: sin coincidencias" in result.stderr
+
+
+def test_scan_short_id_exit_2(cluster: FakeCluster) -> None:
+    result = runner.invoke(app, ["pods", "scan", "abc"])
+
+    assert result.exit_code == 2
+    assert cluster.requests == []
