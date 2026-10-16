@@ -99,6 +99,59 @@ def test_validate_missing_file_exits_2() -> None:
     assert result.exit_code == 2
 
 
+def test_validate_without_argument_uses_the_only_csv(tmp_path: Path) -> None:
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data" / "mi-campana.csv").write_bytes(FIXTURE.read_bytes())
+
+    result = runner.invoke(app, ["csv", "validate"])
+
+    assert result.exit_code == 0, result.stderr
+    assert "Archivo: data/mi-campana.csv" in result.stderr
+    assert "sin problemas" in result.stderr
+
+
+def test_validate_without_argument_reports_errors(tmp_path: Path) -> None:
+    (tmp_path / "data").mkdir()
+    (tmp_path / "data" / "malo.csv").write_text(
+        HEADER
+        + "\nothers-test;WhatsApp;573232540390;16/10/2026;16/10/2026;viernes;24;N-03-99-10;\n",
+        encoding="utf-8",
+    )
+
+    code, data, _ = _json("csv", "validate")
+
+    assert code == 1
+    assert data["archivo"] == "data/malo.csv"
+    assert data["errores"] == 1
+
+
+def test_validate_without_argument_and_several_csv_exits_2(tmp_path: Path) -> None:
+    (tmp_path / "data").mkdir()
+    for name in ("a.csv", "b.csv"):
+        (tmp_path / "data" / name).write_bytes(FIXTURE.read_bytes())
+
+    result = runner.invoke(app, ["csv", "validate"])
+
+    assert result.exit_code == 2
+    assert "a.csv" in result.stderr and "b.csv" in result.stderr
+
+    explicit = runner.invoke(app, ["csv", "validate", "b.csv"])
+    assert explicit.exit_code == 0, explicit.stderr
+
+
+@pytest.mark.parametrize("setup", ["sin-carpeta", "vacia", "sin-csv"])
+def test_validate_without_argument_and_no_csv_exits_2(tmp_path: Path, setup: str) -> None:
+    if setup != "sin-carpeta":
+        (tmp_path / "data").mkdir()
+    if setup == "sin-csv":
+        (tmp_path / "data" / "notas.txt").write_text("x", encoding="utf-8")
+
+    result = runner.invoke(app, ["csv", "validate"])
+
+    assert result.exit_code == 2
+    assert "templates/plantilla.csv" in result.stderr
+
+
 def test_generate_defaults_to_data_dir_and_today(tmp_path: Path) -> None:
     code, data, stderr = _json(*GENERATE)
 

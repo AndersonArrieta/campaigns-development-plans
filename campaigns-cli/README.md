@@ -68,6 +68,7 @@ plantilla versionada `templates/plantilla.csv` y edítala:
 
 ```bash
 mkdir -p data && cp templates/plantilla.csv data/mi-campana.csv
+uv run campaigns csv validate                         # valida el único CSV de data/
 uv run campaigns csv validate mi-campana.csv          # busca en data/ si no es una ruta existente
 ```
 
@@ -80,6 +81,7 @@ uv run campaigns csv generate --users 573232540390 --canal WhatsApp --fecha hoy 
 
 - Formato: `app_id;canal;usuario;fecha_inicio;fecha_fin;dias;horas;nodo;parametros`, fechas `dd/mm/aaaa`,
   varias horas o días separados por coma (`10,11,12`, `lunes,viernes`).
+- Sin nombre, `validate` (como `s3 upload`) exige que haya **un solo** CSV en `data/`.
 - `validate` sale con 1 si el ingester rechazaría alguna fila y avisa si no se crearía ninguna notificación
   (horas ya pasadas o días fuera del rango). El usuario de un email debe ir en minúscula.
 

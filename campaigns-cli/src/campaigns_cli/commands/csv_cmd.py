@@ -12,6 +12,7 @@ from campaigns_cli.services.csv_service import (
     Severity,
     ValidationIssue,
     default_output,
+    find_single_csv,
     generate_rows,
     has_errors,
     parse_fecha,
@@ -116,12 +117,20 @@ def generate(
 def validate(
     ctx: typer.Context,
     archivo: Annotated[
-        str, typer.Argument(help=f"Ruta del CSV (o su nombre dentro de {DATA_DIR}/).")
-    ],
+        str | None,
+        typer.Argument(
+            help=f"Ruta del CSV o su nombre dentro de {DATA_DIR}/. Sin él, el único CSV de "
+            f"{DATA_DIR}/."
+        ),
+    ] = None,
 ) -> None:
     """Valida un CSV con las reglas del ingester; sale con 1 si hay errores."""
     state = get_state(ctx)
-    path = resolve_csv_path(archivo)
+    if archivo is None:
+        path = find_single_csv()
+        info(f"Archivo: {path}")
+    else:
+        path = resolve_csv_path(archivo)
     issues = validate_csv(path, colombia_now())
     errors = [issue for issue in issues if issue.severity is Severity.ERROR]
     warnings = [issue for issue in issues if issue.severity is Severity.AVISO]

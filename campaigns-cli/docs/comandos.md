@@ -24,7 +24,7 @@ Imprime la versión de la CLI. No lee el `.env`.
 | `config show` | Tabla variable / valor / origen, con secretos enmascarados. | No |
 | `config check` | Identidad (`sts get-caller-identity`) y estado de cada recurso: bucket (`head_bucket`), tabla y GSI (`describe_table`), tabla de logs, lambdas (`get_function`) y log groups (`describe_log_groups`). Estados `OK`, `OPCIONAL`, `FALTA CONFIG`, `NO EXISTE`, `SIN PERMISO`, `ERROR`. Sale con 1 si alguno no es `OK`/`OPCIONAL`. | Sí |
 
-## `csv` — [T-004](../backlog/tasks/T-004-csv-generate-validate.md) (sin AWS)
+## `csv` — [T-004](../backlog/tasks/T-004-csv-generate-validate.md), [T-022](../backlog/tasks/T-022-csv-validate-sin-archivo.md) (sin AWS)
 
 CSV de campaña para `ingester_Lambda`. Los CSV de prueba van en `campaigns-cli/data/`: los dos
 comandos buscan ahí el archivo si la ruta indicada no existe, y `generate` escribe ahí por defecto.
@@ -32,7 +32,7 @@ comandos buscan ahí el archivo si la ruta indicada no existe, y `generate` escr
 
 | Comando | Qué hace |
 |---|---|
-| `csv validate <archivo>` | Valida con las reglas del ingester. Muestra cada problema con fila (la 1 es el encabezado), columna y severidad. Sale con 1 si hay algún `ERROR`; los `AVISO` no cambian el exit code. |
+| `csv validate [archivo]` | Valida con las reglas del ingester. Sin `archivo`, usa el único `*.csv` de `data/` (sin subcarpetas) y muestra cuál; con varios o ninguno sale con 2. Muestra cada problema con fila (la 1 es el encabezado), columna y severidad. Sale con 1 si hay algún `ERROR`; los `AVISO` no cambian el exit code. |
 | `csv generate --users U1,U2 --canal C --fecha F --hora H --nodo N [--fecha-fin F] [--app-id A] [--dias D] [--parametros k=v]... [-o archivo]` | Una fila por usuario. `--fecha`/`--fecha-fin` aceptan `dd/mm/aaaa`, `hoy` y `mañana`; `--hora`, horas separadas por coma o `+N` (hora actual de Colombia + N); sin `--dias`, los días de la semana del rango; `--app-id` por defecto `CLI_TEST_APP_ID`. Valida antes de escribir: con errores no escribe nada (exit 2). Sin `-o`, `data/campaign-<AAAAMMDD-HHMMSS>.csv`. |
 
 Reglas (tomadas de `ingester_Lambda/src/libs/source_data_management.py` e `ingester_Conf/ingester.yaml`):
