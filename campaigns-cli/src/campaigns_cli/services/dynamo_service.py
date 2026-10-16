@@ -174,9 +174,13 @@ class CampaignsTable:
             items.extend(_iterate(self.client.scan, kwargs))
         return QueryResult(_sort_campaigns(items), scanned=bool(unique))
 
-    def all(self, app_id: str | None = None, limit: int | None = None) -> QueryResult:
-        """Todas las filas de la tabla (scan), con filtro opcional por app_id."""
-        kwargs = _merge({"TableName": self.table_name}, _filter_expression({"app_id": app_id}))
+    def all(
+        self, app_id: str | None = None, limit: int | None = None, user: str | None = None
+    ) -> QueryResult:
+        """Todas las filas de la tabla (scan), con filtro opcional por app_id y usuario."""
+        kwargs = _merge(
+            {"TableName": self.table_name}, _filter_expression({"app_id": app_id, "user": user})
+        )
         items, truncated = _collect(_iterate(self.client.scan, kwargs), limit)
         return QueryResult(_sort_campaigns(items), scanned=True, truncated=truncated)
 

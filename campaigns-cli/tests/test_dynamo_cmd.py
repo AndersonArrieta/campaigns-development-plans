@@ -109,13 +109,46 @@ def test_list_by_hour_and_range() -> None:
 
 
 @pytest.mark.usefixtures("tables")
-def test_list_today_defaults_to_colombia(monkeypatch: pytest.MonkeyPatch) -> None:
+def test_list_hour_without_date_uses_today_colombia(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(dynamo_cmd, "colombia_now", lambda: datetime(2026, 10, 14, 21, 0))
 
-    code, data, _ = _json("list")
+    code, data, _ = _json("list", "--hour", "8")
 
     assert code == 0
     assert [item["notification_id"] for item in data] == ["n-4"]
+
+
+@pytest.mark.usefixtures("history_tables")
+def test_list_without_dates_returns_both_tables() -> None:
+    code, data, stderr = _json("list")
+    result = runner.invoke(app, ["dynamo", "list"])
+
+    assert code == 0
+    assert set(data) == {"campaigns", "logs"}
+    assert (len(data["campaigns"]), len(data["logs"])) == (5, 3)
+    assert "scan" in stderr
+    assert result.exit_code == 0
+    assert "Tabla de campañas" in result.stdout
+    assert "Tabla de logs" in result.stdout
+
+
+@pytest.mark.usefixtures("history_tables")
+def test_list_without_dates_filters_and_limits() -> None:
+    _, by_app, _ = _json("list", "--app-id", "otra-app")
+    _, limited, stderr = _json("list", "-n", "1")
+
+    assert [item["notification_id"] for item in by_app["campaigns"]] == ["n-4"]
+    assert [item["app_id"] for item in by_app["logs"]] == ["otra-app"]
+    assert (len(limited["campaigns"]), len(limited["logs"])) == (1, 1)
+    assert "primeros 1" in stderr
+
+
+@pytest.mark.usefixtures("history_tables")
+def test_list_without_dates_user_filters_only_campaigns() -> None:
+    _, data, _ = _json("list", "--user", "573001112233")
+
+    assert [item["notification_id"] for item in data["campaigns"]] == ["n-2"]
+    assert len(data["logs"]) == 3
 
 
 @pytest.mark.parametrize(

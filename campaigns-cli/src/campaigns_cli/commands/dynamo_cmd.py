@@ -168,10 +168,11 @@ def list_(
     ctx: typer.Context,
     date: Annotated[
         str | None,
-        typer.Option("--date", help="Día YYYY-MM-DD (por defecto hoy, hora Colombia)."),
+        typer.Option("--date", help="Día YYYY-MM-DD (hora Colombia)."),
     ] = None,
     hour: Annotated[
-        int | None, typer.Option("--hour", min=0, max=23, help="Solo esa hora del día.")
+        int | None,
+        typer.Option("--hour", min=0, max=23, help="Solo esa hora del día (sin --date, hoy)."),
     ] = None,
     start: Annotated[
         str | None, typer.Option("--from", help="Desde 'YYYY-MM-DD HH:MM' (usar con --to).")
@@ -179,11 +180,23 @@ def list_(
     end: Annotated[str | None, typer.Option("--to", help="Hasta 'YYYY-MM-DD HH:MM'.")] = None,
     app_id: AppIdOption = None,
     user: UserOption = None,
-    limit: LimitOption = 500,
+    limit: Annotated[
+        int | None,
+        typer.Option(
+            "--limit",
+            "-n",
+            min=1,
+            help="Máximo de registros (por defecto 500 con fecha; sin fecha, todos por tabla).",
+        ),
+    ] = None,
 ) -> None:
-    """Lista los registros programados en un día, una hora o un rango (query por hora)."""
+    """Sin fecha, todas las filas de las dos tablas (scan); con fecha, query por hora."""
     if (start or end) and (date or hour is not None):
         raise UsageError("Usa --date/--hour o --from/--to, no ambos.")
+    if not (start or end or date or hour is not None):
+        _dump_tables(get_state(ctx), TableChoice.ALL, app_id, limit, user=user)
+        return
+    limit = 500 if limit is None else limit
     if start or end:
         if not (start and end):
             raise UsageError("--from y --to van juntos.")
@@ -191,7 +204,7 @@ def list_(
         if range_start > range_end:
             raise UsageError("--from debe ser anterior a --to.")
     else:
-        day = parse_datetime(date) if date else colombia_now()
+        day = parse_datetime(date) if date else colombia_now()  # --hour sin --date: hoy
         day = day.replace(hour=0, minute=0, second=0, microsecond=0)
         if hour is None:
             range_start, range_end = day, day.replace(hour=23)
@@ -424,10 +437,20 @@ def dump(
     ] = None,
 ) -> None:
     """Todas las filas de las tablas (para guardar evidencias con --output json)."""
-    state = get_state(ctx)
+    _dump_tables(get_state(ctx), table, app_id, limit)
+
+
+def _dump_tables(
+    state: AppState,
+    table: TableChoice,
+    app_id: str | None,
+    limit: int | None,
+    user: str | None = None,
+) -> None:
+    """Scan de las tablas elegidas; `user` solo filtra la de campañas (los logs no lo tienen)."""
     data: dict[str, list[dict[str, Any]]] = {}
     if table.includes_campaigns:
-        result = _campaigns(state).all(app_id, limit=limit)
+        result = _campaigns(state).all(app_id, limit=limit, user=user)
         _report(result, limit)
         data["campaigns"] = result.items
     if table.includes_logs:

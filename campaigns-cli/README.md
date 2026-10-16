@@ -117,6 +117,7 @@ Un recorrido típico: ver las cargas recientes y seguir el rastro de una de ella
 uv run campaigns dynamo logs --since 7d                     # últimas cargas de CSV (todas las apps)
 uv run campaigns dynamo logs --app-id <app_id> --details    # errores de validación de una app
 uv run campaigns dynamo find --campaign-id <id de la carga> # notificaciones creadas por esa carga
+uv run campaigns dynamo list                                # todo lo que hay en las dos tablas (scan)
 uv run campaigns dynamo list --date 2026-10-13              # lo programado ese día (hora Colombia)
 uv run campaigns dynamo list --date 2026-10-13 --hour 10    # lo que el scheduler enviará a esa hora
 uv run campaigns dynamo get --notification-id <id> --datetime "2026-10-13 10"
@@ -129,8 +130,8 @@ uv run campaigns --output json dynamo dump > evidencias/dump.json   # todas las 
 
 - `--output json` (antes del subcomando) devuelve JSON limpio en stdout, para usarlo con `jq`.
 - Una notificación reprogramada por `platform_campaigns_ms` tiene varias filas con el mismo `notification_id`: `history`, `campaign` y `get` marcan cada una como `ORIGINAL`, `FUERA_DE_HORARIO` o `REINTENTO`, y como `PENDIENTE`, `EN_CURSO` o `PASADA` según la hora Colombia actual.
-- `find`, `get` sin `--datetime`, `history`, `campaign`, `dump` y `logs` sin `--app-id` hacen **scan** (recorren la tabla) y lo avisan; en tablas grandes son más lentos y costosos.
-- `list` hace un query por cada hora del rango (máximo 31 días), sin scan.
+- `find`, `get` sin `--datetime`, `list` sin fecha, `history`, `campaign`, `dump` y `logs` sin `--app-id` hacen **scan** (recorren la tabla) y lo avisan; en tablas grandes son más lentos y costosos.
+- `list` sin `--date`, `--hour`, `--from` ni `--to` muestra **todas** las filas de las dos tablas (igual que `dump`). Con fecha hace un query por cada hora del rango (máximo 31 días), sin scan.
 - `logs --since` usa UTC (se asume que la Lambda guarda la fecha en UTC). Si una carga reciente no aparece con `--since 2h`, prueba con `--since 1d` y revisa la diferencia de horas.
 
 ### Limpiar datos de prueba: `dynamo purge`
