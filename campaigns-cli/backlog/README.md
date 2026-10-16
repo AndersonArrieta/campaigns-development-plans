@@ -122,12 +122,13 @@ queda en el mismo vault y los enlaces entre ambos funcionan.
 
 ## Estado actual
 
-✅ **done (11)**
+✅ **done (12)**
 - [[T-001-esqueleto-uv|T-001]] — proyecto uv, entry point `campaigns`, ruff/mypy/pytest.
 - [[T-002-settings-env|T-002]] — `Settings`, `.env`/`--env-file`, `config show`.
 - [[T-003-aws-output-guards|T-003]] — `AwsClients`, salida tabla/JSON, exit codes, guards, `config check`.
 - [[T-004-csv-generate-validate|T-004]] — `csv generate` y `csv validate` con las reglas del ingester; CSV en `data/`.
 - [[T-005-s3-commands|T-005]] — `s3 upload/ls/get/rm`; `upload` valida el CSV (o lo busca en `data/`) antes de subir.
+- [[T-021-s3-upload-sin-archivo|T-021]] — `s3 upload` sin argumento sube el único CSV de `data/` (error si hay varios).
 - [[T-006-dynamo-lectura|T-006]] — `dynamo get/find/list/logs` de solo lectura.
 - [[T-008-logs-cloudwatch|T-008]] — `logs groups/tail/search` sobre las lambdas.
 - [[T-015-fake-channel-messages|T-015]] — grupo `channel`: token de Cognito y mensajes del fake channel.
@@ -154,7 +155,7 @@ base:        T-001 ─► T-002 ─► T-003
 dynamo:      T-003 ─► T-006 ─► T-012 ─► T-020
 logs:        T-003 ─► T-008
 pods:        T-003, T-015 ─► T-017 ─► T-018
-ingesta:     T-001 ─► T-004 ─► T-005 ─► T-007        (T-005 y T-007 también ─◄ T-003)
+ingesta:     T-001 ─► T-004 ─► T-005 ─► T-007, T-021        (T-005 y T-007 también ─◄ T-003)
 scheduler:   T-003, T-006, T-008 ─► T-019 ─► T-007
 trace:       T-004, T-005, T-006, T-008, T-012 ─► T-009 ─► T-013 ◄─ T-007
 docs:        T-007, T-009 ─► T-010

@@ -246,6 +246,24 @@ def resolve_csv_path(value: str | Path) -> Path:
     raise UsageError(f"No existe el archivo '{value}' (ni en {DATA_DIR}/).")
 
 
+def find_single_csv(directory: Path = DATA_DIR) -> Path:
+    """El único `*.csv` de la carpeta (sin subcarpetas). Con ninguno o varios, `UsageError`:
+    subir dispara envíos reales, así que no se adivina cuál."""
+    found = sorted(path for path in directory.glob("*.csv") if path.is_file())
+    if not found:
+        raise UsageError(
+            f"No hay ningún CSV en {directory}/: copia templates/plantilla.csv a {directory}/ "
+            "y edítalo, o indica la ruta del archivo."
+        )
+    if len(found) > 1:
+        names = ", ".join(path.name for path in found)
+        raise UsageError(
+            f"Hay {len(found)} CSV en {directory}/ ({names}): indica cuál subir, "
+            f"p. ej. `s3 upload {found[0].name}`."
+        )
+    return found[0]
+
+
 # --- Validación ---
 
 

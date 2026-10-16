@@ -89,6 +89,7 @@ Requieren `CAMPAIGNS_INPUT_BUCKET` (y opcionalmente `CAMPAIGNS_INPUT_PREFIX`). *
 ingesta real**; `upload` y `rm` están bloqueados en prod.
 
 ```bash
+uv run campaigns s3 upload                             # valida y sube el único CSV de data/
 uv run campaigns s3 upload mi-campana.csv              # valida y sube data/mi-campana.csv
 uv run campaigns s3 upload mi-campana.csv --key otra.csv
 uv run campaigns s3 ls -n 20                           # más recientes primero
@@ -96,6 +97,7 @@ uv run campaigns s3 get mi-campana.csv                 # contenido en pantalla (
 uv run campaigns s3 rm mi-campana.csv                  # pide confirmación (--yes la omite)
 ```
 
+- Sin nombre, `upload` exige que haya **un solo** CSV en `data/`: con varios sale con error y lista cuáles hay.
 - `upload` no sube un CSV con errores de validación (exit 1); `--no-validate` lo fuerza.
 - El ingester borra el CSV del bucket cuando lo procesa: después de unos segundos ya no aparece en
   `s3 ls`, y su resultado se ve con `dynamo logs` o `dynamo history`.

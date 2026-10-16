@@ -11,6 +11,7 @@ from campaigns_cli.output import info, render, success, warn
 from campaigns_cli.services.csv_service import (
     DATA_DIR,
     Severity,
+    find_single_csv,
     resolve_csv_path,
     validate_csv,
 )
@@ -38,8 +39,12 @@ def _service(state: AppState) -> S3Service:
 def upload(
     ctx: typer.Context,
     archivo: Annotated[
-        str, typer.Argument(help=f"Ruta del CSV (o su nombre dentro de {DATA_DIR}/).")
-    ],
+        str | None,
+        typer.Argument(
+            help=f"Ruta del CSV o su nombre dentro de {DATA_DIR}/. Sin él, el único CSV de "
+            f"{DATA_DIR}/."
+        ),
+    ] = None,
     key: Annotated[
         str | None,
         typer.Option("--key", help="Key de destino (por defecto, prefijo + nombre del archivo)."),
@@ -51,7 +56,11 @@ def upload(
     """Valida y sube un CSV al bucket de entrada: el ingester lo procesa y lo borra."""
     state = get_state(ctx)
     ensure_not_prod(state.settings, "s3 upload")
-    path = resolve_csv_path(archivo)
+    if archivo is None:
+        path = find_single_csv()
+        info(f"Archivo: {path}")
+    else:
+        path = resolve_csv_path(archivo)
     service = _service(state)
 
     if no_validate:

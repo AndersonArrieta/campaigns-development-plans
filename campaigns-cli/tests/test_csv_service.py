@@ -8,6 +8,7 @@ from campaigns_cli.services.csv_service import (
     DATA_DIR,
     Severity,
     ValidationIssue,
+    find_single_csv,
     generate_rows,
     parse_fecha,
     parse_horas,
@@ -218,3 +219,23 @@ def test_resolve_csv_path_looks_in_data_dir(tmp_path: Path) -> None:
     assert resolve_csv_path(target) == target
     with pytest.raises(UsageError, match="data/"):
         resolve_csv_path("no-existe.csv")
+
+
+def test_find_single_csv(tmp_path: Path) -> None:
+    data = tmp_path / DATA_DIR
+    with pytest.raises(UsageError, match="templates/plantilla.csv"):
+        find_single_csv(data)  # la carpeta no existe
+
+    data.mkdir()
+    (data / "notas.txt").write_text("x", encoding="utf-8")
+    (data / "viejas").mkdir()
+    (data / "viejas" / "otra.csv").write_text("x", encoding="utf-8")
+    with pytest.raises(UsageError, match="templates/plantilla.csv"):
+        find_single_csv(data)  # ni .txt ni subcarpetas cuentan
+
+    (data / "b.csv").write_text("x", encoding="utf-8")
+    assert find_single_csv(data) == data / "b.csv"
+
+    (data / "a.csv").write_text("x", encoding="utf-8")
+    with pytest.raises(UsageError, match=r"Hay 2 CSV .*\(a\.csv, b\.csv\)"):
+        find_single_csv(data)

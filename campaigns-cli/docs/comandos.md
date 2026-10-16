@@ -55,14 +55,14 @@ ninguna fila. Con `--output json`, `validate` devuelve
 `{archivo, errores, avisos, problemas: [{fila, columna, severidad, mensaje}]}` y `generate`,
 `{archivo, filas, avisos}`.
 
-## `s3` — [T-005](../backlog/tasks/T-005-s3-commands.md) (`upload` y `rm` bloqueados en prod)
+## `s3` — [T-005](../backlog/tasks/T-005-s3-commands.md), [T-021](../backlog/tasks/T-021-s3-upload-sin-archivo.md) (`upload` y `rm` bloqueados en prod)
 
 Bucket de entrada del ingester (`CAMPAIGNS_INPUT_BUCKET`). **Subir un CSV dispara la ingesta real**,
 y el ingester borra el archivo del bucket cuando termina de procesarlo.
 
 | Comando | Qué hace |
 |---|---|
-| `s3 upload <archivo> [--key KEY] [--no-validate]` | Busca el archivo como `csv validate` (la ruta o su nombre en `data/`), lo valida con las mismas reglas y lo sube con `ContentType=text/csv`. Con errores no sube nada y sale con 1; los avisos se muestran y no frenan. Key por defecto: `CAMPAIGNS_INPUT_PREFIX` + nombre del archivo. Muestra bucket, key, `ETag`, `VersionId` y hora de subida (Colombia). |
+| `s3 upload [archivo] [--key KEY] [--no-validate]` | Busca el archivo como `csv validate` (la ruta o su nombre en `data/`). Sin `archivo`, usa el único `*.csv` de `data/` (sin subcarpetas) y muestra cuál; con varios o ninguno sale con 2 sin subir nada. Después lo valida con las mismas reglas y lo sube con `ContentType=text/csv`. Con errores no sube nada y sale con 1; los avisos se muestran y no frenan. Key por defecto: `CAMPAIGNS_INPUT_PREFIX` + nombre del archivo. Muestra bucket, key, `ETag`, `VersionId` y hora de subida (Colombia). |
 | `s3 ls [--prefix P] [--limit N]` | Recorre todas las páginas de `list_objects_v2` (por defecto bajo `CAMPAIGNS_INPUT_PREFIX`): key, tamaño y última modificación (Colombia), del más reciente al más antiguo. |
 | `s3 get <key> [-o archivo]` | Sin `-o`, imprime el contenido en stdout. |
 | `s3 rm <key> [--yes]` | Pide confirmación salvo `--yes`. Con `CAMPAIGNS_INPUT_PREFIX`, solo borra keys dentro del prefijo (fuera: exit 2). Una key inexistente sale con 3. |

@@ -199,3 +199,55 @@ def test_bucket_is_required(write_env) -> None:  # type: ignore[no-untyped-def]
 
     assert result.exit_code == 2
     assert "CAMPAIGNS_INPUT_BUCKET" in result.stderr
+
+
+def test_upload_without_argument_uses_the_only_csv(bucket: Any, tmp_path: Path) -> None:
+    _data_file(tmp_path, "mi-campana.csv", FIXTURE.read_bytes())
+
+    result = runner.invoke(app, ["s3", "upload"])
+
+    assert result.exit_code == 0, result.stderr
+    assert "Archivo: data/mi-campana.csv" in result.stderr
+    assert _keys(bucket) == ["mi-campana.csv"]
+
+
+def test_upload_without_argument_and_several_csv_uploads_nothing(
+    bucket: Any, tmp_path: Path
+) -> None:
+    _data_file(tmp_path, "a.csv", FIXTURE.read_bytes())
+    _data_file(tmp_path, "b.csv", FIXTURE.read_bytes())
+
+    result = runner.invoke(app, ["s3", "upload"])
+
+    assert result.exit_code == 2
+    assert "a.csv" in result.stderr and "b.csv" in result.stderr
+    assert _keys(bucket) == []
+
+    explicit = runner.invoke(app, ["s3", "upload", "b.csv"])
+    assert explicit.exit_code == 0, explicit.stderr
+    assert _keys(bucket) == ["b.csv"]
+
+
+@pytest.mark.parametrize("setup", ["sin-carpeta", "vacia", "sin-csv"])
+def test_upload_without_argument_and_no_csv_exits_2(
+    bucket: Any, tmp_path: Path, setup: str
+) -> None:
+    if setup != "sin-carpeta":
+        (tmp_path / "data").mkdir()
+    if setup == "sin-csv":
+        (tmp_path / "data" / "notas.txt").write_text("x", encoding="utf-8")
+
+    result = runner.invoke(app, ["s3", "upload"])
+
+    assert result.exit_code == 2
+    assert "templates/plantilla.csv" in result.stderr
+    assert _keys(bucket) == []
+
+
+def test_upload_without_argument_still_validates(bucket: Any, tmp_path: Path) -> None:
+    _data_file(tmp_path, "malo.csv", INVALID_CSV.encode())
+
+    result = runner.invoke(app, ["s3", "upload"])
+
+    assert result.exit_code == 1
+    assert _keys(bucket) == []
