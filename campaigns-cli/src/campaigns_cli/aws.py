@@ -20,6 +20,21 @@ if TYPE_CHECKING:
 
 CLIENT_CONFIG = Config(retries={"mode": "standard", "max_attempts": 5})
 
+INVOKE_CONNECT_TIMEOUT = 10
+
+
+def invoke_config(read_timeout: int) -> Config:
+    """Config para `Invoke`: un solo intento HTTP y espera de lectura mayor que la función.
+
+    Un reintento del SDK tras un `ReadTimeoutError` volvería a ejecutar la Lambda (ADR-0010).
+    """
+    return Config(
+        retries={"mode": "standard", "total_max_attempts": 1},
+        read_timeout=read_timeout,
+        connect_timeout=INVOKE_CONNECT_TIMEOUT,
+        tcp_keepalive=True,
+    )
+
 
 class AwsClients:
     """Crea la sesión y los clientes solo cuando se piden por primera vez.
@@ -62,6 +77,11 @@ class AwsClients:
     @cached_property
     def lambda_(self) -> LambdaClient:
         return self.session.client("lambda", config=CLIENT_CONFIG)
+
+    def lambda_invoke_client(self, read_timeout: int) -> LambdaClient:
+        """Cliente Lambda sin reintentos del SDK, solo para invocar. No se cachea: su
+        `read_timeout` depende del `Timeout` de cada función."""
+        return self.session.client("lambda", config=invoke_config(read_timeout))
 
     @cached_property
     def logs(self) -> CloudWatchLogsClient:

@@ -122,7 +122,7 @@ queda en el mismo vault y los enlaces entre ambos funcionan.
 
 ## Estado actual
 
-✅ **done (8)**
+✅ **done (9)**
 - [[T-001-esqueleto-uv|T-001]] — proyecto uv, entry point `campaigns`, ruff/mypy/pytest.
 - [[T-002-settings-env|T-002]] — `Settings`, `.env`/`--env-file`, `config show`.
 - [[T-003-aws-output-guards|T-003]] — `AwsClients`, salida tabla/JSON, exit codes, guards, `config check`.
@@ -131,13 +131,13 @@ queda en el mismo vault y los enlaces entre ambos funcionan.
 - [[T-015-fake-channel-messages|T-015]] — grupo `channel`: token de Cognito y mensajes del fake channel.
 - [[T-017-pods-logs-eks|T-017]] — grupo `pods`: logs de los pods de `platform_campaigns_ms` en EKS, sin `kubectl`.
 - [[T-018-pods-engine-notification-id|T-018]] — `pods`: componente engine y `--notification-id` en campaigns y engine.
+- [[T-019-scheduler-invoke|T-019]] — `scheduler run/health`: invocar `scheduler_Lambda` a demanda, una ejecución por invocación (sin reintentos que la repitan).
 
-🟡 **todo (6)**
+🟡 **todo (5)**
 - [[T-004-csv-generate-validate|T-004]] — `csv generate` y `csv validate`.
 - [[T-011-validar-lectura-dev|T-011]] — probar en dev `config check`, `dynamo` y `logs` con datos reales.
 - [[T-012-dynamo-purge|T-012]] — `dynamo purge` de datos de `CLI_TEST_APP_ID`.
 - [[T-014-ci-github-actions|T-014]] — pipeline de GitHub Actions con umbral de cobertura.
-- [[T-019-scheduler-invoke|T-019]] — `scheduler run`: invocar `scheduler_Lambda` a demanda, una ejecución por invocación (sin reintentos que la repitan).
 - [[T-020-dynamo-historial-y-limpieza|T-020]] — `dynamo history/campaign/dump` con reprogramaciones y `dynamo clean`, que vacía las tablas de campañas y de logs o borra solo lo de un CSV (espera a T-012).
 
 🔵 **backlog (6)**

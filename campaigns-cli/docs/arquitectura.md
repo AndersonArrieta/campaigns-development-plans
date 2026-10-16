@@ -40,7 +40,7 @@ moto o con clientes falsos.
 | `state.py` | `AppState` en `ctx.obj`: `env_file`, `output_override`, `verbose`, `assume_yes`; carga perezosa de `settings` y `aws`. `get_state(ctx)` lo recupera en cada comando. |
 | `settings.py` | `Settings` (pydantic-settings), `load_settings`, `setting_sources` (origen de cada valor), enmascarado de secretos y `MissingSettingError`. |
 | `http.py` | `HttpClients`: clientes httpx para Cognito y el fake channel (timeouts, verificación SSL configurable). [ADR-0008](adr/0008-cliente-http.md). |
-| `aws.py` | `AwsClients`: crea la sesión boto3 la primera vez que se pide un cliente (`s3`, `dynamodb`, `lambda_`, `logs`, `sts`), con reintentos `standard` y 5 intentos. |
+| `aws.py` | `AwsClients`: crea la sesión boto3 la primera vez que se pide un cliente (`s3`, `dynamodb`, `lambda_`, `logs`, `sts`), con reintentos `standard` y 5 intentos; `lambda_invoke_client(read_timeout)` crea el cliente de `Invoke` sin reintentos ([ADR-0010](adr/0010-invocacion-sin-reintentos.md)). |
 | `errors.py` | `ExitCode`, jerarquía `CliError` (`UsageError`, `TestFailedError`, `AwsError`, `ExternalServiceError`, `ServiceAuthError`) y `translate(exc, settings)`. |
 | `output.py` | `render` (tabla rich o JSON), `to_json` (serializa `Decimal`, fechas, enums, sets) y mensajes `info/success/warn/fail` a stderr. |
 | `guards.py` | `ensure_not_prod` y `confirm_destructive`. |
@@ -51,6 +51,8 @@ moto o con clientes falsos.
 | `services/clean_service.py` | `plan_clean` → `CleanPlan` y `execute` → `CleanResult` (borrado y scan de verificación). [ADR-0011](adr/0011-vaciado-de-tablas-en-dev.md). |
 | `services/channel_service.py` | `CognitoAuth` (token `client_credentials` reutilizado hasta que vence), `FakeChannel` (`messages`, `wait_for`), `normalize_message`, `parse_channel`. |
 | `services/k8s_service.py` | `eks_token` (token de `aws eks get-token`), `EksTokenAuth`, `describe_cluster`, `PodsService` (`list_pods`, `logs`, `stream` con reconexión, `follow_many` con un hilo por pod). [ADR-0009](adr/0009-acceso-a-kubernetes.md). |
+| `services/lambda_service.py` | `LambdaService`: `function_timeout` e `invoke_once` (síncrona, reintenta solo `RETRYABLE`; los `AMBIGUOUS` dan `InvokeResult` desconocido). [ADR-0010](adr/0010-invocacion-sin-reintentos.md). |
+| `services/scheduler_service.py` | `current_partition` (hora Colombia, igual que la Lambda), `SchedulerService` (`preview`, `run`, `health`), `Outcome` y `health_ok`. |
 | `services/logs_service.py` | `LogsService`: Logs Insights (`search`), `filter_log_events` (`events`, `follow`) y `list_groups`. |
 
 ## Ciclo de una invocación
@@ -106,6 +108,9 @@ Una excepción no reconocida se propaga con su traceback (es un bug).
   con código 0 sin hacer nada.
 - `dynamo purge` ([T-012](../backlog/tasks/T-012-dynamo-purge.md)) solo borra registros con
   `app_id == CLI_TEST_APP_ID`; los demás del mismo `campaign_id` se omiten y se informan.
+- `scheduler run` ([T-019](../backlog/tasks/T-019-scheduler-invoke.md)) muestra las filas de la
+  partición por `app_id` antes de confirmar y avisa si hay de otros equipos; `scheduler health` no
+  despacha y no pide confirmación, pero también está bloqueado en prod.
 - `dynamo clean` ([T-020](../backlog/tasks/T-020-dynamo-historial-y-limpieza.md)) vacía las tablas de
   dev por completo o borra solo un `campaign_id`; muestra el plan, admite `--dry-run` y verifica al
   final ([ADR-0011](adr/0011-vaciado-de-tablas-en-dev.md)).

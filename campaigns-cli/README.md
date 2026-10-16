@@ -177,6 +177,25 @@ uv run campaigns logs tail -l scheduler --from "2026-10-13 09:00" --to "2026-10-
 
 La CLI trae todos los eventos del rango antes de mostrarlos: en rangos de muchas horas con mucho log puede tardar. Si es así, acota el rango o usa `--filter`.
 
+## Comandos `scheduler` (invocar `scheduler_Lambda` a demanda)
+
+En lugar de esperar a la hora en punto, despacha la partición de la hora en curso (hora Colombia).
+Requieren `SCHEDULER_LAMBDA_NAME` y, para `run`, `CAMPAIGNS_TABLE_NAME`, con credenciales que
+tengan `lambda:InvokeFunction` (las de solo lectura no alcanzan):
+
+```bash
+uv run campaigns scheduler health                 # prueba Kafka; no despacha nada
+uv run campaigns scheduler run                    # vista previa por app_id, confirma e invoca una vez
+uv run campaigns scheduler run --tail --yes       # sin confirmación y con los últimos 4 KB del log
+```
+
+- Flujo de prueba: CSV con la hora actual → `scheduler run`.
+- **No es idempotente:** reenvía a Kafka **todas** las filas de la hora, también las que EventBridge
+  ya despachó y las de otros equipos (la vista previa lo avisa).
+- Nunca reintenta algo que pudo haber ejecutado la Lambda: si no hay respuesta clara, el resultado es
+  `DESCONOCIDO` (exit 3); revisa `logs tail -l scheduler` antes de volver a invocar.
+- Bloqueado con `CAMPAIGNS_ENV=prod`.
+
 ## Comandos `channel` (fake channel, solo lectura)
 
 Verifican que el mensaje de una campaña llegó al usuario, como la prueba E2E de `Platform_test`.

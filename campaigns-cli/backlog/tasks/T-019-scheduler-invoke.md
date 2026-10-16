@@ -2,7 +2,7 @@
 id: T-019
 aliases: [T-019]
 title: "Comando scheduler run: disparar scheduler_Lambda a demanda sin reintentos que la re-ejecuten"
-status: todo
+status: done
 priority: P1
 epic: E-ingesta
 estimate: M
@@ -58,7 +58,7 @@ desbloqueada ya. T-007 reutiliza el `LambdaService` de esta tarjeta para ingeste
 - `docs/adr/0010-invocacion-sin-reintentos.md` — invocación síncrona sin reintentos del SDK
 
 ## Tareas
-- [ ] `scheduler run [--tail] [--yes]`:
+- [x] `scheduler run [--tail] [--yes]`:
   1. `ensure_not_prod`; exige `SCHEDULER_LAMBDA_NAME` y `CAMPAIGNS_TABLE_NAME`.
   2. Calcula la partición actual (`YYYY-MM-DD HH:00:00`, UTC-5) y hace `query` a la tabla de campañas (`CampaignsTable.list_range` de [[T-006-dynamo-lectura|T-006]]).
   3. Muestra el total por `app_id` y avisa si hay filas cuyo `app_id` no es `CLI_TEST_APP_ID` ("se reenviarán notificaciones de otros equipos").
@@ -66,27 +66,27 @@ desbloqueada ya. T-007 reutiliza el `LambdaService` de esta tarjeta para ingeste
   5. Pide confirmación (`confirm_destructive`); `--yes` la omite.
   6. Lee el `Timeout` de la función e invoca una vez con `{}`.
   7. Muestra `StatusCode`, `FunctionError`, `ExecutedVersion`, el `RequestId` (`ResponseMetadata`) y `detail` (`total/successful/failed`); con `--tail`, decodifica `LogResult` (últimos 4 KB).
-- [ ] Advertencia si la partición cambia entre la vista previa y la invocación (se invoca en el minuto 59): el scheduler procesará la hora siguiente.
-- [ ] `scheduler health`: invoca con `{"type": "health"}` (no despacha nada, no pide confirmación) y muestra si Kafka responde.
-- [ ] Exit codes: 0 OK; 1 si hay `FunctionError` o `detail.failed > 0`; 3 si el resultado es `DESCONOCIDO` o hubo un error de AWS no reintentable.
-- [ ] `--output json` devuelve `{partition, preview, invocation: {status_code, function_error, request_id, payload}, outcome}`.
-- [ ] Mensaje claro para `AccessDeniedException` en `lambda:InvokeFunction` ("las credenciales de solo lectura no pueden invocar la Lambda").
-- [ ] Documentar en `docs/configuracion.md` los permisos mínimos: `lambda:GetFunctionConfiguration`, `lambda:InvokeFunction` sobre el ARN del scheduler, `dynamodb:Query` sobre la tabla de campañas y `logs:FilterLogEvents` sobre su log group.
-- [ ] Escribir ADR-0010 y actualizar `docs/`.
+- [x] Advertencia si la partición cambia entre la vista previa y la invocación (se invoca en el minuto 59): el scheduler procesará la hora siguiente.
+- [x] `scheduler health`: invoca con `{"type": "health"}` (no despacha nada, no pide confirmación) y muestra si Kafka responde.
+- [x] Exit codes: 0 OK; 1 si hay `FunctionError` o `detail.failed > 0`; 3 si el resultado es `DESCONOCIDO` o hubo un error de AWS no reintentable.
+- [x] `--output json` devuelve `{partition, preview, invocation: {status_code, function_error, request_id, payload}, outcome}`.
+- [x] Mensaje claro para `AccessDeniedException` en `lambda:InvokeFunction` ("las credenciales de solo lectura no pueden invocar la Lambda").
+- [x] Documentar en `docs/configuracion.md` los permisos mínimos: `lambda:GetFunctionConfiguration`, `lambda:InvokeFunction` sobre el ARN del scheduler, `dynamodb:Query` sobre la tabla de campañas y `logs:FilterLogEvents` sobre su log group.
+- [x] Escribir ADR-0010 y actualizar `docs/`.
 - [ ] Ejecutar en dev con un CSV de `CLI_TEST_APP_ID` para la hora actual y guardar la salida en `evidencias/t019/` (sin credenciales ni ARNs completos).
 
 ## Criterios de aceptación
-- [ ] El cliente de invocación tiene `total_max_attempts == 1` y `read_timeout >= Timeout + 30` (test sobre su `Config`).
-- [ ] Con `Stubber`: `ReadTimeoutError` → **una sola** llamada a `Invoke`, resultado `DESCONOCIDO`, exit 3.
-- [ ] Con `Stubber`: `TooManyRequestsException` y luego éxito → 2 llamadas a `Invoke`, exit 0.
-- [ ] `ServiceException` (5xx) → una sola llamada, `DESCONOCIDO`.
-- [ ] Respuesta con `FunctionError="Unhandled"` → exit 1 y el error visible; con `detail.failed > 0` → exit 1.
-- [ ] Vista previa (moto DynamoDB) con filas de `others-test` y de otra app → la advertencia nombra la otra app; sin `--yes` y respondiendo "no" → no se llama a `Invoke`, exit 0.
-- [ ] `current_partition()` con un reloj fijo `2026-10-15 03:30 UTC` → `2026-10-14 22:00:00`.
-- [ ] Ejecutar `scheduler run --yes` dos veces seguidas → dos invocaciones (no hay bloqueo entre corridas).
-- [ ] `scheduler health` envía `{"type": "health"}` y no pide confirmación.
-- [ ] `AccessDeniedException` → exit 3 con el mensaje de permisos.
-- [ ] Con `CAMPAIGNS_ENV=prod` → bloqueado (exit 2) para `run` y `health`.
+- [x] El cliente de invocación tiene `total_max_attempts == 1` y `read_timeout >= Timeout + 30` (test sobre su `Config`).
+- [x] Con `Stubber`: `ReadTimeoutError` → **una sola** llamada a `Invoke`, resultado `DESCONOCIDO`, exit 3.
+- [x] Con `Stubber`: `TooManyRequestsException` y luego éxito → 2 llamadas a `Invoke`, exit 0.
+- [x] `ServiceException` (5xx) → una sola llamada, `DESCONOCIDO`.
+- [x] Respuesta con `FunctionError="Unhandled"` → exit 1 y el error visible; con `detail.failed > 0` → exit 1.
+- [x] Vista previa (moto DynamoDB) con filas de `others-test` y de otra app → la advertencia nombra la otra app; sin `--yes` y respondiendo "no" → no se llama a `Invoke`, exit 0.
+- [x] `current_partition()` con un reloj fijo `2026-10-15 03:30 UTC` → `2026-10-14 22:00:00`.
+- [x] Ejecutar `scheduler run --yes` dos veces seguidas → dos invocaciones (no hay bloqueo entre corridas).
+- [x] `scheduler health` envía `{"type": "health"}` y no pide confirmación.
+- [x] `AccessDeniedException` → exit 3 con el mensaje de permisos.
+- [x] Con `CAMPAIGNS_ENV=prod` → bloqueado (exit 2) para `run` y `health`.
 
 ## Verificación
 ```bash
@@ -107,3 +107,6 @@ uv run campaigns scheduler run --tail 2>&1 | tee evidencias/t019/run.txt
 - moto necesita Docker para ejecutar Lambdas: estas pruebas usan `botocore.stub.Stubber` o un cliente falso, como `test_config_check.py`.
 - Relación con EventBridge: su próxima corrida (a la hora siguiente) procesa **otra** partición, así que `scheduler run` no duplica lo que hará EventBridge. Sí reenvía lo que EventBridge ya despachó en punto en la hora en curso.
 - Los reenvíos duplicados aguas abajo son el problema que analiza `../idempotencia-campañas/`; esta CLI no lo resuelve, solo lo hace visible antes de invocar.
+- **Cierre (2026-10-16):** verificación local en verde (351 pruebas, cobertura 97 %, ruff y mypy). Quedan pendientes en dev, porque requieren credenciales con `lambda:InvokeFunction` y confirmación (publican en Kafka): `scheduler health` y `scheduler run --tail` con salida en `evidencias/t019/`. Lo que falle ahí se registra como `B-0NN` con `affects: [T-019]`.
+- Las pruebas de `ReadTimeoutError` usan el cliente real de `lambda_invoke_client` con un `before-send` que lanza el error (Stubber no puede simular errores de red) y comprueban que hay un solo envío HTTP; con `CLIENT_CONFIG` habría 6.
+- `scheduler health` toma como "Kafka responde" que no haya `FunctionError` y que el `statusCode` de la respuesta, si viene, sea 200: el formato exacto de la respuesta de health no está confirmado en dev.

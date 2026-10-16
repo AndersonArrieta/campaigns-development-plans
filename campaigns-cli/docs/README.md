@@ -55,6 +55,7 @@ directamente en Kafka o RabbitMQ y crear infraestructura quedan fuera del alcanc
 | `logs` | CloudWatch Logs | ✅ implementado | [T-008](../backlog/tasks/T-008-logs-cloudwatch.md) |
 | `csv` | — | ⏳ pendiente | [T-004](../backlog/tasks/T-004-csv-generate-validate.md) |
 | `s3` | S3 | ⏳ pendiente | [T-005](../backlog/tasks/T-005-s3-commands.md) |
+| `scheduler` | Lambda (`scheduler_Lambda`) + DynamoDB + Logs | ✅ `run` y `health`, una ejecución por invocación | [T-019](../backlog/tasks/T-019-scheduler-invoke.md) |
 | `lambda` | Lambda | ⏳ pendiente | [T-007](../backlog/tasks/T-007-lambda-invoke.md) |
 | `trace` | S3 + DynamoDB + Logs | ⏳ pendiente | [T-009](../backlog/tasks/T-009-trace-run.md), [T-013](../backlog/tasks/T-013-trace-aguas-abajo.md), [T-016](../backlog/tasks/T-016-trace-entrega-canal.md) |
 | `pods` | EKS (API de Kubernetes): campaigns y engine | ✅ implementado | [T-017](../backlog/tasks/T-017-pods-logs-eks.md), [T-018](../backlog/tasks/T-018-pods-engine-notification-id.md) |
@@ -71,5 +72,5 @@ CI: [T-014](../backlog/tasks/T-014-ci-github-actions.md). Documentación de uso 
 | 2 | Toda la configuración sale del `.env` (o `--env-file`); no hay nombres de recursos quemados en el código. | ✅ salvo el prefijo por defecto de `logs groups` (`/aws/lambda/nu0284001-artemis`) | [T-002](../backlog/tasks/T-002-settings-env.md) |
 | 3 | `config check` detecta variables faltantes, credenciales inválidas y recursos inexistentes con mensajes claros. | ✅ con moto · ⏳ en dev | [T-003](../backlog/tasks/T-003-aws-output-guards.md), [T-011](../backlog/tasks/T-011-validar-lectura-dev.md) |
 | 4 | `trace run csv-test.csv` en dev reporta por etapa si el CSV se subió, si se crearon los registros y en qué componentes aparecen sus IDs. | ⏳ | [T-009](../backlog/tasks/T-009-trace-run.md), [T-013](../backlog/tasks/T-013-trace-aguas-abajo.md) |
-| 5 | Los comandos destructivos están bloqueados en prod y piden confirmación en los demás ambientes. | ⏳ `dynamo purge` y `dynamo clean` listos; faltan los de `s3` | [T-005](../backlog/tasks/T-005-s3-commands.md), [T-012](../backlog/tasks/T-012-dynamo-purge.md), [T-020](../backlog/tasks/T-020-dynamo-historial-y-limpieza.md) |
+| 5 | Los comandos destructivos están bloqueados en prod y piden confirmación en los demás ambientes. | ⏳ `dynamo purge`, `dynamo clean` y `scheduler run` listos; faltan los de `s3` | [T-005](../backlog/tasks/T-005-s3-commands.md), [T-012](../backlog/tasks/T-012-dynamo-purge.md), [T-020](../backlog/tasks/T-020-dynamo-historial-y-limpieza.md), [T-019](../backlog/tasks/T-019-scheduler-invoke.md) |
 | 6 | Cobertura ≥ 80 % en `services/` con moto, sin llamadas reales a AWS en la suite. | ✅ 96 % hoy · ⏳ umbral en CI | [T-014](../backlog/tasks/T-014-ci-github-actions.md) |

@@ -120,13 +120,42 @@ Logs de los pods de `platform_campaigns_ms` (componente `campaigns`) y `engine_n
 - Con `--output json`, `pods scan` devuelve una lista con un objeto por componente: `{"componente", "pods",
   "coincidencias", "primera", "ultima", "lineas": [...]}`.
 
+## `scheduler` — [T-019](../backlog/tasks/T-019-scheduler-invoke.md) (bloqueado en prod)
+
+Invoca `scheduler_Lambda` a demanda, sin esperar a la regla de EventBridge de cada hora en punto.
+Una invocación = una ejecución: síncrona y sin reintentos que la repitan
+([ADR-0010](adr/0010-invocacion-sin-reintentos.md)).
+
+| Comando | Qué hace |
+|---|---|
+| `scheduler run [--tail] [--yes]` | Vista previa de la partición en curso (`YYYY-MM-DD HH:00:00`, hora Colombia: la única que procesa el scheduler) con filas por `app_id`, confirmación e invocación con `{}`. Muestra `StatusCode`, `FunctionError`, `ExecutedVersion`, `RequestId` y `detail` (`total/successful/failed`). `--tail` muestra los últimos 4 KB del log de la ejecución. |
+| `scheduler health [--tail]` | Invoca con `{"type": "health"}`: solo prueba la conexión a Kafka, no despacha ni pide confirmación. Sale con 1 si la función falla o su `statusCode` no es 200. |
+
+- **No es idempotente:** cada `run` vuelve a publicar en Kafka **todas** las filas de la hora en
+  curso, incluidas las que EventBridge ya despachó en punto y las de otros equipos. Si hay filas de
+  un `app_id` distinto de `CLI_TEST_APP_ID`, la vista previa lo avisa ("se reenviarán notificaciones
+  de otros equipos"). Con 0 filas avisa que no se enviará nada y pide confirmación igual.
+- Flujo de prueba: CSV con la hora actual → `scheduler run`. Las filas que se agregan después de que
+  EventBridge corrió en esa hora solo se despachan así.
+- Si la hora cambia entre la vista previa y la invocación (minuto 59), avisa que el scheduler
+  procesó la hora siguiente.
+- Errores: `TooManyRequestsException` y fallos de conexión antes de enviar se reintentan (máx. 3,
+  1-2-4 s). `ReadTimeoutError`, conexión cortada, `ServiceException` o 5xx **no**: el resultado es
+  `DESCONOCIDO` (exit 3) y se busca un `Execution result` posterior en el log group del scheduler.
+- Exit codes: 0 OK; 1 si hay `FunctionError` o `detail.failed > 0`; 3 si es `DESCONOCIDO`, falta
+  `lambda:InvokeFunction` ("las credenciales de solo lectura no pueden invocar la Lambda") u otro
+  error de AWS.
+- Con `--output json`, `run` devuelve `{partition, partition_at_invoke, preview, invocation:
+  {status_code, function_error, executed_version, request_id, attempts, error, payload}, detail,
+  outcome, log_tail, execution_results}` y `health` devuelve `{invocation, kafka_ok}`.
+
 ## Grupos planeados
 
 | Grupo | Comandos previstos | Tarjeta |
 |---|---|---|
 | `csv` | `generate`, `validate` (formato `;` de `csv-test.csv`) | [T-004](../backlog/tasks/T-004-csv-generate-validate.md) |
 | `s3` | `upload` (valida antes), `ls`, `get`, `rm` | [T-005](../backlog/tasks/T-005-s3-commands.md) |
-| `lambda` | `invoke ingester --s3-key`, `invoke scheduler`, `invoke <nombre> --payload`, `--tail`, `--async` | [T-007](../backlog/tasks/T-007-lambda-invoke.md) |
+| `lambda` | `invoke ingester --s3-key`, `invoke <nombre> --payload`, `--tail` (con el `LambdaService` de `scheduler`, sin `--async`: [ADR-0010](adr/0010-invocacion-sin-reintentos.md)) | [T-007](../backlog/tasks/T-007-lambda-invoke.md) |
 | `trace` | `run <csv>`: validar → subir → ingesta → IDs → logs del ingester | [T-009](../backlog/tasks/T-009-trace-run.md) |
 | `trace` | `--wait-schedule`, `--invoke-scheduler`: scheduler y microservicios | [T-013](../backlog/tasks/T-013-trace-aguas-abajo.md) |
 | `trace` | `--verify-delivery`: entrega del mensaje en el fake channel | [T-016](../backlog/tasks/T-016-trace-entrega-canal.md) |

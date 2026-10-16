@@ -98,10 +98,35 @@ que luego se comprueba con `parse_log_entry`; así aparecen también las cargas 
 del bucket y la subida dispara `ingester_Lambda`: **subir un archivo produce envíos reales** si la
 fecha/hora es próxima. Por eso `s3 upload` estará bloqueado en prod.
 
-## Lambdas (pendiente: [T-007](../backlog/tasks/T-007-lambda-invoke.md))
+## Lambdas
 
-`ingester_Lambda` (trigger S3, por confirmar) y `scheduler_Lambda` (programado cada hora). La
-invocación directa está prevista en [ADR-0005](adr/0005-ingesta-por-s3-y-por-invocacion.md).
+`ingester_Lambda` (trigger S3, por confirmar; invocación directa pendiente en
+[T-007](../backlog/tasks/T-007-lambda-invoke.md), [ADR-0005](adr/0005-ingesta-por-s3-y-por-invocacion.md))
+y `scheduler_Lambda` (regla de EventBridge cada hora en punto; `scheduler run` la invoca a demanda,
+[T-019](../backlog/tasks/T-019-scheduler-invoke.md)).
+
+### `scheduler_Lambda` (confirmado en su código)
+
+- `app.py:handler` ignora el evento salvo `{"type": "health"}`, que solo prueba Kafka. Cualquier otro
+  payload (`{}`, el `Scheduled Event` de EventBridge) hace el despacho.
+- Procesa solo la hora en curso en Colombia: `datetime_lib.get_current_datetime()` →
+  `YYYY-MM-DD HH:00:00` (UTC-5) y `query` a esa partición de la tabla de campañas.
+- **No es idempotente:** no borra ni marca las filas; cada ejecución vuelve a publicar en Kafka
+  todas las notificaciones de la partición.
+- Responde `{"statusCode", "message", "execution_datetime", "detail": {"successful", "failed",
+  "total"}}` y deja `Execution result: {...}` en su log.
+- La próxima corrida de EventBridge procesa **otra** partición: `scheduler run` no duplica lo que
+  hará EventBridge, pero sí reenvía lo que ya despachó en punto en la hora en curso.
+
+### Invocación desde la CLI ([ADR-0010](adr/0010-invocacion-sin-reintentos.md))
+
+| Aspecto | Valor |
+|---|---|
+| Tipo | `RequestResponse` (Lambda no reintenta las síncronas); sin `Event` |
+| Cliente | `AwsClients.lambda_invoke_client`: `total_max_attempts=1`, `read_timeout = Timeout + 30 s`, `connect_timeout=10`, `tcp_keepalive` |
+| `Timeout` | `GetFunctionConfiguration` antes de cada invocación |
+| Reintentos de la CLI | `TooManyRequestsException`, `EndpointConnectionError`, `ConnectTimeoutError`: máx. 3, espera 1-2-4 s |
+| Sin reintento (`DESCONOCIDO`) | `ReadTimeoutError`, `ConnectionClosedError`/`HTTPClientError`, `ServiceException`, 5xx; se busca `Execution result` en `/aws/lambda/<SCHEDULER_LAMBDA_NAME>` |
 
 ## Fake channel y Cognito (fuera de AWS SDK)
 

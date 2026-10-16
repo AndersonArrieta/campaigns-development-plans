@@ -27,11 +27,11 @@ carpeta desde la que se ejecuta la CLI. La plantilla versionada es
 | `AWS_PROFILE` | texto | Alternativa: perfil de `~/.aws/config` (o SSO). | — |
 | `CAMPAIGNS_INPUT_BUCKET` | texto | Bucket de entrada del ingester. | `s3`, `trace` |
 | `CAMPAIGNS_INPUT_PREFIX` | texto · vacío | Prefijo de las keys (vacío = raíz del bucket). | `s3` |
-| `CAMPAIGNS_TABLE_NAME` | texto | Tabla de campañas. | `dynamo get/find/list/purge/history/campaign`, `dynamo dump/clean` (con `--table campaigns\|all`) |
+| `CAMPAIGNS_TABLE_NAME` | texto | Tabla de campañas. | `dynamo get/find/list/purge/history/campaign`, `dynamo dump/clean` (con `--table campaigns\|all`), `scheduler run` |
 | `CAMPAIGNS_TABLE_CAMPAIGN_INDEX` | texto · vacío | GSI por `campaign_id`; vacío = scan ([ADR-0004](adr/0004-busquedas-sin-gsi.md)). Con él, `find`, `campaign`, `purge` y `clean --campaign-id` hacen `query`. | — |
 | `CAMPAIGNS_LOGS_TABLE_NAME` | texto | Tabla de logs del ingester. | `dynamo logs/history/campaign`, `dynamo dump/clean` (con `--table logs\|all`) |
 | `INGESTER_LAMBDA_NAME` | texto | Nombre de `ingester_Lambda`; de él se deriva su log group. | `logs -l ingester`, `lambda` |
-| `SCHEDULER_LAMBDA_NAME` | texto | Nombre de `scheduler_Lambda`. | `logs -l scheduler`, `lambda` |
+| `SCHEDULER_LAMBDA_NAME` | texto | Nombre de `scheduler_Lambda`; de él se deriva su log group. | `logs -l scheduler`, `scheduler run/health` |
 | `COGNITO_TOKEN_URL` | texto | Dominio de Cognito; se agrega `/oauth2/token` si falta. | `channel` |
 | `COGNITO_CLIENT_ID` | texto | Cliente OAuth2 (`client_credentials`). | `channel` |
 | `COGNITO_CLIENT_SECRET` | secreto | Secreto del cliente; enmascarado en `config show`, nunca en mensajes. | `channel` |
@@ -45,7 +45,7 @@ carpeta desde la que se ejecuta la CLI. La plantilla versionada es
 | `CLI_OUTPUT` | `table` \| `json` · `table` | Formato de salida por defecto (`--output` lo sobrescribe). | — |
 | `CLI_WAIT_TIMEOUT_SECONDS` | entero > 0 · `120` | Tope de espera (Logs Insights, `trace`). | — |
 | `CLI_POLL_INTERVAL_SECONDS` | entero > 0 · `5` | Intervalo de polling (`--follow`, Logs Insights). | — |
-| `CLI_TEST_APP_ID` | texto · `others-test` | `app_id` de los datos de prueba; lo único que `purge` puede borrar. | `csv`, `dynamo purge` |
+| `CLI_TEST_APP_ID` | texto · `others-test` | `app_id` de los datos de prueba; lo único que `purge` puede borrar. `scheduler run` avisa si la partición tiene filas de otros `app_id`. | `csv`, `dynamo purge` |
 
 ## Credenciales AWS
 
@@ -92,6 +92,8 @@ muestra Cognito y fake channel como `OPCIONAL`; con algunas, `FALTA CONFIG`.
 | `logs` | `logs:DescribeLogGroups`, `logs:FilterLogEvents`, `logs:StartQuery`, `logs:GetQueryResults`, `logs:StopQuery` |
 | `dynamo purge` | `dynamodb:BatchWriteItem` sobre la tabla de campañas (además de `Scan`/`Query`) |
 | `dynamo clean` | `dynamodb:Scan`, `dynamodb:Query` y `dynamodb:BatchWriteItem` sobre las dos tablas; unas credenciales de solo lectura no alcanzan |
+| `scheduler run` | `lambda:GetFunctionConfiguration` y `lambda:InvokeFunction` sobre el ARN del scheduler, `dynamodb:Query` sobre la tabla de campañas y `logs:FilterLogEvents` sobre su log group. `InvokeFunction` es de escritura: no la incluyen `ReadOnlyAccess` ni `AWSLambda_ReadOnlyAccess` |
+| `scheduler health` | `lambda:GetFunctionConfiguration` y `lambda:InvokeFunction` sobre el ARN del scheduler |
 | `s3` (pendiente) | `s3:PutObject`, `s3:ListBucket`, `s3:GetObject`, `s3:DeleteObject` |
 | `lambda` (pendiente) | `lambda:InvokeFunction` (+ `s3:GetObject` para el `head_object` del ingester) |
 
