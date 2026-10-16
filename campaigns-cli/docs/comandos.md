@@ -24,17 +24,40 @@ Imprime la versión de la CLI. No lee el `.env`.
 | `config show` | Tabla variable / valor / origen, con secretos enmascarados. | No |
 | `config check` | Identidad (`sts get-caller-identity`) y estado de cada recurso: bucket (`head_bucket`), tabla y GSI (`describe_table`), tabla de logs, lambdas (`get_function`) y log groups (`describe_log_groups`). Estados `OK`, `OPCIONAL`, `FALTA CONFIG`, `NO EXISTE`, `SIN PERMISO`, `ERROR`. Sale con 1 si alguno no es `OK`/`OPCIONAL`. | Sí |
 
-## `dynamo` — [T-006](../backlog/tasks/T-006-dynamo-lectura.md) (solo lectura, permitido en prod)
+## `dynamo` — [T-006](../backlog/tasks/T-006-dynamo-lectura.md), [T-012](../backlog/tasks/T-012-dynamo-purge.md), [T-020](../backlog/tasks/T-020-dynamo-historial-y-limpieza.md) (lectura permitida en prod)
 
 | Comando | Operación DynamoDB | Notas |
 |---|---|---|
-| `dynamo get --notification-id ID [--datetime "YYYY-MM-DD HH"]` | `get_item` con `--datetime`; si no, `scan` | Muestra todos los atributos del registro. |
+| `dynamo get --notification-id ID [--datetime "YYYY-MM-DD HH"]` | `get_item` con `--datetime`; si no, `scan` completo | Con `--datetime`, todos los atributos del registro. Sin él, **todas** las filas del `notification_id` (la original y sus reprogramaciones) ordenadas por `datetime`, con `tipo` y `estado`; en JSON siempre es una lista. |
 | `dynamo find [--campaign-id] [--user] [--app-id] [-n 200]` | `query` sobre el GSI si existe y se busca por `campaign_id`; si no, `scan` filtrado | Ordena por `datetime` y usuario. |
 | `dynamo list [--date YYYY-MM-DD [--hour H] \| --from .. --to ..] [--app-id] [--user] [-n 500]` | Un `query` por partición horaria | Sin argumentos: el día actual (hora Colombia). Máximo 31 días. |
 | `dynamo logs [--app-id] [--since 24h \| --from .. --to ..] [--details] [-f] [-n 50]` | Con `--app-id`, `query`; sin él, `scan` filtrado | Tabla de logs del ingester; fechas en **UTC**. `--details` agrega los errores de validación; `-f` sigue las cargas nuevas cada `CLI_POLL_INTERVAL_SECONDS`. |
 
+| `dynamo history [--app-id] [--since 24h \| --from .. --to ..] [--details] [-n 50]` | Logs: `query` por `app_id` o `scan`. Campañas: un `scan` con `campaign_id IN (...)` por cada 100 cargas | Una línea por carga: fecha (UTC), `app_id`, estado, conteos del ingester, `campaign_id`, archivo y, de la tabla de campañas, `filas`, `notificaciones`, `reprogramados` y `pendientes`. Las cargas `FAILED` o sin `campaign_id` salen sin filas. |
+| `dynamo campaign --campaign-id ID` | Campañas: GSI si existe, si no `scan`. Logs: `scan` con `contains(result, ID)` | Las cargas del CSV (incluida la `UNKNOWN`), una tabla por `notification_id` reprogramado (hora Colombia · `retries` · tipo · estado) y un resumen. En JSON: `{"campaign_id", "cargas", "notificaciones", "resumen"}`. Sale con 1 si no hay nada. |
+| `dynamo dump [--table campaigns\|logs\|all] [--app-id] [-n]` | `scan`; en logs con `--app-id`, `query` | Todas las filas, para `--output json > evidencias/...`. En JSON emite `{"campaigns": [...], "logs": [...]}` con las tablas pedidas. |
+
 Todo comando que hace `scan` lo avisa por stderr; si el resultado se corta por `--limit`, también.
-Pendiente: `dynamo purge --campaign-id ID` → [T-012](../backlog/tasks/T-012-dynamo-purge.md).
+
+**Tipo y estado de cada fila** (ver [recursos AWS § reprogramaciones](recursos-aws.md#reprogramaciones)):
+`ORIGINAL`, `FUERA_DE_HORARIO` (mismo `retries` que la fila anterior) o `REINTENTO` (`retries` subió);
+`PENDIENTE` (hora futura), `EN_CURSO` (hora actual) o `PASADA`, según la hora Colombia actual.
+`PASADA` no prueba que se haya enviado: eso se confirma con `logs`, `pods` o `channel`.
+
+| Comando (escribe, bloqueado en prod) | Operación DynamoDB | Notas |
+|---|---|---|
+| `dynamo purge --campaign-id ID` | Búsqueda como `find` (GSI o `scan`) y `batch_write_item` en lotes de 25 | Solo borra registros con `app_id == CLI_TEST_APP_ID`; los demás se omiten y se cuentan. Pide confirmación (`--yes` la omite). Reintenta `UnprocessedItems` con espera creciente. Resultado: `borrados`, `omitidos`, `fallidos`; sale con 1 si hay fallidos. No toca la tabla de logs. |
+| `dynamo clean [--table campaigns\|logs\|all] [--dry-run]` | `scan` de claves y `batch_write_item` | **Vacía por completo** las tablas indicadas (por defecto las dos): todos los `app_id`, incluidas las cargas `UNKNOWN` y las filas reprogramadas ([ADR-0011](adr/0011-vaciado-de-tablas-en-dev.md)). |
+| `dynamo clean --campaign-id ID [--table ...] [--dry-run]` | Campañas: GSI o `scan` filtrado. Logs: `scan` con `contains(result, ID)` | Solo lo de ese CSV: sus filas de campañas (también las reprogramadas, que conservan el `campaign_id`) y sus cargas en logs (también la `UNKNOWN`). Cada fila se vuelve a comprobar contra el `campaign_id` antes de borrarla. |
+
+`dynamo clean`, paso a paso: (1) bloqueado en prod; (2) muestra el plan: filas por tabla y por
+`app_id`, cuántas son reprogramaciones y cuántas están `PENDIENTE`/`EN_CURSO` (avisa si hay alguna
+`EN_CURSO`, porque el scheduler puede estar procesándola); (3) `--dry-run` termina ahí con exit 0;
+(4) pide confirmación con el entorno y el nombre de cada tabla (`--yes` la omite); (5) borra en lotes
+de 25 reintentando `UnprocessedItems`; (6) hace un `scan` de verificación; (7) muestra por tabla
+`borradas`, `fallidas` y `restantes` y sale con 1 si hay fallidas o restantes (por ejemplo, filas que
+el ingester o el ms escribieron durante el borrado). En JSON emite `{"plan": ..., "resultado": [...]}`
+(`resultado` es `null` con `--dry-run`).
 
 ## `logs` — [T-008](../backlog/tasks/T-008-logs-cloudwatch.md) (solo lectura, hora Colombia)
 
@@ -104,7 +127,6 @@ Logs de los pods de `platform_campaigns_ms` (componente `campaigns`) y `engine_n
 | `csv` | `generate`, `validate` (formato `;` de `csv-test.csv`) | [T-004](../backlog/tasks/T-004-csv-generate-validate.md) |
 | `s3` | `upload` (valida antes), `ls`, `get`, `rm` | [T-005](../backlog/tasks/T-005-s3-commands.md) |
 | `lambda` | `invoke ingester --s3-key`, `invoke scheduler`, `invoke <nombre> --payload`, `--tail`, `--async` | [T-007](../backlog/tasks/T-007-lambda-invoke.md) |
-| `dynamo` | `purge --campaign-id` | [T-012](../backlog/tasks/T-012-dynamo-purge.md) |
 | `trace` | `run <csv>`: validar → subir → ingesta → IDs → logs del ingester | [T-009](../backlog/tasks/T-009-trace-run.md) |
 | `trace` | `--wait-schedule`, `--invoke-scheduler`: scheduler y microservicios | [T-013](../backlog/tasks/T-013-trace-aguas-abajo.md) |
 | `trace` | `--verify-delivery`: entrega del mensaje en el fake channel | [T-016](../backlog/tasks/T-016-trace-entrega-canal.md) |

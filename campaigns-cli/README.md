@@ -61,7 +61,7 @@ Permisos mínimos (solo lectura) para `config` y `dynamo`:
 - `sts:GetCallerIdentity`
 - `dynamodb:DescribeTable`, `dynamodb:GetItem`, `dynamodb:Query`, `dynamodb:Scan` sobre las dos tablas
 
-## Comandos `dynamo` (solo lectura)
+## Comandos `dynamo`
 
 | Tabla | PK | SK | Contenido |
 |---|---|---|---|
@@ -78,12 +78,43 @@ uv run campaigns dynamo list --date 2026-10-13              # lo programado ese 
 uv run campaigns dynamo list --date 2026-10-13 --hour 10    # lo que el scheduler enviará a esa hora
 uv run campaigns dynamo get --notification-id <id> --datetime "2026-10-13 10"
 uv run campaigns dynamo logs -f                             # sigue las cargas nuevas (Ctrl+C para salir)
+uv run campaigns dynamo history --since 2h                  # cada carga con sus filas y reprogramaciones
+uv run campaigns dynamo campaign --campaign-id <id>         # línea de tiempo de cada notification_id del CSV
+uv run campaigns dynamo get --notification-id <id>          # todas las filas (original y reprogramadas)
+uv run campaigns --output json dynamo dump > evidencias/dump.json   # todas las filas de las dos tablas
 ```
 
 - `--output json` (antes del subcomando) devuelve JSON limpio en stdout, para usarlo con `jq`.
-- `find`, `get` sin `--datetime` y `logs` sin `--app-id` hacen **scan** (recorren la tabla) y lo avisan; en tablas grandes son más lentos y costosos.
+- Una notificación reprogramada por `platform_campaigns_ms` tiene varias filas con el mismo `notification_id`: `history`, `campaign` y `get` marcan cada una como `ORIGINAL`, `FUERA_DE_HORARIO` o `REINTENTO`, y como `PENDIENTE`, `EN_CURSO` o `PASADA` según la hora Colombia actual.
+- `find`, `get` sin `--datetime`, `history`, `campaign`, `dump` y `logs` sin `--app-id` hacen **scan** (recorren la tabla) y lo avisan; en tablas grandes son más lentos y costosos.
 - `list` hace un query por cada hora del rango (máximo 31 días), sin scan.
 - `logs --since` usa UTC (se asume que la Lambda guarda la fecha en UTC). Si una carga reciente no aparece con `--since 2h`, prueba con `--since 1d` y revisa la diferencia de horas.
+
+### Limpiar datos de prueba: `dynamo purge`
+
+```bash
+uv run campaigns dynamo purge --campaign-id <id de la carga>          # pide confirmación
+uv run campaigns --yes dynamo purge --campaign-id <id de la carga>    # sin preguntar
+```
+
+Borra de la tabla de campañas los registros de ese `campaign_id` cuyo `app_id` es `CLI_TEST_APP_ID`
+(los de otro `app_id` se omiten y se informan). No toca la tabla de logs. Está bloqueado con
+`CAMPAIGNS_ENV=prod` y necesita además el permiso `dynamodb:BatchWriteItem` sobre la tabla de campañas.
+
+### Vaciar las tablas antes de una prueba: `dynamo clean`
+
+```bash
+uv run campaigns dynamo clean --dry-run                    # qué se borraría, sin borrar
+uv run campaigns dynamo clean                              # vacía las dos tablas (pide confirmación)
+uv run campaigns dynamo clean --table logs                 # solo la tabla de logs
+uv run campaigns --yes dynamo clean --campaign-id <id>     # solo lo que dejó ese CSV, sin preguntar
+```
+
+Las tablas de dev son de uso exclusivo de las pruebas, así que `clean` sin `--campaign-id` borra
+**todas** las filas, de todos los `app_id` ([ADR-0011](docs/adr/0011-vaciado-de-tablas-en-dev.md)).
+Antes de borrar muestra cuántas filas hay por tabla y `app_id`, cuántas son reprogramaciones y cuántas
+están `PENDIENTE` o `EN_CURSO`; al final verifica con un scan y sale con 1 si quedó alguna. Bloqueado
+en prod; necesita `dynamodb:BatchWriteItem` sobre las dos tablas.
 
 ## Comandos `logs` (CloudWatch, solo lectura)
 

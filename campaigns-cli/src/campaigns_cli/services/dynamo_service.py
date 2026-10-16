@@ -1,4 +1,5 @@
-"""Lectura de las tablas DynamoDB de campañas y de logs de ejecución del ingester.
+"""Lectura de las tablas DynamoDB de campañas y de logs de ejecución del ingester, y borrado
+por lotes de los datos de prueba.
 
 Esquemas (tomados de ingester_Lambda y scheduler_Lambda):
 
@@ -22,12 +23,12 @@ from __future__ import annotations
 import json
 import re
 import time
-from collections.abc import Callable, Iterator, Mapping
+from collections.abc import Callable, Iterator, Mapping, Sequence
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Any
 
-from boto3.dynamodb.types import TypeDeserializer
+from boto3.dynamodb.types import TypeDeserializer, TypeSerializer
 
 from campaigns_cli.errors import UsageError
 from campaigns_cli.timeutils import hour_floor, to_dynamo
@@ -43,7 +44,15 @@ LOGS_SK = "datetime"
 # Un mes de particiones horarias: evita miles de consultas por un rango mal escrito.
 MAX_HOURS = 24 * 31
 
+# Máximo de peticiones por llamada a batch_write_item.
+BATCH_SIZE = 25
+# Máximo de valores de un operador IN en una FilterExpression.
+IN_BATCH_SIZE = 100
+DELETE_ATTEMPTS = 6
+DELETE_BACKOFF_SECONDS = 0.2
+
 _deserializer = TypeDeserializer()
+_serializer = TypeSerializer()
 
 Item = dict[str, Any]
 
@@ -57,6 +66,11 @@ class QueryResult:
     items: list[Item]
     scanned: bool = False
     truncated: bool = False
+
+
+def key_of(item: Mapping[str, Any], key_names: Sequence[str]) -> dict[str, Any]:
+    """Clave de un registro en el formato del cliente de bajo nivel."""
+    return {name: _serializer.serialize(item[name]) for name in key_names}
 
 
 def _filter_expression(filters: Mapping[str, str | None]) -> dict[str, Any]:
@@ -112,6 +126,8 @@ def _collect(items: Iterator[Item], limit: int | None) -> tuple[list[Item], bool
 
 
 class CampaignsTable:
+    key_names = (CAMPAIGN_PK, CAMPAIGN_SK)
+
     def __init__(
         self, client: DynamoDBClient, table_name: str, campaign_index: str | None = None
     ) -> None:
@@ -120,7 +136,7 @@ class CampaignsTable:
         self.campaign_index = campaign_index
 
     def get(self, notification_id: str, scheduled: str | None = None) -> QueryResult:
-        """Busca un registro. Con la fecha programada es un get_item; sin ella, un scan."""
+        """Busca un registro. Con la fecha programada es un get_item; si no, `by_notification`."""
         if scheduled:
             response = self.client.get_item(
                 TableName=self.table_name,
@@ -128,12 +144,71 @@ class CampaignsTable:
             )
             raw = response.get("Item")
             return QueryResult([deserialize(raw)] if raw else [])
+        return self.by_notification(notification_id)
+
+    def by_notification(self, notification_id: str) -> QueryResult:
+        """Todas las filas de un notification_id (la original y sus reprogramaciones), por fecha.
+
+        Es un scan completo: platform_campaigns_ms escribe una fila nueva con el mismo
+        notification_id por cada reprogramación.
+        """
         kwargs = _merge(
             {"TableName": self.table_name},
             _filter_expression({CAMPAIGN_SK: notification_id}),
         )
-        items, _ = _collect(_iterate(self.client.scan, kwargs), limit=1)
-        return QueryResult(items, scanned=True)
+        return QueryResult(_sort_campaigns(list(_iterate(self.client.scan, kwargs))), scanned=True)
+
+    def by_campaigns(self, campaign_ids: Sequence[str]) -> QueryResult:
+        """Filas de varios campaign_id: un scan con `campaign_id IN (...)` por cada 100 valores."""
+        unique = list(dict.fromkeys(campaign_ids))
+        items: list[Item] = []
+        for start in range(0, len(unique), IN_BATCH_SIZE):
+            chunk = unique[start : start + IN_BATCH_SIZE]
+            values = {f":c{index}": {"S": value} for index, value in enumerate(chunk)}
+            kwargs = {
+                "TableName": self.table_name,
+                "FilterExpression": f"#cid IN ({', '.join(values)})",
+                "ExpressionAttributeNames": {"#cid": "campaign_id"},
+                "ExpressionAttributeValues": values,
+            }
+            items.extend(_iterate(self.client.scan, kwargs))
+        return QueryResult(_sort_campaigns(items), scanned=bool(unique))
+
+    def all(self, app_id: str | None = None, limit: int | None = None) -> QueryResult:
+        """Todas las filas de la tabla (scan), con filtro opcional por app_id."""
+        kwargs = _merge({"TableName": self.table_name}, _filter_expression({"app_id": app_id}))
+        items, truncated = _collect(_iterate(self.client.scan, kwargs), limit)
+        return QueryResult(_sort_campaigns(items), scanned=True, truncated=truncated)
+
+    def keys(self, campaign_id: str | None = None) -> QueryResult:
+        """Claves y los atributos que necesita el plan de borrado, sin `context`.
+
+        Con `campaign_id` usa el GSI si existe; si no, scan filtrado.
+        """
+        names = {"#pk": CAMPAIGN_PK, "#sk": CAMPAIGN_SK, "#cid": "campaign_id", "#user": "user"}
+        base: dict[str, Any] = {
+            "TableName": self.table_name,
+            "ProjectionExpression": "#pk, #sk, #cid, app_id, retries, #user",
+            "ExpressionAttributeNames": names,
+        }
+        if campaign_id is None:
+            return QueryResult(list(_iterate(self.client.scan, base)), scanned=True)
+        values = {":cid": {"S": campaign_id}}
+        if self.campaign_index:
+            kwargs = {
+                **base,
+                "IndexName": self.campaign_index,
+                "KeyConditionExpression": "#cid = :cid",
+                "ExpressionAttributeValues": values,
+            }
+            return QueryResult(list(_iterate(self.client.query, kwargs)))
+        kwargs = {**base, "FilterExpression": "#cid = :cid", "ExpressionAttributeValues": values}
+        return QueryResult(list(_iterate(self.client.scan, kwargs)), scanned=True)
+
+    @staticmethod
+    def campaign_of(item: Mapping[str, Any]) -> str | None:
+        value = item.get("campaign_id")
+        return str(value) if value is not None else None
 
     def find(
         self,
@@ -194,6 +269,101 @@ class CampaignsTable:
 
         items, truncated = _collect(all_hours(), limit)
         return QueryResult(items, truncated=truncated)
+
+    def plan_purge(self, campaign_id: str, test_app_id: str) -> PurgePlan:
+        """Registros de un campaign_id: los de `test_app_id` se borrarán y los demás se omiten."""
+        found = self.find(campaign_id=campaign_id)
+        plan = PurgePlan(campaign_id, test_app_id, scanned=found.scanned)
+        for item in found.items:
+            target = plan.to_delete if item.get("app_id") == test_app_id else plan.skipped
+            target.append(item)
+        return plan
+
+    def purge(self, plan: PurgePlan, *, sleep: Callable[[float], None] = time.sleep) -> PurgeResult:
+        """Borra los registros del plan con batch_write_item."""
+        keys = [key_of(item, (CAMPAIGN_PK, CAMPAIGN_SK)) for item in plan.to_delete]
+        deleted = delete_keys(self.client, self.table_name, keys, sleep=sleep)
+        return PurgeResult(
+            campaign_id=plan.campaign_id,
+            app_id=plan.test_app_id,
+            deleted=deleted.deleted,
+            skipped=len(plan.skipped),
+            failed=deleted.failed,
+        )
+
+    def purge_campaign(
+        self, campaign_id: str, test_app_id: str, *, sleep: Callable[[float], None] = time.sleep
+    ) -> PurgeResult:
+        """Busca y borra sin confirmación los registros de prueba de un campaign_id."""
+        return self.purge(self.plan_purge(campaign_id, test_app_id), sleep=sleep)
+
+
+@dataclass
+class PurgePlan:
+    campaign_id: str
+    test_app_id: str
+    to_delete: list[Item] = field(default_factory=list)
+    skipped: list[Item] = field(default_factory=list)
+    scanned: bool = False
+
+
+@dataclass
+class PurgeResult:
+    campaign_id: str
+    app_id: str
+    deleted: int
+    skipped: int
+    failed: int
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "campaign_id": self.campaign_id,
+            "app_id": self.app_id,
+            "borrados": self.deleted,
+            "omitidos": self.skipped,
+            "fallidos": self.failed,
+        }
+
+
+# --- Borrado por lotes ---
+
+
+@dataclass
+class DeleteResult:
+    deleted: int = 0
+    failed: int = 0
+
+
+def delete_keys(
+    client: DynamoDBClient,
+    table_name: str,
+    keys: Sequence[Mapping[str, Any]],
+    *,
+    sleep: Callable[[float], None] = time.sleep,
+    max_attempts: int = DELETE_ATTEMPTS,
+) -> DeleteResult:
+    """Borra por clave con batch_write_item en lotes de 25.
+
+    Reintenta los `UnprocessedItems` con espera creciente: borrar dos veces la misma clave no
+    tiene efecto, así que el reintento es seguro. Lo que siga sin procesar tras `max_attempts`
+    intentos se cuenta como fallido.
+    """
+    result = DeleteResult()
+    for start in range(0, len(keys), BATCH_SIZE):
+        pending: list[Any] = [
+            {"DeleteRequest": {"Key": dict(key)}} for key in keys[start : start + BATCH_SIZE]
+        ]
+        attempt = 0
+        while pending and attempt < max_attempts:
+            if attempt:
+                sleep(DELETE_BACKOFF_SECONDS * 2 ** (attempt - 1))
+            attempt += 1
+            response = client.batch_write_item(RequestItems={table_name: pending})
+            unprocessed = list(response.get("UnprocessedItems", {}).get(table_name, []))
+            result.deleted += len(pending) - len(unprocessed)
+            pending = unprocessed
+        result.failed += len(pending)
+    return result
 
 
 def _hours_between(start: datetime, end: datetime) -> Iterator[datetime]:
@@ -301,6 +471,8 @@ def parse_log_entry(item: Mapping[str, Any]) -> LogEntry:
 
 
 class LogsTable:
+    key_names = (LOGS_PK, LOGS_SK)
+
     def __init__(self, client: DynamoDBClient, table_name: str) -> None:
         self.client = client
         self.table_name = table_name
@@ -357,6 +529,54 @@ class LogsTable:
         truncated = limit is not None and len(items) > limit
         selected = items[:limit] if limit is not None else items
         return QueryResult(selected, scanned=True, truncated=truncated)
+
+    def all(self, app_id: str | None = None, limit: int | None = None) -> QueryResult:
+        """Todas las cargas: query si hay app_id; si no, scan. Del más reciente al más antiguo."""
+        if app_id:
+            return self.by_app(app_id, limit=limit)
+        items = sorted(
+            _iterate(self.client.scan, {"TableName": self.table_name}),
+            key=lambda item: str(item.get(LOGS_SK, "")),
+            reverse=True,
+        )
+        truncated = limit is not None and len(items) > limit
+        selected = items[:limit] if limit is not None else items
+        return QueryResult(selected, scanned=True, truncated=truncated)
+
+    def by_campaign(self, campaign_id: str) -> QueryResult:
+        """Cargas de un campaign_id, de cualquier app_id (incluida `UNKNOWN`).
+
+        Scan con `contains(result, campaign_id)` y comprobación con `parse_log_entry`, para
+        descartar coincidencias del texto que no sean el campaign_id de la carga.
+        """
+        kwargs = {
+            "TableName": self.table_name,
+            "FilterExpression": "contains(#result, :cid)",
+            "ExpressionAttributeNames": {"#result": "result"},
+            "ExpressionAttributeValues": {":cid": {"S": campaign_id}},
+        }
+        items = [
+            item
+            for item in _iterate(self.client.scan, kwargs)
+            if self.campaign_of(item) == campaign_id
+        ]
+        items.sort(key=lambda item: str(item.get(LOGS_SK, "")))
+        return QueryResult(items, scanned=True)
+
+    def keys(self, campaign_id: str | None = None) -> QueryResult:
+        """Claves de todas las cargas, o las cargas de un campaign_id (con `result`)."""
+        if campaign_id is not None:
+            return self.by_campaign(campaign_id)
+        kwargs = {
+            "TableName": self.table_name,
+            "ProjectionExpression": "#pk, #sk",
+            "ExpressionAttributeNames": {"#pk": LOGS_PK, "#sk": LOGS_SK},
+        }
+        return QueryResult(list(_iterate(self.client.scan, kwargs)), scanned=True)
+
+    @staticmethod
+    def campaign_of(item: Mapping[str, Any]) -> str | None:
+        return parse_log_entry(item).campaign_id
 
 
 def follow_logs(

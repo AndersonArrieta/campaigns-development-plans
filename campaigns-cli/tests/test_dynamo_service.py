@@ -10,6 +10,7 @@ from campaigns_cli.services.dynamo_service import (
     MAX_HOURS,
     CampaignsTable,
     LogsTable,
+    delete_keys,
     follow_logs,
     parse_log_entry,
 )
@@ -20,6 +21,7 @@ from tests.dynamo_fixtures import (
     CAMPAIGNS_TABLE,
     LOGS_TABLE,
     REGION,
+    FlakyBatchClient,
     campaign_item,
     create_campaigns_table,
     create_logs_table,
@@ -246,3 +248,80 @@ def test_follow_logs_yields_only_new_entries() -> None:
     assert requested[0] == datetime(2026, 10, 13, 9)
     assert requested[2] == datetime(2026, 10, 13, 10, 0, 5)
     assert sleeps == [3, 3]
+
+
+# --- purge ---
+
+
+def _purge_seed(total: int) -> None:
+    create_campaigns_table()
+    put_campaigns(
+        [
+            campaign_item(f"t-{i:03d}", "2026-10-13 10:00:00", user=f"57300{i:07d}")
+            for i in range(total)
+        ]
+        + [campaign_item("ajeno", "2026-10-13 10:00:00", app_id="otra-app")]
+        + [campaign_item("otra", "2026-10-13 10:00:00", campaign_id=CAMPAIGN_B)]
+    )
+
+
+def _remaining_ids() -> list[str]:
+    return sorted(
+        str(item["notification_id"]["S"])
+        for item in _client().scan(TableName=CAMPAIGNS_TABLE)["Items"]
+    )
+
+
+def test_purge_deletes_only_test_app_in_several_batches() -> None:
+    _purge_seed(60)
+    client = FlakyBatchClient(_client(), failures=0)
+    table = CampaignsTable(client, CAMPAIGNS_TABLE)
+
+    result = table.purge_campaign(CAMPAIGN_A, "others-test", sleep=lambda _: None)
+
+    assert (result.deleted, result.skipped, result.failed) == (60, 1, 0)
+    assert client.batch_calls == 3
+    assert _remaining_ids() == ["ajeno", "otra"]
+
+
+def test_purge_retries_unprocessed_items() -> None:
+    _purge_seed(5)
+    client = FlakyBatchClient(_client(), failures=2)
+    waits: list[float] = []
+    table = CampaignsTable(client, CAMPAIGNS_TABLE)
+
+    result = table.purge_campaign(CAMPAIGN_A, "others-test", sleep=waits.append)
+
+    assert (result.deleted, result.failed) == (5, 0)
+    assert client.batch_calls == 3
+    assert waits == sorted(waits) and len(waits) == 2 and waits[0] < waits[1]
+    assert _remaining_ids() == ["ajeno", "otra"]
+
+
+def test_purge_counts_failed_after_max_attempts() -> None:
+    _purge_seed(3)
+    client = FlakyBatchClient(_client(), failures=100)
+
+    result = delete_keys(
+        client,
+        CAMPAIGNS_TABLE,
+        [
+            {"datetime": {"S": "2026-10-13 10:00:00"}, "notification_id": {"S": f"t-{i:03d}"}}
+            for i in range(3)
+        ],
+        sleep=lambda _: None,
+        max_attempts=2,
+    )
+
+    assert (result.deleted, result.failed) == (2, 1)
+
+
+def test_purge_with_index_uses_query() -> None:
+    create_campaigns_table(with_index=True)
+    seed_campaigns()
+    table = CampaignsTable(_client(), CAMPAIGNS_TABLE, CAMPAIGN_INDEX)
+
+    plan = table.plan_purge(CAMPAIGN_A, "others-test")
+
+    assert not plan.scanned
+    assert len(plan.to_delete) == 3

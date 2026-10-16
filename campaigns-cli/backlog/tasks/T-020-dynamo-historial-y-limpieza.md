@@ -2,7 +2,7 @@
 id: T-020
 aliases: [T-020]
 title: "Historial de cargas con reprogramaciones y vaciado de las tablas de campañas y de logs"
-status: todo
+status: done
 priority: P1
 epic: E-dynamo
 estimate: L
@@ -94,19 +94,19 @@ Por eso el vaciado completo es el comportamiento por defecto (ver ADR-0011).
 - `docs/adr/0011-vaciado-de-tablas-en-dev.md`.
 
 ## Tareas
-- [ ] `classify_rows` agrupa por `notification_id`, ordena por `datetime` y marca tipo y estado
+- [x] `classify_rows` agrupa por `notification_id`, ordena por `datetime` y marca tipo y estado
   (hora Colombia de `timeutils`). `retries` se compara como entero (el ms y el ingester lo guardan
   como texto).
-- [ ] `dynamo history`: une cada carga con sus filas usando un solo `scan` de campañas para todos
+- [x] `dynamo history`: une cada carga con sus filas usando un solo `scan` de campañas para todos
   los `campaign_id` de la ventana. Las cargas `FAILED` o sin `campaign_id` se muestran sin filas.
   `--details` agrega los errores de validación, como `dynamo logs`.
-- [ ] `dynamo campaign`: con `--output table`, una tabla por `notification_id` reprogramado y una
+- [x] `dynamo campaign`: con `--output table`, una tabla por `notification_id` reprogramado y una
   tabla resumen (usuarios, filas, reprogramados por tipo, pendientes); con `--output json`, la
   estructura completa.
-- [ ] `dynamo get` sin `--datetime`: todas las filas; aviso de `scan`.
-- [ ] `dynamo dump`: `--table all` emite `{"campaigns": [...], "logs": [...]}` en JSON; en tabla,
+- [x] `dynamo get` sin `--datetime`: todas las filas; aviso de `scan`.
+- [x] `dynamo dump`: `--table all` emite `{"campaigns": [...], "logs": [...]}` en JSON; en tabla,
   dos tablas.
-- [ ] `dynamo clean`:
+- [x] `dynamo clean`:
   1. `ensure_not_prod`; exige las variables de las tablas implicadas.
   2. Arma el plan y muestra cuántas filas se borrarán por tabla y por `app_id` (o por
      `campaign_id`), cuántas son reprogramaciones y cuántas están `PENDIENTE`/`EN_CURSO`. Si alguna está `EN_CURSO`, avisa
@@ -118,36 +118,36 @@ Por eso el vaciado completo es el comportamiento por defecto (ver ADR-0011).
   6. `scan` de verificación: con vaciado completo, la tabla debe quedar con 0 filas; con
      `--campaign-id`, sin filas de ese `campaign_id`.
   7. Resultado por tabla: borradas, fallidas y restantes; exit 1 si hay fallidas o restantes.
-- [ ] Con `--campaign-id`, cada fila se vuelve a comprobar contra ese `campaign_id` justo antes de
+- [x] Con `--campaign-id`, cada fila se vuelve a comprobar contra ese `campaign_id` justo antes de
   armar el lote, aunque el filtro ya lo haya hecho el `scan`.
-- [ ] ADR-0011: las tablas de dev son de uso exclusivo de las pruebas y `dynamo clean` las vacía
+- [x] ADR-0011: las tablas de dev son de uso exclusivo de las pruebas y `dynamo clean` las vacía
   por completo; cambio de la regla `P0` del triage.
-- [ ] Actualizar `docs/`.
+- [x] Actualizar `docs/`.
 - [ ] En dev: subir un CSV de `CLI_TEST_APP_ID` con una hora fuera de la ventana del `appId`,
   esperar a que el scheduler y el ms lo reprogramen (o forzarlo con `scheduler run` de
   [[T-019-scheduler-invoke|T-019]]), y guardar en `evidencias/t020/` `history`, `campaign`,
   `clean --campaign-id`, `clean --dry-run` y `clean --yes`.
 
 ## Criterios de aceptación
-- [ ] `classify_rows` con un `notification_id` de 3 filas (`retries` 0, 0, 1) → `ORIGINAL`,
+- [x] `classify_rows` con un `notification_id` de 3 filas (`retries` 0, 0, 1) → `ORIGINAL`,
   `FUERA_DE_HORARIO`, `REINTENTO`, en orden de `datetime`.
-- [ ] Con reloj fijo, las filas de la hora actual salen `EN_CURSO`, las futuras `PENDIENTE` y las
+- [x] Con reloj fijo, las filas de la hora actual salen `EN_CURSO`, las futuras `PENDIENTE` y las
   anteriores `PASADA`.
-- [ ] `dynamo get --notification-id X` con 2 filas en moto → devuelve las 2 (regresión del
+- [x] `dynamo get --notification-id X` con 2 filas en moto → devuelve las 2 (regresión del
   `limit=1`; el test falla antes del cambio).
-- [ ] `dynamo history` con 2 cargas (una `SUCCESSFUL` con reprogramaciones, otra `FAILED`) →
+- [x] `dynamo history` con 2 cargas (una `SUCCESSFUL` con reprogramaciones, otra `FAILED`) →
   dos líneas con los conteos correctos, y la de `FAILED` sin filas.
-- [ ] `by_campaigns` con 150 `campaign_id` → dos lotes de `IN` y todas las filas encontradas.
-- [ ] `dynamo clean --yes` con filas de varias apps, reprogramadas y `UNKNOWN`, y más de 25 por
+- [x] `by_campaigns` con 150 `campaign_id` → dos lotes de `IN` y todas las filas encontradas.
+- [x] `dynamo clean --yes` con filas de varias apps, reprogramadas y `UNKNOWN`, y más de 25 por
   tabla → las dos tablas quedan vacías (`scan` con `Count == 0`).
-- [ ] `clean --table logs --yes` → vacía solo la tabla de logs; la de campañas no cambia.
-- [ ] `clean --campaign-id ID --yes` → borra las filas de ese CSV en las dos tablas, incluidas sus
+- [x] `clean --table logs --yes` → vacía solo la tabla de logs; la de campañas no cambia.
+- [x] `clean --campaign-id ID --yes` → borra las filas de ese CSV en las dos tablas, incluidas sus
   reprogramaciones y la fila `UNKNOWN` de logs con ese `ID`; las de otro `campaign_id` siguen ahí.
-- [ ] `clean --dry-run` → no llama a `batch_write_item`.
-- [ ] Una fila insertada entre el borrado y la verificación final → se informa como restante, exit 1.
-- [ ] `UnprocessedItems` simulado → se reintenta hasta borrar.
-- [ ] Respuesta "n" a la confirmación → no borra nada (exit 0).
-- [ ] `CAMPAIGNS_ENV=prod` → `clean` bloqueado (exit 2); `history`, `campaign`, `dump` y `get`
+- [x] `clean --dry-run` → no llama a `batch_write_item`.
+- [x] Una fila insertada entre el borrado y la verificación final → se informa como restante, exit 1.
+- [x] `UnprocessedItems` simulado → se reintenta hasta borrar.
+- [x] Respuesta "n" a la confirmación → no borra nada (exit 0).
+- [x] `CAMPAIGNS_ENV=prod` → `clean` bloqueado (exit 2); `history`, `campaign`, `dump` y `get`
   permitidos.
 
 ## Verificación
@@ -176,3 +176,11 @@ uv run campaigns --yes dynamo clean 2>&1 | tee evidencias/t020/clean.txt
   indican en el encabezado de cada columna.
 - Sin índice, `campaign` y `clean --campaign-id` hacen `scan` de la tabla de campañas; con un GSI por
   `campaign_id` (`CAMPAIGNS_TABLE_CAMPAIGN_INDEX`), `campaign` pasa a ser un `query`.
+- **Cerrada (2026-10-16):** 319 pruebas en verde (97 % de cobertura; `clean_service` 100 %, `history_service` 98 %), ruff y mypy sin errores. Se ejecutó después de [[T-012-dynamo-purge|T-012]], de la que reutiliza `delete_keys`.
+- Decisiones de implementación:
+  - `dynamo campaign` y `clean --campaign-id` buscan las cargas en logs con un `scan` filtrado por `contains(result, <campaign_id>)` y lo confirman con `parse_log_entry`, en lugar de filtrar por `datetime` alrededor de las cargas: la tabla de campañas no guarda la fecha de creación, así que no hay una ventana fiable. Así aparecen también las cargas `UNKNOWN`.
+  - Además de `LogsTable.all`, se agregaron `CampaignsTable.all` (para `dump`) y `keys(campaign_id)` en las dos tablas (scan o query de las claves para `clean`). `campaign_detail` y `load_history` reciben las tablas y la hora actual (`now`) inyectadas.
+  - `dynamo get` sin `--datetime` devuelve en JSON siempre una lista (antes, un objeto). Se ajustó la prueba de T-006 que leía `data["datetime"]`.
+  - En `history`, `pendientes` cuenta solo las filas `PENDIENTE`; el plan de `clean` muestra `PENDIENTE` y `EN_CURSO` por separado.
+  - En JSON, `clean` emite un solo documento al final: `{"plan": ..., "resultado": [...]}` (`resultado` es `null` con `--dry-run`); el plan se resume también en stderr antes de confirmar.
+- **Pendiente en dev:** no se ejecutó porque las credenciales del `.env` estaban vencidas (`dynamo history` → exit 3) y `clean` requiere confirmación del usuario. Faltan el paso "En dev" de `## Tareas` y los comandos de `## Verificación` que guardan evidencias en `evidencias/t020/`. Si fallan, se registra un bug con `affects: [T-020]`.

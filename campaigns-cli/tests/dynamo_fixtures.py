@@ -12,6 +12,7 @@ CAMPAIGN_INDEX = "campaign_id-index"
 
 CAMPAIGN_A = "11111111-1111-1111-1111-111111111111"
 CAMPAIGN_B = "22222222-2222-2222-2222-222222222222"
+CAMPAIGN_C = "33333333-3333-3333-3333-333333333333"
 
 ENV = f"""
 AWS_REGION={REGION}
@@ -69,15 +70,17 @@ def campaign_item(
     campaign_id: str = CAMPAIGN_A,
     app_id: str = "others-test",
     user: str = "573232540390",
+    retries: str = "0",
 ) -> dict[str, Any]:
-    """Registro igual al que arma CampaignRegistry._add_to_list del ingester."""
+    """Registro igual al que arma CampaignRegistry._add_to_list del ingester (o, con otra
+    `datetime` y el mismo `notification_id`, el que agrega platform_campaigns_ms al reprogramar)."""
     return {
         "campaign_id": campaign_id,
         "app_id": app_id,
         "channel": "WhatsApp",
         "user": user,
         "notification_node": "N-03-99-10",
-        "retries": "0",
+        "retries": retries,
         "context": {"text": "hola"},
         "datetime": scheduled,
         "expiration_date": 1760500000,
@@ -137,3 +140,88 @@ def put_logs(items: list[dict[str, Any]]) -> None:
     table = boto3.resource("dynamodb", region_name=REGION).Table(LOGS_TABLE)
     for item in items:
         table.put_item(Item=item)
+
+
+def count_items(table_name: str) -> int:
+    client = boto3.client("dynamodb", region_name=REGION)
+    total = 0
+    kwargs: dict[str, Any] = {"TableName": table_name, "Select": "COUNT"}
+    while True:
+        response = client.scan(**kwargs)
+        total += response["Count"]
+        if "LastEvaluatedKey" not in response:
+            return total
+        kwargs["ExclusiveStartKey"] = response["LastEvaluatedKey"]
+
+
+class FlakyBatchClient:
+    """Cliente DynamoDB que, en las primeras `failures` llamadas a batch_write_item, solo procesa
+    la primera petición del lote y devuelve el resto como `UnprocessedItems`."""
+
+    def __init__(self, client: Any, failures: int) -> None:
+        self._client = client
+        self.failures = failures
+        self.batch_calls = 0
+
+    def __getattr__(self, name: str) -> Any:
+        return getattr(self._client, name)
+
+    def batch_write_item(self, **kwargs: Any) -> Any:
+        self.batch_calls += 1
+        if not self.failures:
+            return self._client.batch_write_item(**kwargs)
+        self.failures -= 1
+        table, requests = next(iter(kwargs["RequestItems"].items()))
+        self._client.batch_write_item(RequestItems={table: requests[:1]})
+        return {"UnprocessedItems": {table: requests[1:]} if requests[1:] else {}}
+
+
+def seed_history() -> None:
+    """Dos CSV y sus cargas: el de CAMPAIGN_A con reprogramaciones y una carga UNKNOWN, y el de
+    CAMPAIGN_B (otra app), cuya carga falló.
+
+    n-1 se reprogramó dos veces: fuera de horario (retries igual) y por reintento (retries + 1).
+    """
+    put_campaigns(
+        [
+            campaign_item("n-1", "2026-10-13 10:00:00"),
+            campaign_item("n-1", "2026-10-13 18:00:00"),
+            campaign_item("n-1", "2026-10-14 09:00:00", retries="1"),
+            campaign_item("n-2", "2026-10-13 10:00:00", user="573001112233"),
+            campaign_item("n-4", "2026-10-14 08:00:00", campaign_id=CAMPAIGN_B, app_id="otra-app"),
+        ]
+    )
+    put_logs(
+        [
+            log_item("others-test", "2026-10-13 14:00:00.100000", file_route="a.csv"),
+            log_item("UNKNOWN", "2026-10-13 14:05:00.000000", status="FAILED"),
+            log_item(
+                "otra-app", "2026-10-13 15:00:00.300000", status="FAILED", campaign_id=CAMPAIGN_B
+            ),
+        ]
+    )
+
+
+class CallCounter:
+    """Cliente DynamoDB que cuenta las llamadas por operación y puede ejecutar algo después de
+    cada batch_write_item (para simular escrituras concurrentes)."""
+
+    def __init__(self, client: Any, after_batch: Any = None) -> None:
+        self._client = client
+        self.after_batch = after_batch
+        self.calls: dict[str, int] = {}
+
+    def __getattr__(self, name: str) -> Any:
+        attribute = getattr(self._client, name)
+        if not callable(attribute):
+            return attribute
+
+        def counted(**kwargs: Any) -> Any:
+            self.calls[name] = self.calls.get(name, 0) + 1
+            response = attribute(**kwargs)
+            if name == "batch_write_item" and self.after_batch is not None:
+                self.after_batch()
+                self.after_batch = None
+            return response
+
+        return counted

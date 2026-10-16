@@ -12,7 +12,8 @@ main.py ─────────── CampaignsGroup: callback raíz (--env-
 commands/ ───────── config_cmd · dynamo_cmd · logs_cmd · channel_cmd · pods_cmd
    │                 (parsean argumentos, arman servicios, muestran resultados)
    ▼
-services/ ───────── config_service · dynamo_service · logs_service · channel_service · k8s_service
+services/ ───────── config_service · dynamo_service · history_service · clean_service ·
+   │                 logs_service · channel_service · k8s_service
    │                 (lógica sin Typer; reciben los clientes boto3 inyectados)
    ▼
 state.py ────────── AppState ─┬─ settings.py  (Settings desde .env)
@@ -45,7 +46,9 @@ moto o con clientes falsos.
 | `guards.py` | `ensure_not_prod` y `confirm_destructive`. |
 | `timeutils.py` | Zona de Colombia (UTC-5), `parse_since`, `parse_datetime` y conversiones a epoch ms y al formato de DynamoDB. |
 | `services/config_service.py` | Identidad STS y verificación de recursos (`ResourceCheck` con estado). |
-| `services/dynamo_service.py` | `CampaignsTable`, `LogsTable`, `parse_log_entry`, `follow_logs`. Esquemas en [recursos AWS](recursos-aws.md). |
+| `services/dynamo_service.py` | `CampaignsTable`, `LogsTable`, `parse_log_entry`, `follow_logs`, `delete_keys` (borrado por lotes con reintento de `UnprocessedItems`). Esquemas en [recursos AWS](recursos-aws.md). |
+| `services/history_service.py` | `classify_rows` (tipo `ORIGINAL`/`FUERA_DE_HORARIO`/`REINTENTO` y estado `PENDIENTE`/`EN_CURSO`/`PASADA`), `load_history` y `campaign_detail`. |
+| `services/clean_service.py` | `plan_clean` → `CleanPlan` y `execute` → `CleanResult` (borrado y scan de verificación). [ADR-0011](adr/0011-vaciado-de-tablas-en-dev.md). |
 | `services/channel_service.py` | `CognitoAuth` (token `client_credentials` reutilizado hasta que vence), `FakeChannel` (`messages`, `wait_for`), `normalize_message`, `parse_channel`. |
 | `services/k8s_service.py` | `eks_token` (token de `aws eks get-token`), `EksTokenAuth`, `describe_cluster`, `PodsService` (`list_pods`, `logs`, `stream` con reconexión, `follow_many` con un hilo por pod). [ADR-0009](adr/0009-acceso-a-kubernetes.md). |
 | `services/logs_service.py` | `LogsService`: Logs Insights (`search`), `filter_log_events` (`events`, `follow`) y `list_groups`. |
@@ -97,11 +100,15 @@ Una excepción no reconocida se propaga con su traceback (es un bug).
 
 - `ensure_not_prod(settings, acción)`: con `CAMPAIGNS_ENV=prod` lanza `UsageError`. Todo
   comando que escriba (subir a S3, invocar lambdas, borrar) debe llamarlo. Los de lectura
-  (`config`, `dynamo get/find/list/logs`, `logs *`, `channel *`, `pods *`, `s3 ls`) están permitidos en prod.
+  (`config`, `dynamo get/find/list/logs/history/campaign/dump`, `logs *`, `channel *`, `pods *`, `s3 ls`)
+  están permitidos en prod.
 - `confirm_destructive(state, mensaje)`: pide confirmación salvo `--yes`; si se rechaza, sale
   con código 0 sin hacer nada.
-- `dynamo purge` ([T-012](../backlog/tasks/T-012-dynamo-purge.md)) solo borrará registros con
-  `app_id == CLI_TEST_APP_ID`.
+- `dynamo purge` ([T-012](../backlog/tasks/T-012-dynamo-purge.md)) solo borra registros con
+  `app_id == CLI_TEST_APP_ID`; los demás del mismo `campaign_id` se omiten y se informan.
+- `dynamo clean` ([T-020](../backlog/tasks/T-020-dynamo-historial-y-limpieza.md)) vacía las tablas de
+  dev por completo o borra solo un `campaign_id`; muestra el plan, admite `--dry-run` y verifica al
+  final ([ADR-0011](adr/0011-vaciado-de-tablas-en-dev.md)).
 
 ## Fechas y zonas horarias
 

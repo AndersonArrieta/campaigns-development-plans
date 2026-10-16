@@ -14,6 +14,7 @@ registra aquí. Las D-1…D-6 del plan original de la CLI se migraron como ADR-0
 | [0007](0007-ubicacion-del-codigo.md) | Código en `campaigns-cli/` dentro del repo de planes | accepted | D-6 |
 | [0008](0008-cliente-http.md) | Cliente HTTP httpx y verificación SSL configurable para el fake channel | accepted | T-015 |
 | [0009](0009-acceso-a-kubernetes.md) | Logs de los pods por la API de Kubernetes con token de EKS, sin kubectl | accepted | T-017 |
+| [0011](0011-vaciado-de-tablas-en-dev.md) | Las tablas de dev son de uso exclusivo de las pruebas: `dynamo clean` las vacía por completo | accepted | T-020 |
 
 D-2 (nombres reales de recursos por ambiente) es configuración, no arquitectura: está en
 [configuración](../configuracion.md#nombres-de-recursos-por-ambiente).

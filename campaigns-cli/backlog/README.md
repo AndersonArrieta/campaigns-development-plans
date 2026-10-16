@@ -94,7 +94,9 @@ frontmatter, solo el id.
 - Funcionalidades nuevas: `_templates/task.md`, siguiente `T-0NN` libre.
 - **Triage** (escala de este proyecto):
   - `P0` la CLI no arranca, una protección falla (escribe en prod, borra más de lo que el
-    comando indica) o se filtran credenciales; o bloquea todo lo demás.
+    comando indica) o se filtran credenciales; o bloquea todo lo demás. Que `dynamo clean`
+    vacíe las tablas de dev con filas de cualquier `app_id` es lo esperado, no un `P0`
+    ([ADR-0011](../docs/adr/0011-vaciado-de-tablas-en-dev.md)).
   - `P1` la prueba da un resultado incorrecto (falso OK/FALLA, IDs equivocados) o el trabajo
     está en el camino crítico hacia `trace run`.
   - `P2` molestia con workaround o mejora con valor claro (opciones nuevas, CI, documentación).

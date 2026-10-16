@@ -23,12 +23,40 @@ Sin índices secundarios ([ADR-0004](adr/0004-busquedas-sin-gsi.md)). Cómo la c
 | Necesidad | Acceso | Coste |
 |---|---|---|
 | Un registro con su hora | `get_item` | 1 lectura |
-| Un registro sin su hora | `scan` con filtro, se detiene en el primero | Recorre la tabla |
+| Todas las filas de un `notification_id` (sin su hora) | `scan` con filtro, completo | Recorre la tabla |
+| Filas de varios `campaign_id` (`dynamo history`) | `scan` con `campaign_id IN (...)`, uno por cada 100 valores | Recorre la tabla por cada lote |
 | Registros de un rango horario | Un `query` por hora (máx. 744) | Proporcional al rango |
 | Por `campaign_id` / `user` / `app_id` | `scan` filtrado (o `query` al GSI si se configura) | Recorre la tabla |
 
 Las expresiones usan alias (`#f0`) porque `user` y `datetime` son palabras reservadas.
 Los `Decimal` se convierten a `int`/`float` al serializar JSON.
+
+### Reprogramaciones
+
+Confirmado en el código de `ingester_Lambda` y `platform_campaigns_ms`:
+
+- El **ingester** escribe una fila por usuario y fecha/hora, con un `notification_id` nuevo y `retries = "0"`.
+- **`platform_campaigns_ms`** (`NotificationDynamoDbAdapter.createItem`, un `PutItem`) escribe una fila
+  **nueva** con el **mismo `notification_id`** y otra `datetime`; conserva `campaign_id`, `app_id`,
+  `user`, `channel`, `context` y `notification_node`. Nadie borra la fila anterior.
+  - Fuera de horario (`BatchMessageUseCase.reschedule`): `retries` igual y `datetime` = siguiente hora
+    permitida por el cron del `appId`.
+  - Reintento (`POST /v1/retry`, `RetryUseCase`): `retries + 1` y `datetime` = original +
+    `retries_interval_hours`, ajustada al cron.
+
+Por eso, dentro de un `campaign_id`, un `notification_id` con varias filas tiene una historia: la de
+menor `datetime` es la `ORIGINAL` y cada una de las demás es `FUERA_DE_HORARIO` si `retries` no cambió
+respecto de la anterior o `REINTENTO` si subió (`retries` se compara como entero). El estado sale de la
+hora Colombia actual: `PENDIENTE`, `EN_CURSO` o `PASADA`. La tabla de logs no registra
+reprogramaciones: solo el ingester escribe en ella. La tabla de campañas no guarda fecha de creación;
+el vínculo entre un CSV y sus filas es el `campaign_id`, que sale de la tabla de logs.
+
+### Borrado
+
+`dynamo purge` y `dynamo clean` borran por clave con `batch_write_item` (lotes de 25, reintento de
+`UnprocessedItems` con espera creciente). `clean` recorre la tabla con `ProjectionExpression` de las
+claves (y de `app_id`, `campaign_id` y `retries` para el plan) y no usa `DeleteTable`/`CreateTable`,
+que perderían el TTL, los streams y los permisos ([ADR-0011](adr/0011-vaciado-de-tablas-en-dev.md)).
 
 ## Tabla de logs del ingester (`CAMPAIGNS_LOGS_TABLE_NAME`)
 
@@ -45,7 +73,9 @@ Una fila por archivo procesado.
 - de un `body_result` objeto: `log_errors` y `field_validation_errors` (y el `campaign_id` que traigan).
 
 Consultas: por `app_id` es un `query` (descendente, con `BETWEEN` sobre `datetime`; el sufijo
-`~` incluye los microsegundos del último segundo); sin `app_id` es un `scan` filtrado.
+`~` incluye los microsegundos del último segundo); sin `app_id` es un `scan` filtrado. Por
+`campaign_id` (`dynamo campaign`, `clean --campaign-id`) es un `scan` con `contains(result, <id>)`
+que luego se comprueba con `parse_log_entry`; así aparecen también las cargas `UNKNOWN`.
 `--follow` vuelve a pedir desde la última fecha vista y descarta duplicados por `(app_id, datetime)`.
 
 ## CloudWatch Logs
