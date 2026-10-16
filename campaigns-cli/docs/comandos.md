@@ -100,7 +100,7 @@ Todo comando que hace `scan` lo avisa por stderr; si el resultado se corta por `
 `dynamo clean`, paso a paso: (1) bloqueado en prod; (2) muestra el plan: filas por tabla y por
 `app_id`, cuántas son reprogramaciones y cuántas están `PENDIENTE`/`EN_CURSO` (avisa si hay alguna
 `EN_CURSO`, porque el scheduler puede estar procesándola); (3) `--dry-run` termina ahí con exit 0;
-(4) pide confirmación con el entorno y el nombre de cada tabla (`--yes` la omite); (5) borra en lotes
+(4) informa cuántas filas borra, el entorno y el nombre de cada tabla, **sin pedir confirmación** ([ADR-0012](adr/0012-dynamo-clean-sin-confirmacion.md)); (5) borra en lotes
 de 25 reintentando `UnprocessedItems`; (6) hace un `scan` de verificación; (7) muestra por tabla
 `borradas`, `fallidas` y `restantes` y sale con 1 si hay fallidas o restantes (por ejemplo, filas que
 el ingester o el ms escribieron durante el borrado). En JSON emite `{"plan": ..., "resultado": [...]}`

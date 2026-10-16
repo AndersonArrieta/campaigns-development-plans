@@ -490,13 +490,15 @@ def test_clean_dry_run_does_not_call_batch_write(aws_operations: list[str]) -> N
 
 
 @pytest.mark.usefixtures("history_tables")
-def test_clean_rejected_deletes_nothing(aws_operations: list[str]) -> None:
-    result = runner.invoke(app, ["dynamo", "clean"], input="n\n")
+def test_clean_does_not_ask_for_confirmation() -> None:
+    # Sin --yes y sin entrada: si pidiera confirmación, abortaría sin borrar.
+    result = runner.invoke(app, ["dynamo", "clean"], input="")
 
-    assert result.exit_code == 0
-    assert "Operación cancelada" in result.stderr
-    assert "BatchWriteItem" not in aws_operations
-    assert count_items(CAMPAIGNS_TABLE) == 5
+    assert result.exit_code == 0, result.stderr
+    assert "¿Borrar" not in result.stderr
+    assert "Borrando 8 fila(s) (vaciado completo)" in result.stderr
+    assert count_items(CAMPAIGNS_TABLE) == 0
+    assert count_items(LOGS_TABLE) == 0
 
 
 @pytest.mark.usefixtures("history_tables")

@@ -503,13 +503,10 @@ def clean(
             render({"plan": plan.as_dict(), "resultado": None}, state.output)
         return
 
-    if plan.total:
+    if plan.total:  # sin confirmación: las tablas de dev son solo de las pruebas (ADR-0012)
         names = ", ".join(f"{item.table} ({item.table_name})" for item in plan.tables)
         scope = f"del campaign_id {campaign_id}" if campaign_id else "(vaciado completo)"
-        confirm_destructive(
-            state,
-            f"¿Borrar {plan.total} fila(s) {scope} en {settings.campaigns_env}: {names}?",
-        )
+        info(f"Borrando {plan.total} fila(s) {scope} en {settings.campaigns_env}: {names}.")
     result = execute(plan)
     if state.output is OutputFormat.JSON:
         render({"plan": plan.as_dict(), "resultado": result.as_dicts()}, state.output)

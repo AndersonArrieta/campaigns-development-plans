@@ -1,9 +1,10 @@
 ---
 id: ADR-0011
 title: "Las tablas de dev son de uso exclusivo de las pruebas: dynamo clean las vacía por completo"
-status: accepted
+status: superseded
 date: 2026-10-16
 supersedes:
+superseded_by: ADR-0012
 ---
 
 # ADR-0011 — Las tablas de dev son de uso exclusivo de las pruebas: `dynamo clean` las vacía por completo

@@ -149,16 +149,17 @@ Borra de la tabla de campañas los registros de ese `campaign_id` cuyo `app_id` 
 
 ```bash
 uv run campaigns dynamo clean --dry-run                    # qué se borraría, sin borrar
-uv run campaigns dynamo clean                              # vacía las dos tablas (pide confirmación)
+uv run campaigns dynamo clean                              # vacía las dos tablas (sin confirmación)
 uv run campaigns dynamo clean --table logs                 # solo la tabla de logs
-uv run campaigns --yes dynamo clean --campaign-id <id>     # solo lo que dejó ese CSV, sin preguntar
+uv run campaigns dynamo clean --campaign-id <id>           # solo lo que dejó ese CSV
 ```
 
 Las tablas de dev son de uso exclusivo de las pruebas, así que `clean` sin `--campaign-id` borra
 **todas** las filas, de todos los `app_id` ([ADR-0011](docs/adr/0011-vaciado-de-tablas-en-dev.md)).
 Antes de borrar muestra cuántas filas hay por tabla y `app_id`, cuántas son reprogramaciones y cuántas
-están `PENDIENTE` o `EN_CURSO`; al final verifica con un scan y sale con 1 si quedó alguna. Bloqueado
-en prod; necesita `dynamodb:BatchWriteItem` sobre las dos tablas.
+están `PENDIENTE` o `EN_CURSO`, y borra **sin pedir confirmación** (usa `--dry-run` para ver antes qué
+borraría; [ADR-0012](docs/adr/0012-dynamo-clean-sin-confirmacion.md)); al final verifica con un scan y sale
+con 1 si quedó alguna. Bloqueado en prod; necesita `dynamodb:BatchWriteItem` sobre las dos tablas.
 
 ## Comandos `logs` (CloudWatch, solo lectura)
 

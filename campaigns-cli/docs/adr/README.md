@@ -15,7 +15,8 @@ registra aquí. Las D-1…D-6 del plan original de la CLI se migraron como ADR-0
 | [0008](0008-cliente-http.md) | Cliente HTTP httpx y verificación SSL configurable para el fake channel | accepted | T-015 |
 | [0009](0009-acceso-a-kubernetes.md) | Logs de los pods por la API de Kubernetes con token de EKS, sin kubectl | accepted | T-017 |
 | [0010](0010-invocacion-sin-reintentos.md) | Invocación síncrona de Lambdas sin reintentos del SDK: una invocación = una ejecución | accepted | T-019 |
-| [0011](0011-vaciado-de-tablas-en-dev.md) | Las tablas de dev son de uso exclusivo de las pruebas: `dynamo clean` las vacía por completo | accepted | T-020 |
+| [0011](0011-vaciado-de-tablas-en-dev.md) | Las tablas de dev son de uso exclusivo de las pruebas: `dynamo clean` las vacía por completo | superseded por 0012 | T-020 |
+| [0012](0012-dynamo-clean-sin-confirmacion.md) | `dynamo clean` borra sin pedir confirmación (el resto de 0011 sigue vigente) | accepted | T-024 |
 
 D-2 (nombres reales de recursos por ambiente) es configuración, no arquitectura: está en
 [configuración](../configuracion.md#nombres-de-recursos-por-ambiente).

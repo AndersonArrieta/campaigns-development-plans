@@ -117,7 +117,8 @@ Una excepción no reconocida se propaga con su traceback (es un bug).
   despacha y no pide confirmación, pero también está bloqueado en prod.
 - `dynamo clean` ([T-020](../backlog/tasks/T-020-dynamo-historial-y-limpieza.md)) vacía las tablas de
   dev por completo o borra solo un `campaign_id`; muestra el plan, admite `--dry-run` y verifica al
-  final ([ADR-0011](adr/0011-vaciado-de-tablas-en-dev.md)).
+  final ([ADR-0011](adr/0011-vaciado-de-tablas-en-dev.md)). No pide confirmación
+  ([ADR-0012](adr/0012-dynamo-clean-sin-confirmacion.md)): su protección es el bloqueo en prod.
 
 ## Fechas y zonas horarias
 
