@@ -92,11 +92,17 @@ que luego se comprueba con `parse_log_entry`; así aparecen también las cargas 
 - `logs tail` usa `filter_log_events` con `filterPattern` entre comillas (texto literal).
 - Log groups de `platform_campaigns_ms` y `engine_nlp_ms`: pendientes ([T-013](../backlog/tasks/T-013-trace-aguas-abajo.md)).
 
-## Bucket de entrada (pendiente: [T-005](../backlog/tasks/T-005-s3-commands.md))
+## Bucket de entrada (`CAMPAIGNS_INPUT_BUCKET`, [T-005](../backlog/tasks/T-005-s3-commands.md))
 
 `nu0284001-artemis-chatbots-platform-{env}-campaigns-data`. `Platform_test` sube el CSV a la raíz
 del bucket y la subida dispara `ingester_Lambda`: **subir un archivo produce envíos reales** si la
-fecha/hora es próxima. Por eso `s3 upload` estará bloqueado en prod.
+fecha/hora es próxima. Por eso `s3 upload` está bloqueado en prod.
+
+- El ingester lee el objeto con `get_object`, lo decodifica con `utf-8-sig` y, al terminar (con o sin
+  errores de validación), lo **borra** del bucket (`processor.py` → `delete_data_file`). Un CSV ya
+  procesado no aparece en `s3 ls`; su resultado queda en la tabla de logs (`dynamo logs`).
+- `s3 upload` sube con `put_object` y `ContentType=text/csv`; `VersionId` solo viene si el bucket
+  tiene versionado.
 
 ## Lambdas
 

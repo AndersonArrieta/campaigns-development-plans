@@ -61,6 +61,45 @@ Permisos mínimos (solo lectura) para `config` y `dynamo`:
 - `sts:GetCallerIdentity`
 - `dynamodb:DescribeTable`, `dynamodb:GetItem`, `dynamodb:Query`, `dynamodb:Scan` sobre las dos tablas
 
+## Comandos `csv` (sin AWS)
+
+Los CSV de prueba van en `campaigns-cli/data/` (ignorada por git). Para armar uno a mano, copia la
+plantilla versionada `templates/plantilla.csv` y edítala:
+
+```bash
+mkdir -p data && cp templates/plantilla.csv data/mi-campana.csv
+uv run campaigns csv validate mi-campana.csv          # busca en data/ si no es una ruta existente
+```
+
+O genéralo:
+
+```bash
+uv run campaigns csv generate --users 573232540390 --canal WhatsApp --fecha hoy --hora +1 --nodo N-03-99-10
+# → data/campaign-<fecha>.csv con app_id CLI_TEST_APP_ID y el día de la semana de hoy
+```
+
+- Formato: `app_id;canal;usuario;fecha_inicio;fecha_fin;dias;horas;nodo;parametros`, fechas `dd/mm/aaaa`,
+  varias horas o días separados por coma (`10,11,12`, `lunes,viernes`).
+- `validate` sale con 1 si el ingester rechazaría alguna fila y avisa si no se crearía ninguna notificación
+  (horas ya pasadas o días fuera del rango). El usuario de un email debe ir en minúscula.
+
+## Comandos `s3` (bucket de entrada del ingester)
+
+Requieren `CAMPAIGNS_INPUT_BUCKET` (y opcionalmente `CAMPAIGNS_INPUT_PREFIX`). **Subir dispara la
+ingesta real**; `upload` y `rm` están bloqueados en prod.
+
+```bash
+uv run campaigns s3 upload mi-campana.csv              # valida y sube data/mi-campana.csv
+uv run campaigns s3 upload mi-campana.csv --key otra.csv
+uv run campaigns s3 ls -n 20                           # más recientes primero
+uv run campaigns s3 get mi-campana.csv                 # contenido en pantalla (-o para guardarlo)
+uv run campaigns s3 rm mi-campana.csv                  # pide confirmación (--yes la omite)
+```
+
+- `upload` no sube un CSV con errores de validación (exit 1); `--no-validate` lo fuerza.
+- El ingester borra el CSV del bucket cuando lo procesa: después de unos segundos ya no aparece en
+  `s3 ls`, y su resultado se ve con `dynamo logs` o `dynamo history`.
+
 ## Comandos `dynamo`
 
 | Tabla | PK | SK | Contenido |

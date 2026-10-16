@@ -8,9 +8,11 @@ from campaigns_cli import __version__
 from campaigns_cli.commands import (
     channel_cmd,
     config_cmd,
+    csv_cmd,
     dynamo_cmd,
     logs_cmd,
     pods_cmd,
+    s3_cmd,
     scheduler_cmd,
 )
 from campaigns_cli.errors import translate
@@ -44,6 +46,8 @@ app = typer.Typer(
     cls=CampaignsGroup,
 )
 app.add_typer(config_cmd.app, name="config")
+app.add_typer(csv_cmd.app, name="csv")
+app.add_typer(s3_cmd.app, name="s3")
 app.add_typer(dynamo_cmd.app, name="dynamo")
 app.add_typer(logs_cmd.app, name="logs")
 app.add_typer(channel_cmd.app, name="channel")

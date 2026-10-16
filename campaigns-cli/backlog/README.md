@@ -122,10 +122,12 @@ queda en el mismo vault y los enlaces entre ambos funcionan.
 
 ## Estado actual
 
-✅ **done (9)**
+✅ **done (11)**
 - [[T-001-esqueleto-uv|T-001]] — proyecto uv, entry point `campaigns`, ruff/mypy/pytest.
 - [[T-002-settings-env|T-002]] — `Settings`, `.env`/`--env-file`, `config show`.
 - [[T-003-aws-output-guards|T-003]] — `AwsClients`, salida tabla/JSON, exit codes, guards, `config check`.
+- [[T-004-csv-generate-validate|T-004]] — `csv generate` y `csv validate` con las reglas del ingester; CSV en `data/`.
+- [[T-005-s3-commands|T-005]] — `s3 upload/ls/get/rm`; `upload` valida el CSV (o lo busca en `data/`) antes de subir.
 - [[T-006-dynamo-lectura|T-006]] — `dynamo get/find/list/logs` de solo lectura.
 - [[T-008-logs-cloudwatch|T-008]] — `logs groups/tail/search` sobre las lambdas.
 - [[T-015-fake-channel-messages|T-015]] — grupo `channel`: token de Cognito y mensajes del fake channel.
@@ -133,15 +135,13 @@ queda en el mismo vault y los enlaces entre ambos funcionan.
 - [[T-018-pods-engine-notification-id|T-018]] — `pods`: componente engine y `--notification-id` en campaigns y engine.
 - [[T-019-scheduler-invoke|T-019]] — `scheduler run/health`: invocar `scheduler_Lambda` a demanda, una ejecución por invocación (sin reintentos que la repitan).
 
-🟡 **todo (5)**
-- [[T-004-csv-generate-validate|T-004]] — `csv generate` y `csv validate`.
+🟡 **todo (4)**
 - [[T-011-validar-lectura-dev|T-011]] — probar en dev `config check`, `dynamo` y `logs` con datos reales.
 - [[T-012-dynamo-purge|T-012]] — `dynamo purge` de datos de `CLI_TEST_APP_ID`.
 - [[T-014-ci-github-actions|T-014]] — pipeline de GitHub Actions con umbral de cobertura.
 - [[T-020-dynamo-historial-y-limpieza|T-020]] — `dynamo history/campaign/dump` con reprogramaciones y `dynamo clean`, que vacía las tablas de campañas y de logs o borra solo lo de un CSV (espera a T-012).
 
-🔵 **backlog (6)**
-- [[T-005-s3-commands|T-005]] — `s3 upload/ls/get/rm` (espera a T-004).
+🔵 **backlog (5)**
 - [[T-007-lambda-invoke|T-007]] — `lambda invoke` ingester/genérico (espera a T-005, T-019).
 - [[T-009-trace-run|T-009]] — `trace run` hasta los logs del ingester (espera a T-004, T-005, T-012).
 - [[T-010-documentacion|T-010]] — README completo y cierre de los criterios de aceptación (espera a T-007, T-009).

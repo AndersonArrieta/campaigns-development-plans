@@ -24,6 +24,53 @@ Imprime la versión de la CLI. No lee el `.env`.
 | `config show` | Tabla variable / valor / origen, con secretos enmascarados. | No |
 | `config check` | Identidad (`sts get-caller-identity`) y estado de cada recurso: bucket (`head_bucket`), tabla y GSI (`describe_table`), tabla de logs, lambdas (`get_function`) y log groups (`describe_log_groups`). Estados `OK`, `OPCIONAL`, `FALTA CONFIG`, `NO EXISTE`, `SIN PERMISO`, `ERROR`. Sale con 1 si alguno no es `OK`/`OPCIONAL`. | Sí |
 
+## `csv` — [T-004](../backlog/tasks/T-004-csv-generate-validate.md) (sin AWS)
+
+CSV de campaña para `ingester_Lambda`. Los CSV de prueba van en `campaigns-cli/data/`: los dos
+comandos buscan ahí el archivo si la ruta indicada no existe, y `generate` escribe ahí por defecto.
+`data/` está en el `.gitignore`; la plantilla versionada es `templates/plantilla.csv`.
+
+| Comando | Qué hace |
+|---|---|
+| `csv validate <archivo>` | Valida con las reglas del ingester. Muestra cada problema con fila (la 1 es el encabezado), columna y severidad. Sale con 1 si hay algún `ERROR`; los `AVISO` no cambian el exit code. |
+| `csv generate --users U1,U2 --canal C --fecha F --hora H --nodo N [--fecha-fin F] [--app-id A] [--dias D] [--parametros k=v]... [-o archivo]` | Una fila por usuario. `--fecha`/`--fecha-fin` aceptan `dd/mm/aaaa`, `hoy` y `mañana`; `--hora`, horas separadas por coma o `+N` (hora actual de Colombia + N); sin `--dias`, los días de la semana del rango; `--app-id` por defecto `CLI_TEST_APP_ID`. Valida antes de escribir: con errores no escribe nada (exit 2). Sin `-o`, `data/campaign-<AAAAMMDD-HHMMSS>.csv`. |
+
+Reglas (tomadas de `ingester_Lambda/src/libs/source_data_management.py` e `ingester_Conf/ingester.yaml`):
+
+| Columna | Regla |
+|---|---|
+| Archivo | UTF-8 (con o sin BOM), separador `;`, sin comillas (`QUOTE_NONE`). Deben estar las 9 columnas; el orden y las columnas extra solo dan aviso. Una fila con menos columnas que el encabezado es error (el ingester falla con todo el archivo). |
+| `app_id` | No vacío, mínimo 2 caracteres. |
+| `canal` | `msteams`, `email`, `sms`, `push` o `whatsapp`, sin distinguir mayúsculas. |
+| `usuario` | Teléfono de 11 o 12 dígitos (`^[0-9]{11,12}$`) o email en **minúscula** (`email_eval_regex`), con cualquier canal: el ingester no los cruza. |
+| `fecha_inicio`, `fecha_fin` | `dd/mm/aaaa`; `fecha_fin` no anterior a `fecha_inicio` ni a hoy (Colombia). |
+| `dias` | Separados por `,`: en español sin tildes (`lunes`…`domingo`) o en inglés (`monday`…). |
+| `horas` | Separadas por `,`: enteros 0-23. |
+| `nodo` | Empieza por `N-00-00-00` (sin distinguir mayúsculas). |
+| `parametros` | Opcional: `clave:valor` separados por `,`, sin espacios en la clave. |
+
+Avisos de lo que el ingester omite sin error: ninguna fecha desde hoy hasta `fecha_fin` cae en
+`dias`, o todas las horas son anteriores a la hora en punto actual. En los dos casos no se crea
+ninguna fila. Con `--output json`, `validate` devuelve
+`{archivo, errores, avisos, problemas: [{fila, columna, severidad, mensaje}]}` y `generate`,
+`{archivo, filas, avisos}`.
+
+## `s3` — [T-005](../backlog/tasks/T-005-s3-commands.md) (`upload` y `rm` bloqueados en prod)
+
+Bucket de entrada del ingester (`CAMPAIGNS_INPUT_BUCKET`). **Subir un CSV dispara la ingesta real**,
+y el ingester borra el archivo del bucket cuando termina de procesarlo.
+
+| Comando | Qué hace |
+|---|---|
+| `s3 upload <archivo> [--key KEY] [--no-validate]` | Busca el archivo como `csv validate` (la ruta o su nombre en `data/`), lo valida con las mismas reglas y lo sube con `ContentType=text/csv`. Con errores no sube nada y sale con 1; los avisos se muestran y no frenan. Key por defecto: `CAMPAIGNS_INPUT_PREFIX` + nombre del archivo. Muestra bucket, key, `ETag`, `VersionId` y hora de subida (Colombia). |
+| `s3 ls [--prefix P] [--limit N]` | Recorre todas las páginas de `list_objects_v2` (por defecto bajo `CAMPAIGNS_INPUT_PREFIX`): key, tamaño y última modificación (Colombia), del más reciente al más antiguo. |
+| `s3 get <key> [-o archivo]` | Sin `-o`, imprime el contenido en stdout. |
+| `s3 rm <key> [--yes]` | Pide confirmación salvo `--yes`. Con `CAMPAIGNS_INPUT_PREFIX`, solo borra keys dentro del prefijo (fuera: exit 2). Una key inexistente sale con 3. |
+
+- `CAMPAIGNS_INPUT_PREFIX` se normaliza con `/` final (`entrada` → `entrada/`); vacío = raíz del bucket.
+- Con `--output json`, `upload` devuelve `{bucket, key, etag, version_id, hora_subida}` y, si la validación
+  falla, la lista de problemas; `ls` devuelve `[{key, tamano_bytes, ultima_modificacion}]`.
+
 ## `dynamo` — [T-006](../backlog/tasks/T-006-dynamo-lectura.md), [T-012](../backlog/tasks/T-012-dynamo-purge.md), [T-020](../backlog/tasks/T-020-dynamo-historial-y-limpieza.md) (lectura permitida en prod)
 
 | Comando | Operación DynamoDB | Notas |
@@ -153,8 +200,6 @@ Una invocación = una ejecución: síncrona y sin reintentos que la repitan
 
 | Grupo | Comandos previstos | Tarjeta |
 |---|---|---|
-| `csv` | `generate`, `validate` (formato `;` de `csv-test.csv`) | [T-004](../backlog/tasks/T-004-csv-generate-validate.md) |
-| `s3` | `upload` (valida antes), `ls`, `get`, `rm` | [T-005](../backlog/tasks/T-005-s3-commands.md) |
 | `lambda` | `invoke ingester --s3-key`, `invoke <nombre> --payload`, `--tail` (con el `LambdaService` de `scheduler`, sin `--async`: [ADR-0010](adr/0010-invocacion-sin-reintentos.md)) | [T-007](../backlog/tasks/T-007-lambda-invoke.md) |
 | `trace` | `run <csv>`: validar → subir → ingesta → IDs → logs del ingester | [T-009](../backlog/tasks/T-009-trace-run.md) |
 | `trace` | `--wait-schedule`, `--invoke-scheduler`: scheduler y microservicios | [T-013](../backlog/tasks/T-013-trace-aguas-abajo.md) |

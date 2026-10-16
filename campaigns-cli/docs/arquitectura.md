@@ -49,6 +49,8 @@ moto o con clientes falsos.
 | `services/dynamo_service.py` | `CampaignsTable`, `LogsTable`, `parse_log_entry`, `follow_logs`, `delete_keys` (borrado por lotes con reintento de `UnprocessedItems`). Esquemas en [recursos AWS](recursos-aws.md). |
 | `services/history_service.py` | `classify_rows` (tipo `ORIGINAL`/`FUERA_DE_HORARIO`/`REINTENTO` y estado `PENDIENTE`/`EN_CURSO`/`PASADA`), `load_history` y `campaign_detail`. |
 | `services/clean_service.py` | `plan_clean` → `CleanPlan` y `execute` → `CleanResult` (borrado y scan de verificación). [ADR-0011](adr/0011-vaciado-de-tablas-en-dev.md). |
+| `services/csv_service.py` | `CampaignRow`, `generate_rows`, `render_csv`/`write_csv`, `validate_csv` → `ValidationIssue` (reglas del ingester, `ERROR`/`AVISO`), `resolve_csv_path` (busca en `data/`). |
+| `services/s3_service.py` | `S3Service`: `upload` (`text/csv`), `list` (todas las páginas, más reciente primero), `download`, `delete` (solo dentro del prefijo). |
 | `services/channel_service.py` | `CognitoAuth` (token `client_credentials` reutilizado hasta que vence), `FakeChannel` (`messages`, `wait_for`), `normalize_message`, `parse_channel`. |
 | `services/k8s_service.py` | `eks_token` (token de `aws eks get-token`), `EksTokenAuth`, `describe_cluster`, `PodsService` (`list_pods`, `logs`, `stream` con reconexión, `follow_many` con un hilo por pod). [ADR-0009](adr/0009-acceso-a-kubernetes.md). |
 | `services/lambda_service.py` | `LambdaService`: `function_timeout` e `invoke_once` (síncrona, reintenta solo `RETRYABLE`; los `AMBIGUOUS` dan `InvokeResult` desconocido). [ADR-0010](adr/0010-invocacion-sin-reintentos.md). |
@@ -102,10 +104,12 @@ Una excepción no reconocida se propaga con su traceback (es un bug).
 
 - `ensure_not_prod(settings, acción)`: con `CAMPAIGNS_ENV=prod` lanza `UsageError`. Todo
   comando que escriba (subir a S3, invocar lambdas, borrar) debe llamarlo. Los de lectura
-  (`config`, `dynamo get/find/list/logs/history/campaign/dump`, `logs *`, `channel *`, `pods *`, `s3 ls`)
+  (`config`, `dynamo get/find/list/logs/history/campaign/dump`, `logs *`, `channel *`, `pods *`, `s3 ls/get`, `csv *`)
   están permitidos en prod.
 - `confirm_destructive(state, mensaje)`: pide confirmación salvo `--yes`; si se rechaza, sale
   con código 0 sin hacer nada.
+- `s3 upload` ([T-005](../backlog/tasks/T-005-s3-commands.md)) valida el CSV antes de subir (salvo
+  `--no-validate`); `s3 rm` solo borra dentro de `CAMPAIGNS_INPUT_PREFIX` y pide confirmación.
 - `dynamo purge` ([T-012](../backlog/tasks/T-012-dynamo-purge.md)) solo borra registros con
   `app_id == CLI_TEST_APP_ID`; los demás del mismo `campaign_id` se omiten y se informan.
 - `scheduler run` ([T-019](../backlog/tasks/T-019-scheduler-invoke.md)) muestra las filas de la

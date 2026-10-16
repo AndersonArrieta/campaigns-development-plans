@@ -26,7 +26,7 @@ carpeta desde la que se ejecuta la CLI. La plantilla versionada es
 | `AWS_SESSION_TOKEN` | secreto | Solo para credenciales temporales (`ASIA...`). | — |
 | `AWS_PROFILE` | texto | Alternativa: perfil de `~/.aws/config` (o SSO). | — |
 | `CAMPAIGNS_INPUT_BUCKET` | texto | Bucket de entrada del ingester. | `s3`, `trace` |
-| `CAMPAIGNS_INPUT_PREFIX` | texto · vacío | Prefijo de las keys (vacío = raíz del bucket). | `s3` |
+| `CAMPAIGNS_INPUT_PREFIX` | texto · vacío | Prefijo de las keys (vacío = raíz del bucket; se agrega `/` final). `s3 rm` solo borra dentro de él. | `s3` |
 | `CAMPAIGNS_TABLE_NAME` | texto | Tabla de campañas. | `dynamo get/find/list/purge/history/campaign`, `dynamo dump/clean` (con `--table campaigns\|all`), `scheduler run` |
 | `CAMPAIGNS_TABLE_CAMPAIGN_INDEX` | texto · vacío | GSI por `campaign_id`; vacío = scan ([ADR-0004](adr/0004-busquedas-sin-gsi.md)). Con él, `find`, `campaign`, `purge` y `clean --campaign-id` hacen `query`. | — |
 | `CAMPAIGNS_LOGS_TABLE_NAME` | texto | Tabla de logs del ingester. | `dynamo logs/history/campaign`, `dynamo dump/clean` (con `--table logs\|all`) |
@@ -94,7 +94,7 @@ muestra Cognito y fake channel como `OPCIONAL`; con algunas, `FALTA CONFIG`.
 | `dynamo clean` | `dynamodb:Scan`, `dynamodb:Query` y `dynamodb:BatchWriteItem` sobre las dos tablas; unas credenciales de solo lectura no alcanzan |
 | `scheduler run` | `lambda:GetFunctionConfiguration` y `lambda:InvokeFunction` sobre el ARN del scheduler, `dynamodb:Query` sobre la tabla de campañas y `logs:FilterLogEvents` sobre su log group. `InvokeFunction` es de escritura: no la incluyen `ReadOnlyAccess` ni `AWSLambda_ReadOnlyAccess` |
 | `scheduler health` | `lambda:GetFunctionConfiguration` y `lambda:InvokeFunction` sobre el ARN del scheduler |
-| `s3` (pendiente) | `s3:PutObject`, `s3:ListBucket`, `s3:GetObject`, `s3:DeleteObject` |
+| `s3` | `s3 ls`: `s3:ListBucket`; `s3 get`: `s3:GetObject`; `s3 upload`: `s3:PutObject`; `s3 rm`: `s3:GetObject` (para `HeadObject`) y `s3:DeleteObject` |
 | `lambda` (pendiente) | `lambda:InvokeFunction` (+ `s3:GetObject` para el `head_object` del ingester) |
 
 En `config check`, un recurso sin permiso sale como `SIN PERMISO` en lugar de fallar todo el comando.

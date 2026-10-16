@@ -17,3 +17,6 @@ htmlcov/
 .env
 .env.*
 !.env.example
+
+# CSV de prueba locales (la plantilla versionada está en templates/)
+data/
