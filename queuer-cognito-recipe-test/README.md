@@ -59,7 +59,7 @@ significa que Istio dejó pasar la petición.
 ### Paso 1 – Verificar que la receta nueva está desplegada
 
 ```bash
-kubectl get authorizationpolicy -n <namespace> -o yaml | grep -A30 "rules:"
+kubectl get authorizationpolicy -n artemis-dev -o yaml | grep -A30 "rules:"
 ```
 
 Deben aparecer las tres reglas y **no** debe aparecer `jwt-allowed-paths`.
@@ -76,8 +76,8 @@ Deben aparecer las tres reglas y **no** debe aparecer `jwt-allowed-paths`.
 También se pueden leer del clúster:
 
 ```bash
-kubectl get virtualservice -n <namespace> | grep queuer
-kubectl get virtualservice <nombre-vs> -n <namespace> \
+kubectl get virtualservice -n artemis-dev | grep queuer
+kubectl get virtualservice <nombre-vs> -n artemis-dev \
   -o jsonpath='{.spec.hosts}{"\n"}{.spec.http[0].match[0].uri.prefix}{"\n"}{.spec.http[0].rewrite.uri}{"\n"}'
 ```
 
@@ -124,7 +124,7 @@ Termina con código `0` si todo pasa y `1` si algún caso falla.
 |---|---|---|
 | `http://localhost:<port>/...` | **No.** El tráfico a localhost no pasa por el sidecar | No sirve como evidencia |
 | `https://<GW_INT><PREFIX_INT>/...` | **Sí.** Sale al ingress gateway y vuelve al queuer por el VirtualService interno | Casos 2.1, 2.3, 3.4 y 3.5 |
-| `http://<servicio>.<namespace>.svc.cluster.local:<port>/queuer` | **Sí**, con identidad del namespace del queuer (mTLS) | Caso 1.1 |
+| `http://<servicio>.artemis-dev.svc.cluster.local:<port>/queuer` | **Sí**, con identidad del namespace del queuer (mTLS) | Caso 1.1 |
 
 Cuando la llamada va por el host interno, el queuer la recibe desde el ingress gateway, no desde su propio pod.
 Por eso la regla 1 no interfiere con esos casos: la prueba 3.1 dio 403, así que el namespace del gateway no está permitido.
@@ -144,24 +144,82 @@ curl -s -X POST "${COGNITO_URL%/}/oauth2/token" \
 
 El token de `client_credentials` dura poco (por defecto, 1 hora); si recibes 401 en 3.4, genera otro.
 
-### 6.3 Entrar al pod
+### 6.3 Conectarse al EKS y entrar al pod
+
+**1. Conectarse al clúster (DEV)**
+
+Con las credenciales de AWS ya exportadas (`AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `AWS_SESSION_TOKEN`, o `AWS_PROFILE`):
 
 ```bash
-kubectl get pods -n <namespace> | grep queuer
-kubectl get pod <pod-queuer> -n <namespace> -o jsonpath='{.spec.containers[*].name}{"\n"}'   # nombre del contenedor
-
-kubectl exec -it -n <namespace> <pod-queuer> -c <contenedor-queuer> -- sh
-command -v curl || echo "sin curl"
+aws sts get-caller-identity                     # confirma el rol con el que entraste
+aws eks update-kubeconfig --name eks-informacion-dev --region us-east-1
+kubectl config set-context --current --namespace=artemis-dev
 ```
 
-Si el contenedor de la app no trae `curl`, usa el contenedor del sidecar:
+Desde aquí, los comandos `kubectl` usan `artemis-dev` por defecto y no necesitan `-n`.
+El resto de comandos de este README ya usan `artemis-dev` y la variable `$POD`.
+
+**2. Ubicar el pod del queuer**
 
 ```bash
-kubectl exec -it -n <namespace> <pod-queuer> -c istio-proxy -- bash
+kubectl get pods | grep queuer
+```
+
+> `kubectl get pods -w` se queda observando cambios; sal con `Ctrl+C`.
+
+Elige un pod `Running` con `READY 2/2` (app + sidecar de Istio) y guárdalo en una variable:
+
+```bash
+POD=$(kubectl get pods --no-headers | grep queuer | grep Running | head -1 | awk '{print $1}')
+echo $POD
+```
+
+**3. Ver los contenedores del pod**
+
+```bash
+kubectl get pod $POD -o jsonpath='{.spec.containers[*].name}{"\n"}'
+```
+
+Deben salir dos: el de la app (`<distintivo>-queuer-<version>`) e `istio-proxy`.
+
+**4. Validar el permiso de exec**
+
+```bash
+kubectl auth can-i create pods/exec
+```
+
+Si responde `no` (o `kubectl exec` da `Forbidden`), tu rol IAM no tiene permiso de `pods/exec` en `artemis-dev`; hay que solicitarlo al equipo de plataforma.
+
+**5. Entrar al contenedor de la app y revisar `curl`**
+
+```bash
+kubectl exec -it $POD -c <contenedor-app> -- sh
+```
+
+```sh
+command -v curl || command -v wget || echo "sin curl ni wget"
+```
+
+Si el contenedor de la app no trae `curl`, o no tiene `sh` (`executable file not found`), sal con `exit` y entra al sidecar:
+
+```bash
+kubectl exec -it $POD -c istio-proxy -- bash
 ```
 
 > Desde `istio-proxy` las llamadas salen sin pasar por el sidecar (sin mTLS). Para los casos del host interno
 > (6.4) no importa. El caso 1.1 (6.5) **sí** debe ejecutarse desde el contenedor de la app.
+
+**6. Obtener el host y el prefijo internos**
+
+Desde tu máquina, en otra terminal:
+
+```bash
+kubectl get virtualservice | grep queuer
+kubectl get virtualservice <vs-internal-del-queuer> \
+  -o jsonpath='{.spec.hosts}{"\n"}{.spec.http[0].match[0].uri.prefix}{"\n"}{.spec.http[0].rewrite.uri}{"\n"}'
+```
+
+Con esos valores (`GW_INT` y `PREFIX_INT`) y el token de la sección 6.2, continúa con la sección 6.4.
 
 ### 6.4 Casos del host interno
 
@@ -217,7 +275,7 @@ Si el ingress tiene otro nombre o namespace, búscalo con `kubectl get svc -A | 
 **1.1 – Namespace permitido.** Desde el **contenedor de la app** del queuer, llama directo al Service:
 
 ```sh
-SVC="http://<bot-platform-distinctive>-queuer-<version>-service.<namespace>.svc.cluster.local:<service-port>"
+SVC="http://<bot-platform-distinctive>-queuer-<version>-service.artemis-dev.svc.cluster.local:<service-port>"
 probar 1.1 "Service directo, sin token, desde namespace del queuer -> esperado 400 si el namespace esta en jwt-allowed-namespaces" \
   -X POST "$SVC/queuer" -H "Content-Type: application/json" -H "Accept: application/json" -d "$BODY"
 ```
@@ -235,7 +293,7 @@ en un namespace que no esté en la lista → esperado 403.
 Copia la salida de la terminal del pod. Para guardarla directo en tu máquina, puedes ejecutar los comandos sin entrar a una sesión interactiva:
 
 ```bash
-kubectl exec -i -n <namespace> <pod-queuer> -c <contenedor> -- sh < casos-internos.sh \
+kubectl exec -i $POD -c <contenedor> -- sh < casos-internos.sh \
   | tee evidencia-interno-$(date +%Y%m%d-%H%M).log
 ```
 
@@ -257,10 +315,10 @@ Comandos útiles:
 
 ```bash
 # Logs del sidecar del queuer: buscar rbac_access_denied / jwt_authn
-kubectl logs -n <namespace> <pod-queuer> -c istio-proxy --tail=100
+kubectl logs $POD -c istio-proxy --tail=100
 
 # RequestAuthentication desplegada (issuer / jwksUri)
-kubectl get requestauthentication -n <namespace> -o yaml
+kubectl get requestauthentication -n artemis-dev -o yaml
 ```
 
 ## 8. Regresión funcional (opcional)
