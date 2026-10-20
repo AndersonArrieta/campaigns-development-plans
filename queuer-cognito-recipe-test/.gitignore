@@ -1,2 +1,4 @@
 # Configuración local con el client secret de Cognito
 config.env
+# Casos internos con el token de Cognito
+casos-internos.sh
