@@ -2,6 +2,8 @@
 
 Hallazgos al revisar la rama `feature/7931497-queuer-ms-kafka-rest-proxy` (commit `cecc318af`). Conviene validarlos en las pruebas antes de liberar.
 
+Seguimiento en el [backlog](../backlog/README.md): los escenarios de aceptación excluyen los casos afectados por las observaciones 2 y 3, y [T-007](../backlog/tasks/T-007-evidencias-y-trazabilidad.md) propone un bug `B-0NN` por cada observación 1–4 que se confirme en `dev`.
+
 ## 1. El mensaje publicado cambia el casing de `metadata`
 
 **Impacto: alto (contrato con el consumidor).**

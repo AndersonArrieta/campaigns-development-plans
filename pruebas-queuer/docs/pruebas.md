@@ -7,6 +7,16 @@
 3. **Tópicos creados** en el broker y permisos de escritura para el usuario del secreto.
 4. Para ejecución local: perfil `local` (conexión `PLAINTEXT`, LocalStack en `http://localhost:4566`) y `spring.profiles.active` definido, porque `KafkaProducerConfig` lo inyecta sin valor por defecto.
 
+## Datos de prueba en dev
+
+Se definen en [T-003](../backlog/tasks/T-003-datos-prueba-kafka-dev.md). Hasta que esa tarjeta se cierre, estos valores son propuestas:
+
+| Dato | Valor | Estado |
+|---|---|---|
+| `kafkaAppId` (escenarios `202`) | `others-test` | Propuesto, por confirmar segmento y consumidor |
+| `userIdentifier` ficticio | `573000000000` | Propuesto |
+| `appId` sin segmento (escenarios `422`) | `queuer-acceptance-sin-segmento` | Propuesto, por verificar que no exista |
+
 ## Casos de prueba
 
 Base URL local: `http://localhost:8080`.
@@ -130,6 +140,54 @@ curl -s http://localhost:8080/actuator/health
 kafka-console-consumer --bootstrap-server localhost:9092 \
   --topic <tópico> --from-beginning --property print.key=true
 ```
+
+## Automatización en Karate
+
+Escenarios que se agregan a las pruebas de despliegue de `queuer_ms`. El trabajo está planificado en el [backlog](../backlog/README.md); [T-007](../backlog/tasks/T-007-evidencias-y-trazabilidad.md) actualiza la columna de estado al ejecutarlos en `dev`.
+
+### Aceptación — `queuer_ms/deployment/acceptanceTest`
+
+| Escenario | Caso | Esperado | Tarjeta | Estado |
+|---|---|---|---|---|
+| AC-C01 | C-01 | `202` | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Planeado |
+| AC-C02 | C-02 | `202` | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Planeado |
+| AC-C03 | C-03 | `400` sin `metadata` | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Planeado |
+| AC-C04 | C-04 | `400` `metadata.Id` en blanco | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Planeado |
+| AC-C05 | — | `400` sin `data.applicationIdentifier` | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Planeado |
+| AC-C06 | C-06 | `400` sin `data.campaign` | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Planeado |
+| AC-C07 | C-07 | `400` sin `notification.dataTime` | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Planeado |
+| AC-C08 | C-05 | `400` `metadata` en camelCase | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Planeado |
+| AC-C09 | C-08 | `422` appId sin segmento | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Planeado |
+| AC-C10 | — | `403` RBAC | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Planeado |
+| AC-N01 | N-01 | `202` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Planeado |
+| AC-N02 | — | `202` sin `messageContext` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Planeado |
+| AC-N03 | — | `400` sin `metadata` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Planeado |
+| AC-N04 | — | `400` `metadata.Id` en blanco | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Planeado |
+| AC-N05 | N-03 | `400` sin `data.notification` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Planeado |
+| AC-N06 | N-02 | `400` sin `message` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Planeado |
+| AC-N07 | — | `400` sin `userIdentifier` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Planeado |
+| AC-N08 | N-04 | `422` appId sin segmento | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Planeado |
+| AC-N09 | — | `403` RBAC | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Planeado |
+
+### Humo — `queuer_ms/deployment/smokeTest`
+
+| Escenario | Request | Esperado | Tarjeta | Estado |
+|---|---|---|---|---|
+| SM-01 | `GET /actuator/health` (existente) | `200` `UP` | — | Existente |
+| SM-02 | `POST /api/v1/campaigns` sin `metadata` | `400` | [T-006](../backlog/tasks/T-006-humo-endpoints-kafka.md) | Planeado |
+| SM-03 | `POST /api/v1/notifications` sin `metadata` | `400` | [T-006](../backlog/tasks/T-006-humo-endpoints-kafka.md) | Planeado |
+
+Los escenarios de humo no publican en Kafka: todos cortan en la validación del payload.
+
+### Casos que no se automatizan por ahora
+
+| Caso | Motivo |
+|---|---|
+| C-09, C-10, N-05 | Requieren modificar la configuración de segmentos en DynamoDB durante la prueba |
+| C-11, C-12, C-18 | Requieren romper el secreto, el broker o rotar credenciales; se prueban a mano |
+| C-13, C-14, N-06 | El comportamiento actual es un defecto ([observaciones 2 y 3](observaciones.md#2-body-vacío-responde-202-sin-publicar)); se automatizan con el bug correspondiente |
+| C-15, C-16, C-17 | Bajo valor en aceptación; cubiertos por las pruebas unitarias del `Handler` o manualmente |
+| H-01 a H-03 | El estado del health depende de envíos previos; ver [T-006](../backlog/tasks/T-006-humo-endpoints-kafka.md) |
 
 ## Pruebas unitarias de la rama
 

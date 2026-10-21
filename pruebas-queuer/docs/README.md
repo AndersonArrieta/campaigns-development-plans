@@ -20,6 +20,23 @@ El endpoint existente `POST /queuer` (operación `VariableSetter`) no cambia de 
 - [Publicación en Kafka: enrutamiento, secretos, resiliencia y health](publicacion-kafka.md)
 - [Guía de pruebas y casos de prueba](pruebas.md)
 - [Observaciones de la revisión](observaciones.md)
+- [Backlog de pruebas](../backlog/README.md)
+
+## Backlog de pruebas
+
+El trabajo para automatizar estos casos en las pruebas de despliegue de `queuer_ms` (`deployment/acceptanceTest` y `deployment/smokeTest`, Karate) está en [`../backlog/`](../backlog/README.md), vault de Obsidian en modo agente. La cola de ejecución está en [`dashboards/ready-queue.md`](../backlog/dashboards/ready-queue.md).
+
+| Tarjeta | Qué cubre |
+|---|---|
+| [T-001](../backlog/tasks/T-001-parametrizar-karate-config.md) | `baseUrl`, `kafkaReadTimeout` y `kafkaAppId` en los `karate-config.js` |
+| [T-002](../backlog/tasks/T-002-verificar-exposicion-rutas.md) | Exposición de `/api/v1/*` por VirtualService y Cognito en `dev` |
+| [T-003](../backlog/tasks/T-003-datos-prueba-kafka-dev.md) | Datos de prueba Kafka en `dev` (appId, segmento, secreto, tópicos) |
+| [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Aceptación de `POST /api/v1/campaigns` |
+| [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Aceptación de `POST /api/v1/notifications` |
+| [T-006](../backlog/tasks/T-006-humo-endpoints-kafka.md) | Humo de las dos rutas sin publicar en Kafka |
+| [T-007](../backlog/tasks/T-007-evidencias-y-trazabilidad.md) | Ejecución en `dev`, evidencias y trazabilidad |
+
+El detalle de qué escenario cubre cada caso está en [pruebas.md — Automatización en Karate](pruebas.md#automatización-en-karate).
 
 ## Flujo general
 
