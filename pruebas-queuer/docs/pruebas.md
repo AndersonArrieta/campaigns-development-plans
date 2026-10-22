@@ -189,6 +189,66 @@ Los escenarios de humo no publican en Kafka: todos cortan en la validación del 
 | C-15, C-16, C-17 | Bajo valor en aceptación; cubiertos por las pruebas unitarias del `Handler` o manualmente |
 | H-01 a H-03 | El estado del health depende de envíos previos; ver [T-006](../backlog/tasks/T-006-humo-endpoints-kafka.md) |
 
+## Pruebas modulares (JMeter)
+
+Pruebas de carga de los endpoints Kafka. Viven en el repo `NU0284001_Artemis_Chatbots_Platform_PE`, en `Back/Modular/queuer_ms/SC_queuer.jmx`, el mismo script que hoy carga `POST /queuer` con el grupo `GH_queuer`. Corren en **QA** (host `informacion-ext-qa.apps.ambientesbc.com`, Cognito `chatbots-artemis-qa`) con el Throughput Shaping Timer, y envían los resultados a Elasticsearch con el Backend Listener (`idPrueba`). El trabajo está en la épica [E-modular](../backlog/epics/E-modular.md).
+
+### Datos de prueba en QA
+
+Se definen en [T-009](../backlog/tasks/T-009-datos-carga-kafka-qa.md). Hasta que esa tarjeta se cierre, estos valores son propuestas:
+
+| Dato | Valor | Estado |
+|---|---|---|
+| `kafkaAppId` | `performance_test` (el mismo de la prueba modular de `campaigns_ms`) | Propuesto, falta confirmar segmento y efecto en el consumidor |
+| `userIdentifier` | `57` + 10 dígitos aleatorios, o un valor fijo ficticio si el consumidor entrega al canal | Por definir |
+| `metadata.Id` | `qmod-<runId>-<uuid>`, que es la key Kafka y permite filtrar la corrida | Propuesto |
+| `pathCampaigns` / `pathNotifications` | se obtiene en [T-008](../backlog/tasks/T-008-exposicion-rutas-qa.md) | Por verificar |
+
+### Escenarios
+
+| Escenario | Transacción | Qué mide | Tarjeta | Estado |
+|---|---|---|---|---|
+| MOD-C01 | `Tx_modQueuerCampaigns` | Carga por TPS sobre `POST /api/v1/campaigns`: `202`, `$.status == accepted`, duración ≤ `assertionTimeout` | [T-011](../backlog/tasks/T-011-carga-campaigns-jmeter.md) | Planeado |
+| MOD-N01 | `Tx_modQueuerNotifications` | Lo mismo sobre `POST /api/v1/notifications` | [T-012](../backlog/tasks/T-012-carga-notifications-jmeter.md) | Planeado |
+| MOD-K01 | `Tx_validateQueuerTopics` | Al cierre, los mensajes con key `qmod-<runId>-*` en cada tópico coinciden con los `202` | [T-013](../backlog/tasks/T-013-validacion-kafka-modular.md) | Planeado |
+| MOD-K02 | `Chk_metadataCasing` | Informativo: casing de `metadata` en el mensaje publicado ([observación 1](observaciones.md#1-el-mensaje-publicado-cambia-el-casing-de-metadata)) | [T-013](../backlog/tasks/T-013-validacion-kafka-modular.md) | Planeado |
+
+El perfil de carga (TPS, duración) y los umbrales (p95, % de error) se acuerdan en [T-014](../backlog/tasks/T-014-ejecucion-modular-qa.md), donde también se registra la línea base. El grupo `GH_queuer` y las propiedades que hoy usa el release no cambian: los grupos nuevos tienen `0` por defecto y la validación Kafka se activa solo con `-JvalidateKafka=true`.
+
+## Pruebas E2E (Serenity)
+
+Prueban el flujo completo en **QA**:
+
+```
+queuer (HTTP) → Kafka → platform_campaigns_ms → adaptador de salida → fakechannel
+```
+
+El código vive en el repo `NU0284001_Artemis_Chatbots_Platform_MR_Test`. Los escenarios se escriben en `Platform_test/`, un proyecto Serenity + Cucumber + Screenplay compartido. `queuer_ms_test/azure-pipeline.yaml` elige qué runners y features se empaquetan (hoy solo `IntegratorNode`). El trabajo está en la épica [E-e2e](../backlog/epics/E-e2e.md).
+
+Se reutiliza la suite `Notifications` existente (`PrepareNotificationEvent`, `VerifyChannelDelivery`, `Cognito`, datasets `notifications_e2e_flow` / `campaigns_e2e_flow`). La diferencia es que el evento entra por `POST /api/v1/*` del queuer en lugar de publicarse directo en Kafka.
+
+### Datos y propiedades
+
+Se confirman en [T-015](../backlog/tasks/T-015-prerrequisitos-e2e-qa.md):
+
+| Propiedad / dato | Valor | Estado |
+|---|---|---|
+| `-DendpointQueuer` | host + prefijo del queuer en QA (de [T-008](../backlog/tasks/T-008-exposicion-rutas-qa.md)) | Propuesto |
+| `-DappId` | `others-test` (valor por defecto de la suite `Notifications`) | Por confirmar que su segmento publica en los tópicos que consume el flujo |
+| `-DendpointGetMessageFake`, `-DcognitoEndpoint`, `-DclientId`, `-DclientSecret` | los mismos de la suite `Notifications` | Existentes |
+| Nodo y texto de campaña | `N-03-99-10` / `Campaig_e2e_test_delivered_successfully` (dataset `campaigns_e2e_flow`) | Por confirmar con el consumidor |
+
+### Escenarios — `features/queuer.feature`, runner `Queuer`
+
+| Escenario | Flujo | Esperado | Tarjeta | Estado |
+|---|---|---|---|---|
+| E2E-N01 | Notificación en línea, WhatsApp | `202` del queuer y mensaje entregado en `get-messages` | [T-017](../backlog/tasks/T-017-e2e-notificaciones-queuer.md) | Planeado |
+| E2E-N02 | Notificación en línea, Teams | `202` y mensaje entregado | [T-017](../backlog/tasks/T-017-e2e-notificaciones-queuer.md) | Planeado |
+| E2E-C01 | Campaña, WhatsApp | `202` y texto del nodo de campaña entregado | [T-018](../backlog/tasks/T-018-e2e-campanas-queuer.md) | Planeado |
+| E2E-C02 | Campaña, Teams | `202` y texto del nodo de campaña entregado | [T-018](../backlog/tasks/T-018-e2e-campanas-queuer.md) | Planeado |
+
+Los casos negativos (`400`, `422`) no se repiten en E2E: están cubiertos por la aceptación en Karate ([T-004](../backlog/tasks/T-004-aceptacion-campaigns.md), [T-005](../backlog/tasks/T-005-aceptacion-notifications.md)).
+
 ## Pruebas unitarias de la rama
 
 Desde `queuer_ms/`:

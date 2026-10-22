@@ -12,7 +12,12 @@ Eres un **agente de ingeniería** que ejecuta **una** tarjeta del backlog del pr
 microservicio Java + Spring Boot 4 WebFlux con Clean Architecture (scaffold Bancolombia,
 Gradle), desplegado en EKS detrás de Istio (VirtualService + AuthorizationPolicy con JWT de
 Cognito). Las pruebas de despliegue son proyectos **Karate 1.0.1** independientes en
-`queuer_ms/deployment/acceptanceTest` y `queuer_ms/deployment/smokeTest`.
+`queuer_ms/deployment/acceptanceTest` y `queuer_ms/deployment/smokeTest`. Las pruebas
+modulares de rendimiento (épica `E-modular`) son un script **JMeter 5.5** en el repo
+`NU0284001_Artemis_Chatbots_Platform_PE` (`Back/Modular/queuer_ms/SC_queuer.jmx`) que corre en
+**QA**. Las E2E funcionales (épica `E-e2e`) son **Serenity 5 + Cucumber + Screenplay (JDK 17)**
+en el repo `NU0284001_Artemis_Chatbots_Platform_MR_Test`: el código en `Platform_test/` y el
+pipeline en `queuer_ms_test/`.
 
 ## Dónde vive cada cosa
 | Qué | Ruta |
@@ -20,6 +25,8 @@ Cognito). Las pruebas de despliegue son proyectos **Karate 1.0.1** independiente
 | Backlog (este vault) | `campaigns-development-plans/pruebas-queuer/backlog/` |
 | Documentación de los endpoints | `campaigns-development-plans/pruebas-queuer/docs/` |
 | Código y pruebas Karate | repo `NU0284001_Artemis_Chatbots_Platform_MR`, carpeta `queuer_ms/` (`/mnt/c/Users/AndersonElitArrietaR/repos/NU0284001_Artemis_Chatbots_Platform_MR`) |
+| Pruebas modulares JMeter (`E-modular`) | repo `NU0284001_Artemis_Chatbots_Platform_PE`, carpeta `Back/Modular/queuer_ms/` (`/mnt/c/Users/AndersonElitArrietaR/repos/NU0284001_Artemis_Chatbots_Platform_PE`), rama base `trunk`; referencia de Kafka en `Back/Modular/campaigns_ms/SC_campaigns.jmx` |
+| E2E Serenity (`E-e2e`) | repo `NU0284001_Artemis_Chatbots_Platform_MR_Test` (`/mnt/c/Users/AndersonElitArrietaR/repos/NU0284001_Artemis_Chatbots_Platform_MR_Test`), carpetas `Platform_test/` (código compartido) y `queuer_ms_test/` (pipeline), rama base `trunk`; suite de referencia `Notifications` |
 | Rama base de los endpoints | `feature/7931497-queuer-ms-kafka-rest-proxy` |
 | Configuración local para curl contra el ambiente | `campaigns-development-plans/queuer-cognito-recipe-test/config.env` (git-ignorado) |
 
@@ -55,6 +62,12 @@ La fuente de verdad es el **frontmatter** de cada tarjeta: `status`
    - Pruebas unitarias del microservicio: `cd queuer_ms && ./gradlew test`.
    - Karate de aceptación: `cd queuer_ms/deployment/acceptanceTest && ./gradlew clean test -Dendpoint=... -DbaseUrl=... -DcognitoEndpoint=... -DclientId=... -DclientSecret=... "-Dkarate.options=--tags @<tag>" -i`.
    - Karate de humo: igual en `queuer_ms/deployment/smokeTest`.
+   - JMeter modular (`E-modular`): `cd Back/Modular/queuer_ms && jmeter -n -t SC_queuer.jmx -l <jtl> -J...`
+     en modo no GUI. Las credenciales (`clientSecret`, `aws*`) se pasan solo como `-J`; nunca
+     se versionan en el `.jmx`. Las corridas en QA por encima de 1 TPS requieren confirmación del usuario.
+   - E2E Serenity (`E-e2e`): `cd Platform_test && ./gradlew clean test --tests "co.com.bancolombia.certification.chatbotsPlatform.runners.Queuer" -D...`.
+     No modifiques pasos ni interacciones de otras suites (`Notifications`, `Campaigns`, `IntegratorNode`):
+     `Platform_test` es compartido por todos los pipelines `*_ms_test`.
    - Desde WSL, `git fetch`/`push` contra Azure DevOps requieren `git.exe` (las credenciales están en Windows).
 4. Corre el bloque `## Verificación`. Es el criterio de cierre — no lo omitas.
 5. Cierra: **pasa** → `status: done` y checkboxes cumplidos a `[x]`;

@@ -35,8 +35,21 @@ El trabajo para automatizar estos casos en las pruebas de despliegue de `queuer_
 | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Aceptación de `POST /api/v1/notifications` |
 | [T-006](../backlog/tasks/T-006-humo-endpoints-kafka.md) | Humo de las dos rutas sin publicar en Kafka |
 | [T-007](../backlog/tasks/T-007-evidencias-y-trazabilidad.md) | Ejecución en `dev`, evidencias y trazabilidad |
+| [T-008](../backlog/tasks/T-008-exposicion-rutas-qa.md) | Exposición de `/api/v1/*` en QA para las pruebas modulares |
+| [T-009](../backlog/tasks/T-009-datos-carga-kafka-qa.md) | Datos de carga y destino Kafka en QA |
+| [T-010](../backlog/tasks/T-010-parametrizar-sc-queuer.md) | Variables nuevas en `SC_queuer.jmx`, retrocompatibles con `GH_queuer` |
+| [T-011](../backlog/tasks/T-011-carga-campaigns-jmeter.md) | Grupo de carga JMeter de `POST /api/v1/campaigns` |
+| [T-012](../backlog/tasks/T-012-carga-notifications-jmeter.md) | Grupo de carga JMeter de `POST /api/v1/notifications` |
+| [T-013](../backlog/tasks/T-013-validacion-kafka-modular.md) | Validación en Kafka al cierre de la carga |
+| [T-014](../backlog/tasks/T-014-ejecucion-modular-qa.md) | Ejecución en QA, línea base y evidencias |
+| [T-015](../backlog/tasks/T-015-prerrequisitos-e2e-qa.md) | Prerrequisitos E2E en QA: del queuer al fakechannel |
+| [T-016](../backlog/tasks/T-016-interaccion-envio-queuer.md) | Interacción Screenplay para enviar por el queuer y validar el `202` |
+| [T-017](../backlog/tasks/T-017-e2e-notificaciones-queuer.md) | E2E de notificaciones por el queuer (WhatsApp y Teams) |
+| [T-018](../backlog/tasks/T-018-e2e-campanas-queuer.md) | E2E de campañas por el queuer (WhatsApp y Teams) |
+| [T-019](../backlog/tasks/T-019-pipeline-queuer-ms-test.md) | Suite `Queuer` en el pipeline de `queuer_ms_test` |
+| [T-020](../backlog/tasks/T-020-ejecucion-e2e-qa.md) | Ejecución E2E en QA y evidencias |
 
-El detalle de qué escenario cubre cada caso está en [pruebas.md — Automatización en Karate](pruebas.md#automatización-en-karate).
+El detalle de qué escenario cubre cada caso está en [pruebas.md — Automatización en Karate](pruebas.md#automatización-en-karate), [pruebas.md — Pruebas modulares](pruebas.md#pruebas-modulares-jmeter) y [pruebas.md — Pruebas E2E](pruebas.md#pruebas-e2e-serenity). Las pruebas modulares (T-008 a T-014) viven en el repo `NU0284001_Artemis_Chatbots_Platform_PE/Back/Modular/queuer_ms`, y las E2E (T-015 a T-020) en `NU0284001_Artemis_Chatbots_Platform_MR_Test` (`Platform_test` + `queuer_ms_test`).
 
 ## Flujo general
 
