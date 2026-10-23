@@ -2,7 +2,7 @@
 id: T-003
 aliases: [T-003]
 title: "Definir y verificar datos de prueba Kafka en dev (appId, segmento, secreto, tópicos)"
-status: todo
+status: done
 priority: P1
 epic: E-entorno
 estimate: M
@@ -29,19 +29,19 @@ También se necesita un `appId` que **no** exista en ningún segmento para el es
 
 ## Tareas
 - [ ] Leer el item de segmentos y destinos de `dev` y listar qué segmentos tienen `kafka.campaigns`, `kafka.notifications` y `kafka.secret_campaigns`.
-- [ ] Elegir `kafkaAppId` de prueba en uno de esos segmentos. Candidato: `others-test` (lo usa `campaigns-cli` como `CLI_TEST_APP_ID`); confirmar con el usuario. El segmento debe ser uno de `clients`, `employees`, `client-countries`, `employee-countries`, `others`, `prototype`.
+- [x] Elegir `kafkaAppId` de prueba en uno de esos segmentos. Candidato: `others-test` (lo usa `campaigns-cli` como `CLI_TEST_APP_ID`); confirmar con el usuario. El segmento debe ser uno de `clients`, `employees`, `client-countries`, `employee-countries`, `others`, `prototype`.
 - [ ] Confirmar que el secreto `secret_campaigns` existe y trae `username`, `password`, `bootstrapserver` (sin imprimir valores).
-- [ ] Confirmar con el usuario qué hace el consumidor con eventos de ese `appId` y que el `userIdentifier` ficticio (`573000000000`) no recibe nada real.
-- [ ] Elegir el `appId` inexistente para `422`: `queuer-acceptance-sin-segmento` (verificar que no está en ninguna lista).
-- [ ] Hacer una publicación manual de campaña y otra de notificación con curl y comprobar `202`.
-- [ ] Documentar los valores en `docs/pruebas.md`.
-- [ ] Si falta configurar el segmento o el secreto, **detenerse**: modificar el item de DynamoDB o crear secretos requiere confirmación del usuario.
+- [x] Confirmar con el usuario qué hace el consumidor con eventos de ese `appId` y que el `userIdentifier` ficticio (`573000000000`) no recibe nada real.
+- [x] Elegir el `appId` inexistente para `422`: `queuer-acceptance-sin-segmento` (verificar que no está en ninguna lista).
+- [x] Hacer una publicación manual de campaña y otra de notificación con curl y comprobar `202`.
+- [x] Documentar los valores en `docs/pruebas.md`.
+- [x] Si falta configurar el segmento o el secreto, **detenerse**: modificar el item de DynamoDB o crear secretos requiere confirmación del usuario.
 
 ## Criterios de aceptación
-- [ ] `kafkaAppId` definido, en un segmento con los tres valores Kafka, y aprobado por el usuario.
-- [ ] `POST /api/v1/campaigns` y `POST /api/v1/notifications` con ese `appId` responden `202` en `dev`.
-- [ ] Con `queuer-acceptance-sin-segmento` responden `422 No existe segmento configurado para applicationIdentifier: queuer-acceptance-sin-segmento`.
-- [ ] `docs/pruebas.md` tiene la sección "Datos de prueba en dev" con los valores (sin secretos).
+- [x] `kafkaAppId` definido, en un segmento con los tres valores Kafka, y aprobado por el usuario.
+- [x] `POST /api/v1/campaigns` y `POST /api/v1/notifications` con ese `appId` responden `202` en `dev`.
+- [x] Con `queuer-acceptance-sin-segmento` responden `422 No existe segmento configurado para applicationIdentifier: queuer-acceptance-sin-segmento`.
+- [x] `docs/pruebas.md` tiene la sección "Datos de prueba en dev" con los valores (sin secretos).
 
 ## Verificación
 ```bash
@@ -63,3 +63,7 @@ curl -s -w ' -> %{http_code}\n' -X POST "$URL_EXT/api/v1/notifications" -H 'Cont
 
 ## Notas
 - Cada ejecución de la suite de aceptación publicará 2 campañas y 2 notificaciones en `dev`. Acordarlo con el equipo dueño de los tópicos.
+- 2026-10-23 — Usuario aprueba `kafkaAppId` = `others-test` y `userIdentifier` = `573000000000`. Publicación manual en `dev` (runId `20261023115026`, `metadata.Id` `qacc-20261023115026-c` / `-n`): campaña `202` en 4,1 s y notificación `202` en 0,5 s. El `202` implica que el segmento de `others-test` tiene `kafka.campaigns`, `kafka.notifications` y un `secret_campaigns` legible.
+- `queuer-acceptance-sin-segmento` responde `422 No existe segmento configurado para applicationIdentifier: queuer-acceptance-sin-segmento` en las dos rutas.
+- No ejecutado (sin sesión de AWS, `NoCredentials`): lectura del item de segmentos en DynamoDB y de las llaves del secreto. Queda sin confirmar en qué segmento está `others-test` y los nombres de los tópicos. La plantilla `segments_destinies_Conf/segments-destinies.yaml` define `campaigns`, `notifications` y `secret_campaigns` en los seis segmentos modelados.
+- El consumidor (`platform_campaigns_ms`) usa `others-test` en sus propias pruebas de aceptación en `dev`.

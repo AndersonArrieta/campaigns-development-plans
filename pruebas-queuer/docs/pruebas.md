@@ -9,13 +9,18 @@
 
 ## Datos de prueba en dev
 
-Se definen en [T-003](../backlog/tasks/T-003-datos-prueba-kafka-dev.md). Hasta que esa tarjeta se cierre, estos valores son propuestas:
+Definidos en [T-003](../backlog/tasks/T-003-datos-prueba-kafka-dev.md) y verificados el 2026-10-23 con curl contra `dev`:
 
 | Dato | Valor | Estado |
 |---|---|---|
-| `kafkaAppId` (escenarios `202`) | `others-test` | Propuesto, por confirmar segmento y consumidor |
-| `userIdentifier` ficticio | `573000000000` | Propuesto |
-| `appId` sin segmento (escenarios `422`) | `queuer-acceptance-sin-segmento` | Propuesto, por verificar que no exista |
+| `kafkaAppId` (escenarios `202`) | `others-test` | Aprobado. `POST /api/v1/campaigns` y `/api/v1/notifications` responden `202` (el segmento tiene tópico y secreto Kafka) |
+| `userIdentifier` ficticio | `573000000000` | Aprobado |
+| `appId` sin segmento (escenarios `422`) | `queuer-acceptance-sin-segmento` | Verificado: `422 No existe segmento configurado para applicationIdentifier: queuer-acceptance-sin-segmento` |
+| `metadata.Id` | `qacc-<runId>-<c\|n>` | Recomendado, para identificar en el tópico los mensajes de cada corrida |
+
+- El primer `POST /api/v1/campaigns` tras un tiempo sin tráfico tardó ~4 s (lectura del secreto y creación del productor); por eso los escenarios Kafka usan `kafkaReadTimeout`.
+- No se leyó el item de segmentos en DynamoDB ni el secreto en Secrets Manager (sin sesión de AWS); el segmento concreto de `others-test` y los nombres de tópicos no están confirmados.
+- Cada ejecución de la suite de aceptación publica en los tópicos de `dev`.
 
 ## Casos de prueba
 
