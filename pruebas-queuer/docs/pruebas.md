@@ -174,15 +174,15 @@ Agregadas en [T-001](../backlog/tasks/T-001-parametrizar-karate-config.md) a los
 | AC-C08 | C-05 | `400` `metadata` en camelCase | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Implementado |
 | AC-C09 | C-08 | `422` appId sin segmento | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Implementado |
 | AC-C10 | — | `403` RBAC | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Implementado |
-| AC-N01 | N-01 | `202` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Planeado |
-| AC-N02 | — | `202` sin `messageContext` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Planeado |
-| AC-N03 | — | `400` sin `metadata` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Planeado |
-| AC-N04 | — | `400` `metadata.Id` en blanco | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Planeado |
-| AC-N05 | N-03 | `400` sin `data.notification` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Planeado |
-| AC-N06 | N-02 | `400` sin `message` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Planeado |
-| AC-N07 | — | `400` sin `userIdentifier` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Planeado |
-| AC-N08 | N-04 | `422` appId sin segmento | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Planeado |
-| AC-N09 | — | `403` RBAC | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Planeado |
+| AC-N01 | N-01 | `202` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Implementado |
+| AC-N02 | — | `202` sin `messageContext` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Implementado |
+| AC-N03 | — | `400` sin `metadata` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Implementado |
+| AC-N04 | — | `400` `metadata.Id` en blanco | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Implementado |
+| AC-N05 | N-03 | `400` sin `data.notification` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Implementado |
+| AC-N06 | N-02 | `400` sin `message` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Implementado |
+| AC-N07 | — | `400` sin `userIdentifier` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Implementado |
+| AC-N08 | N-04 | `422` appId sin segmento | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Implementado |
+| AC-N09 | — | `403` RBAC | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Implementado |
 
 ### Humo — `queuer_ms/deployment/smokeTest`
 

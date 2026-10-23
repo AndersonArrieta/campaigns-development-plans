@@ -2,7 +2,7 @@
 id: T-005
 aliases: [T-005]
 title: "Escenarios de aceptación para POST /api/v1/notifications"
-status: backlog
+status: done
 priority: P1
 epic: E-aceptacion
 estimate: M
@@ -25,10 +25,10 @@ Automatizar en Karate el contrato de `POST /api/v1/notifications` contra el ambi
 - `queuer_ms/deployment/acceptanceTest/src/test/resources/co/com/bancolombia/data/notification-request.json` (nuevo, payload base)
 
 ## Tareas
-- [ ] Crear `data/notification-request.json` con el payload completo de la doc.
-- [ ] Crear el feature con el mismo `Background` que campañas, con `path '/api/v1/notifications'`, `metadata.Id` único, `applicationIdentifier = kafkaAppId`, `userIdentifier = '573000000000'`.
-- [ ] Implementar los escenarios de la tabla (cada `400` con **una sola** violación).
-- [ ] Dejar fuera body vacío y JSON mal formado (ver [observaciones 2 y 3](../../docs/observaciones.md#2-body-vacío-responde-202-sin-publicar)), con comentario en el feature.
+- [x] Crear `data/notification-request.json` con el payload completo de la doc.
+- [x] Crear el feature con el mismo `Background` que campañas, con `path '/api/v1/notifications'`, `metadata.Id` único, `applicationIdentifier = kafkaAppId`, `userIdentifier = '573000000000'`.
+- [x] Implementar los escenarios de la tabla (cada `400` con **una sola** violación).
+- [x] Dejar fuera body vacío y JSON mal formado (ver [observaciones 2 y 3](../../docs/observaciones.md#2-body-vacío-responde-202-sin-publicar)), con comentario en el feature.
 
 | Id | Escenario | Mutación del body base | Esperado |
 |---|---|---|---|
@@ -43,9 +43,9 @@ Automatizar en Karate el contrato de `POST /api/v1/notifications` contra el ambi
 | AC-N09 | Validate 403 RBAC notification | header `Authorization: '123'` | `403`, `response == 'RBAC: access denied'` |
 
 ## Criterios de aceptación
-- [ ] Los 9 escenarios pasan en `dev` con `--tags @notifications`.
-- [ ] La suite completa de aceptación sigue en verde.
-- [ ] Ningún escenario usa un `appId` productivo ni un `userIdentifier` real.
+- [x] Los 9 escenarios pasan en `dev` con `--tags @notifications`.
+- [x] La suite completa de aceptación sigue en verde.
+- [x] Ningún escenario usa un `appId` productivo ni un `userIdentifier` real.
 
 ## Verificación
 ```bash
@@ -57,3 +57,5 @@ cd /mnt/c/Users/AndersonElitArrietaR/repos/NU0284001_Artemis_Chatbots_Platform_M
 
 ## Notas
 - `data/` comparte carpeta con el payload de campañas de T-004; si T-004 ya la creó, solo agregar el archivo.
+- 2026-10-23 — Implementado en la rama `feature/7978702_queuer_acceptance_tests` (sin commit): `notifications_acceptance_test.feature` (tags `@acceptanceTest @notifications`) y `data/notification-request.json`, con el mismo `Background` que campañas. En `dev` con `-DkafkaAppId=others-test`: `--tags @notifications` 9/9; suite completa 37/37 (17 `/queuer` + 10 campañas + 9 notificaciones + `get-token`).
+- Cada corrida publica 2 notificaciones en `dev` (AC-N01 y AC-N02). Igual que en campañas, el release debe pasar `-DkafkaAppId`.
