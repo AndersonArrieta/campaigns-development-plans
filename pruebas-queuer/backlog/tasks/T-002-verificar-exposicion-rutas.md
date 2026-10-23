@@ -2,7 +2,7 @@
 id: T-002
 aliases: [T-002]
 title: "Verificar exposición de /api/v1/* por VirtualService y Cognito en dev"
-status: todo
+status: done
 priority: P1
 epic: E-entorno
 estimate: S
@@ -29,14 +29,14 @@ Sin esta confirmación los escenarios de [[T-004-aceptacion-campaigns|T-004]], [
 ## Tareas
 - [ ] Desplegar en `dev` la rama `feature/7931497-queuer-ms-kafka-rest-proxy` (o confirmar que ya está desplegada) y anotar la versión de imagen.
 - [ ] Leer `match` y `rewrite` de los VirtualService del queuer en `dev`.
-- [ ] Probar con curl `POST /api/v1/campaigns` y `POST /api/v1/notifications` con token válido y un body sin `metadata` (no publica en Kafka).
-- [ ] Probar las mismas rutas sin token y con token inválido.
-- [ ] Si el VirtualService no enruta `/api/v1/*`, **detenerse** y pedir al usuario el cambio de variables del release (acción con efecto en el ambiente).
+- [x] Probar con curl `POST /api/v1/campaigns` y `POST /api/v1/notifications` con token válido y un body sin `metadata` (no publica en Kafka).
+- [x] Probar las mismas rutas sin token y con token inválido.
+- [x] Si el VirtualService no enruta `/api/v1/*`, **detenerse** y pedir al usuario el cambio de variables del release (acción con efecto en el ambiente).
 
 ## Criterios de aceptación
-- [ ] Con token válido, ambas rutas responden `400` con `{"error":"El objeto 'metadata' es obligatorio"}` (la petición llegó al `Handler`).
-- [ ] Sin token responden `403 RBAC: access denied`; con token inválido `401`.
-- [ ] Anotados en las notas de esta tarjeta el `vs-external-match` y `vs-external-rewrite` efectivos y la `baseUrl` resultante.
+- [x] Con token válido, ambas rutas responden `400` con `{"error":"El objeto 'metadata' es obligatorio"}` (la petición llegó al `Handler`).
+- [x] Sin token responden `403 RBAC: access denied`; con token inválido `401`.
+- [x] Anotados en las notas de esta tarjeta el `vs-external-match` y `vs-external-rewrite` efectivos y la `baseUrl` resultante.
 
 ## Verificación
 ```bash
@@ -65,3 +65,6 @@ done
 
 ## Notas
 - Los bodies no incluyen `metadata` a propósito: el `Handler` corta en la validación y no se publica nada en Kafka.
+- 2026-10-23 — curl contra `dev` (host externo, `baseUrl` = `https://<GW_EXT>/artemis/platform/queuer/v1`): `/api/v1/campaigns` y `/api/v1/notifications` responden `400 {"error":"El objeto 'metadata' es obligatorio"}` con token válido, `401` (`Jwt is not in the form of Header.Payload.Signature...`) con token inválido y `403 RBAC: access denied` sin token. Las rutas llegan al `Handler`: la exposición es correcta y no hace falta cambiar variables del release.
+- Inferido, sin confirmar con `kubectl`: `vs-external-match` = `/artemis/platform/queuer/v1` (con o sin `/` final) y `vs-external-rewrite` = raíz del servicio, porque `/queuer` y `/api/v1/*` llegan al pod con el mismo prefijo.
+- 2026-10-23 — Cerrada como `done` con la verificación funcional, por decisión del usuario. No se ejecutó la parte `kubectl` (`NoCredentials` contra `eks-informacion-dev`): quedan sin leer los valores reales de `match`/`rewrite` (se anotan los inferidos) y la versión de imagen desplegada. Las tareas de despliegue y lectura del VirtualService quedan sin marcar.
