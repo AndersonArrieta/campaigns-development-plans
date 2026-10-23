@@ -2,7 +2,7 @@
 id: T-001
 aliases: [T-001]
 title: "Parametrizar URL base y timeout de Kafka en los karate-config.js"
-status: todo
+status: done
 priority: P1
 epic: E-entorno
 estimate: S
@@ -29,16 +29,16 @@ El cambio debe ser **retrocompatible**: el release actual solo pasa `endpoint`, 
 - `queuer_ms/deployment/smokeTest/README.md`
 
 ## Tareas
-- [ ] En ambos `karate-config.js`, exponer `baseUrl`: valor de `karate.properties['baseUrl']`; si no viene, derivarlo de `endpoint` quitando el sufijo conocido (`/queuer` en aceptación, `/actuator/health` en humo).
-- [ ] Exponer `kafkaReadTimeout`: `karate.properties['kafkaReadTimeout']` o `30000` por defecto. No cambiar el `readTimeout` global de 2000 ms (lo usan los escenarios de `/queuer` y health).
-- [ ] Exponer `kafkaAppId` (`karate.properties['kafkaAppId']`, sin valor por defecto productivo; el valor de `dev` se define en [[T-003-datos-prueba-kafka-dev|T-003]]).
-- [ ] Registrar con `karate.log` la `baseUrl` efectiva (sin secretos).
-- [ ] Documentar las propiedades nuevas en una sección "Propiedades" de cada `README.md` de `deployment/`.
+- [x] En ambos `karate-config.js`, exponer `baseUrl`: valor de `karate.properties['baseUrl']`; si no viene, derivarlo de `endpoint` quitando el sufijo conocido (`/queuer` en aceptación, `/actuator/health` en humo).
+- [x] Exponer `kafkaReadTimeout`: `karate.properties['kafkaReadTimeout']` o `30000` por defecto. No cambiar el `readTimeout` global de 2000 ms (lo usan los escenarios de `/queuer` y health).
+- [x] Exponer `kafkaAppId` (`karate.properties['kafkaAppId']`, sin valor por defecto productivo; el valor de `dev` se define en [[T-003-datos-prueba-kafka-dev|T-003]]).
+- [x] Registrar con `karate.log` la `baseUrl` efectiva (sin secretos).
+- [x] Documentar las propiedades nuevas en una sección "Propiedades" de cada `README.md` de `deployment/`.
 
 ## Criterios de aceptación
-- [ ] Con solo `-Dendpoint="$URL_EXT/queuer"`, `baseUrl` resulta `$URL_EXT` (y con `-Dendpoint="$URL_EXT/actuator/health"` en humo, también `$URL_EXT`).
-- [ ] Con `-DbaseUrl=...` explícito, ese valor tiene prioridad.
-- [ ] Los escenarios existentes de `acceptance_test.feature` y `smoke_test.feature` pasan sin cambios en sus parámetros.
+- [x] Con solo `-Dendpoint="$URL_EXT/queuer"`, `baseUrl` resulta `$URL_EXT` (y con `-Dendpoint="$URL_EXT/actuator/health"` en humo, también `$URL_EXT`).
+- [x] Con `-DbaseUrl=...` explícito, ese valor tiene prioridad.
+- [x] Los escenarios existentes de `acceptance_test.feature` y `smoke_test.feature` pasan sin cambios en sus parámetros.
 
 ## Verificación
 ```bash
@@ -55,3 +55,7 @@ cd ../smokeTest
 
 ## Notas
 - Supuesto a confirmar: el `-Dendpoint` del release de humo termina en `/actuator/health`. Si no, pedir que el release pase `-DbaseUrl`.
+- 2026-10-23 — Ejecutada en la rama `feature/7978702_queuer_acceptance_tests` (sin commit). Verificación en `dev`: aceptación 17/17 y humo 1/1 en verde pasando solo `endpoint` + Cognito; `baseUrl efectiva` derivada = `URL_EXT` en ambos proyectos. Con `-DbaseUrl=https://override.example/base` el log muestra el valor explícito.
+- `deriveBaseUrl` va anidada dentro de `fn` porque Karate evalúa `karate-config.js` como una sola función. `kafkaReadTimeout` se expone como número (`parseInt`); los escenarios nuevos deben aplicarlo con `* configure readTimeout = kafkaReadTimeout`.
+- El supuesto de humo (`endpoint` termina en `/actuator/health`) se confirmó con `config.env`; falta confirmarlo en las variables del release.
+- `gradlew` de ambos proyectos tiene fin de línea CRLF y no corre desde WSL; la verificación se hizo con el Gradle 8.10 de la caché (`~/.gradle/wrapper/dists/gradle-8.10-bin/.../bin/gradle`).

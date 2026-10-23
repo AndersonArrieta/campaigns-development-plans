@@ -145,6 +145,16 @@ kafka-console-consumer --bootstrap-server localhost:9092 \
 
 Escenarios que se agregan a las pruebas de despliegue de `queuer_ms`. El trabajo está planificado en el [backlog](../backlog/README.md); [T-007](../backlog/tasks/T-007-evidencias-y-trazabilidad.md) actualiza la columna de estado al ejecutarlos en `dev`.
 
+### Propiedades de ejecución
+
+Agregadas en [T-001](../backlog/tasks/T-001-parametrizar-karate-config.md) a los `karate-config.js` de `acceptanceTest` y `smokeTest`, retrocompatibles con el release actual:
+
+| Propiedad | Por defecto | Uso |
+|---|---|---|
+| `baseUrl` | `endpoint` sin `/queuer` (aceptación) o sin `/actuator/health` (humo) | URL base para `/api/v1/campaigns` y `/api/v1/notifications` |
+| `kafkaReadTimeout` | `30000` ms | `readTimeout` de los escenarios Kafka; el global sigue en `2000` ms |
+| `kafkaAppId` | — (se define en [T-003](../backlog/tasks/T-003-datos-prueba-kafka-dev.md)) | `applicationIdentifier` de prueba de los escenarios `202` |
+
 ### Aceptación — `queuer_ms/deployment/acceptanceTest`
 
 | Escenario | Caso | Esperado | Tarjeta | Estado |
