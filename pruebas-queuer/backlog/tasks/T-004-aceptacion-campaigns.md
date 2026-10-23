@@ -2,7 +2,7 @@
 id: T-004
 aliases: [T-004]
 title: "Escenarios de aceptación para POST /api/v1/campaigns"
-status: backlog
+status: done
 priority: P1
 epic: E-aceptacion
 estimate: M
@@ -25,10 +25,10 @@ Automatizar en Karate el contrato de `POST /api/v1/campaigns` contra el ambiente
 - `queuer_ms/deployment/acceptanceTest/src/test/resources/co/com/bancolombia/data/campaign-request.json` (nuevo, payload base)
 
 ## Tareas
-- [ ] Crear `data/campaign-request.json` con el payload completo de la doc; `applicationIdentifier` y `userIdentifier` se sobrescriben en el feature.
-- [ ] Crear el feature con `Background`: `configure ssl`, token con `callonce read('get-token.feature')`, `configure readTimeout = kafkaReadTimeout`, `url baseUrl`, `path '/api/v1/campaigns'`, y un body base leído del JSON con `metadata.Id` único por escenario (`java.util.UUID.randomUUID() + ''`), `applicationIdentifier = kafkaAppId` y `userIdentifier = '573000000000'`.
-- [ ] Implementar los escenarios de la tabla (cada `400` con **una sola** violación).
-- [ ] Dejar fuera los casos con comportamiento observado como defecto (body vacío → `202`, JSON mal formado → `500`): se cubrirán con bugs propios. Anotarlo en un comentario del feature.
+- [x] Crear `data/campaign-request.json` con el payload completo de la doc; `applicationIdentifier` y `userIdentifier` se sobrescriben en el feature.
+- [x] Crear el feature con `Background`: `configure ssl`, token con `callonce read('get-token.feature')`, `configure readTimeout = kafkaReadTimeout`, `url baseUrl`, `path '/api/v1/campaigns'`, y un body base leído del JSON con `metadata.Id` único por escenario (`java.util.UUID.randomUUID() + ''`), `applicationIdentifier = kafkaAppId` y `userIdentifier = '573000000000'`.
+- [x] Implementar los escenarios de la tabla (cada `400` con **una sola** violación).
+- [x] Dejar fuera los casos con comportamiento observado como defecto (body vacío → `202`, JSON mal formado → `500`): se cubrirán con bugs propios. Anotarlo en un comentario del feature.
 
 | Id | Escenario | Mutación del body base | Esperado |
 |---|---|---|---|
@@ -44,9 +44,9 @@ Automatizar en Karate el contrato de `POST /api/v1/campaigns` contra el ambiente
 | AC-C10 | Validate 403 RBAC campaign | header `Authorization: '123'` | `403`, `response == 'RBAC: access denied'` |
 
 ## Criterios de aceptación
-- [ ] Los 10 escenarios pasan en `dev` con `--tags @campaigns`.
-- [ ] La suite completa de aceptación (incluidos los escenarios de `/queuer`) sigue en verde.
-- [ ] Ningún escenario usa un `appId` productivo ni un `userIdentifier` real.
+- [x] Los 10 escenarios pasan en `dev` con `--tags @campaigns`.
+- [x] La suite completa de aceptación (incluidos los escenarios de `/queuer`) sigue en verde.
+- [x] Ningún escenario usa un `appId` productivo ni un `userIdentifier` real.
 
 ## Verificación
 ```bash
@@ -61,3 +61,7 @@ cd /mnt/c/Users/AndersonElitArrietaR/repos/NU0284001_Artemis_Chatbots_Platform_M
 
 ## Notas
 - AC-C08 deja documentado que `metadata` exige PascalCase en la entrada (ver [observación 1](../../docs/observaciones.md#1-el-mensaje-publicado-cambia-el-casing-de-metadata) sobre la salida).
+- 2026-10-23 — Implementado en la rama `feature/7978702_queuer_acceptance_tests` (sin commit): `campaigns_acceptance_test.feature` (tags `@acceptanceTest @campaigns`) y `data/campaign-request.json`. En `dev` con `-DkafkaAppId=others-test`: `--tags @campaigns` 10/10; suite completa 28/28 (17 de `/queuer` + 10 de campañas + `get-token`).
+- `metadata.Id` = `qacc-<uuid>` por escenario. Cada corrida publica 2 campañas en `dev` (AC-C01 y AC-C02).
+- El JSON base trae `userIdentifier` = `573000000000` y un `applicationIdentifier` de relleno; el feature los sobrescribe.
+- **Para el release:** hay que agregar `-DkafkaAppId=others-test` a las variables del release de aceptación. Sin esa propiedad, AC-C01 y AC-C02 envían `applicationIdentifier` nulo y fallan con `400`. `baseUrl` no hace falta porque se deriva de `endpoint`.

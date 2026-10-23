@@ -164,16 +164,16 @@ Agregadas en [T-001](../backlog/tasks/T-001-parametrizar-karate-config.md) a los
 
 | Escenario | Caso | Esperado | Tarjeta | Estado |
 |---|---|---|---|---|
-| AC-C01 | C-01 | `202` | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Planeado |
-| AC-C02 | C-02 | `202` | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Planeado |
-| AC-C03 | C-03 | `400` sin `metadata` | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Planeado |
-| AC-C04 | C-04 | `400` `metadata.Id` en blanco | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Planeado |
-| AC-C05 | — | `400` sin `data.applicationIdentifier` | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Planeado |
-| AC-C06 | C-06 | `400` sin `data.campaign` | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Planeado |
-| AC-C07 | C-07 | `400` sin `notification.dataTime` | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Planeado |
-| AC-C08 | C-05 | `400` `metadata` en camelCase | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Planeado |
-| AC-C09 | C-08 | `422` appId sin segmento | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Planeado |
-| AC-C10 | — | `403` RBAC | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Planeado |
+| AC-C01 | C-01 | `202` | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Implementado |
+| AC-C02 | C-02 | `202` | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Implementado |
+| AC-C03 | C-03 | `400` sin `metadata` | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Implementado |
+| AC-C04 | C-04 | `400` `metadata.Id` en blanco | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Implementado |
+| AC-C05 | — | `400` sin `data.applicationIdentifier` | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Implementado |
+| AC-C06 | C-06 | `400` sin `data.campaign` | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Implementado |
+| AC-C07 | C-07 | `400` sin `notification.dataTime` | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Implementado |
+| AC-C08 | C-05 | `400` `metadata` en camelCase | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Implementado |
+| AC-C09 | C-08 | `422` appId sin segmento | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Implementado |
+| AC-C10 | — | `403` RBAC | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Implementado |
 | AC-N01 | N-01 | `202` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Planeado |
 | AC-N02 | — | `202` sin `messageContext` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Planeado |
 | AC-N03 | — | `400` sin `metadata` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Planeado |
