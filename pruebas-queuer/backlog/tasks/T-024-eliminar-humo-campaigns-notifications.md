@@ -2,7 +2,7 @@
 id: T-024
 aliases: [T-024]
 title: "Eliminar los escenarios de humo de /campaigns y /notifications"
-status: backlog
+status: blocked
 priority: P1
 epic: E-humo
 estimate: S
@@ -31,17 +31,17 @@ La exposición de `/campaigns` y `/notifications` queda cubierta por la suite de
 - `pruebas-queuer/backlog/epics/E-humo.md` (descripción)
 
 ## Tareas
-- [ ] Trabajar en la rama que defina el usuario. Hoy los escenarios viven en `feature/7978702_queuer_acceptance_tests` (y SM-02/SM-03 originales en `feature/7978714_queuer_smoke_tests`).
-- [ ] En `smoke_test.feature`, quitar los escenarios `Validate campaigns route is exposed` y `Validate notifications route is exposed`, con sus payloads. Mantener `@smokeTest`, el `Background` y `Validate health` sin cambios. Conservar CRLF.
-- [ ] Decidir con el usuario si se quita también `baseUrl` del `karate-config.js` y del README de `smokeTest`. Se agregó en [[T-001-parametrizar-karate-config|T-001]] solo para estas rutas y queda sin uso. Si se quita, `kafkaReadTimeout` sigue igual: verificar si `smokeTest` también lo usa y quitarlo solo si tampoco tiene uso.
-- [ ] `docs/pruebas.md`: quitar SM-02 y SM-03 de la tabla de humo (o marcarlas `Eliminado` con enlace a esta tarjeta) y ajustar el texto que sigue a la tabla.
-- [ ] `E-humo.md`: la descripción deja de mencionar las rutas `/campaigns` y `/notifications`.
-- [ ] Confirmar con `grep -rn "campaigns\|notifications" queuer_ms/deployment/smokeTest/src` que no quedan referencias.
+- [x] Trabajar en la rama que defina el usuario. Hoy los escenarios viven en `feature/7978702_queuer_acceptance_tests` (y SM-02/SM-03 originales en `feature/7978714_queuer_smoke_tests`).
+- [x] En `smoke_test.feature`, quitar los escenarios `Validate campaigns route is exposed` y `Validate notifications route is exposed`, con sus payloads. Mantener `@smokeTest`, el `Background` y `Validate health` sin cambios. Conservar CRLF.
+- [x] Decidir con el usuario si se quita también `baseUrl` del `karate-config.js` y del README de `smokeTest`. Se agregó en [[T-001-parametrizar-karate-config|T-001]] solo para estas rutas y queda sin uso. Si se quita, `kafkaReadTimeout` sigue igual: verificar si `smokeTest` también lo usa y quitarlo solo si tampoco tiene uso.
+- [x] `docs/pruebas.md`: quitar SM-02 y SM-03 de la tabla de humo (o marcarlas `Eliminado` con enlace a esta tarjeta) y ajustar el texto que sigue a la tabla.
+- [x] `E-humo.md`: la descripción deja de mencionar las rutas `/campaigns` y `/notifications`.
+- [x] Confirmar con `grep -rn "campaigns\|notifications" queuer_ms/deployment/smokeTest/src` que no quedan referencias.
 
 ## Criterios de aceptación
-- [ ] `smoke_test.feature` queda con un solo escenario (`Validate health`) y sin referencias a `/campaigns` ni `/notifications`.
+- [x] `smoke_test.feature` queda con un solo escenario (`Validate health`) y sin referencias a `/campaigns` ni `/notifications`.
 - [ ] En `dev`, la suite de humo pasa con los parámetros actuales del release: 2/2 (`get-token` + SM-01).
-- [ ] El release de humo no necesita variables nuevas ni pierde ninguna que use.
+- [x] El release de humo no necesita variables nuevas ni pierde ninguna que use.
 
 ## Verificación
 ```bash
@@ -57,3 +57,9 @@ grep -rn "campaigns\|notifications\|api/v1" src   # sin resultados
 - **Solo se valida en `dev`.** En local solo se revisa con `grep`. La tarjeta se cierra con la suite de humo en verde en `dev`. Si la rama aún no está desplegada, queda en `blocked` con esa nota.
 - T-006 es `done` y no se edita. T-023 queda superada por esta tarjeta: sus cambios de ruta desaparecen al eliminar los escenarios.
 - Riesgo conocido de SM-01 (`503` si el `KafkaHealthIndicator` quedó en `DOWN`): sin cambios, ver T-006.
+- 2026-10-26 — Rama `feature/7978702_queuer_acceptance_tests`, por decisión del usuario. Sin commit.
+- `smoke_test.feature`: quedan `@smokeTest`, el `Background` y `Validate health`. Contra `a89bbb4be^` (antes de T-006) solo difiere en el tag `@smokeTest`. Se conserva CRLF.
+- Por decisión del usuario, también se quitan los parámetros sin uso: `karate-config.js` de `smokeTest` vuelve exactamente a su versión anterior a la parametrización (`b40665e29^`), sin `baseUrl`, `kafkaReadTimeout`, `kafkaAppId` ni `deriveBaseUrl`. En el README de `smokeTest` se conserva la sección `## Propiedades` (sigue documentando `endpoint` y Cognito) y se quitan las tres filas y la nota de `baseUrl efectiva`. `acceptanceTest` no cambia.
+- `grep` de `campaigns`, `notifications`, `api/v1`, `baseUrl`, `kafkaReadTimeout` y `kafkaAppId` sobre `smokeTest/src` y su README: sin resultados.
+- Vault: en `docs/pruebas.md`, SM-02 y SM-03 quedan como `Eliminado`, la propiedad `baseUrl` solo aplica a aceptación y se agrega una nota de que `smokeTest` volvió a su configuración original. `E-humo` actualizada. T-023 queda superada por esta tarjeta.
+- **blocked:** falta desplegar la rama en `dev` y correr la suite de humo (2/2: `get-token` + SM-01).

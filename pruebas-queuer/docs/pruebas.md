@@ -156,11 +156,11 @@ Escenarios que se agregan a las pruebas de despliegue de `queuer_ms`. El trabajo
 
 ### Propiedades de ejecución
 
-Agregadas en [T-001](../backlog/tasks/T-001-parametrizar-karate-config.md) a los `karate-config.js` de `acceptanceTest` y `smokeTest`, retrocompatibles con el release actual:
+Agregadas en [T-001](../backlog/tasks/T-001-parametrizar-karate-config.md) a los `karate-config.js` de `acceptanceTest` y `smokeTest`, retrocompatibles con el release actual. Desde [T-024](../backlog/tasks/T-024-eliminar-humo-campaigns-notifications.md) solo existen en `acceptanceTest`: `smokeTest` volvió a su configuración original.
 
 | Propiedad | Por defecto | Uso |
 |---|---|---|
-| `baseUrl` | `endpoint` sin `/queuer` (aceptación) o sin `/actuator/health` (humo) | URL base para `/campaigns` y `/notifications` |
+| `baseUrl` | `endpoint` sin `/queuer` | URL base para `/campaigns` y `/notifications` |
 | `kafkaReadTimeout` | `30000` ms | `readTimeout` de los escenarios Kafka; el global sigue en `2000` ms |
 | `kafkaAppId` | — (se define en [T-003](../backlog/tasks/T-003-datos-prueba-kafka-dev.md)) | `applicationIdentifier` de prueba de los escenarios `202` |
 
@@ -193,10 +193,10 @@ Agregadas en [T-001](../backlog/tasks/T-001-parametrizar-karate-config.md) a los
 | Escenario | Request | Esperado | Tarjeta | Estado |
 |---|---|---|---|---|
 | SM-01 | `GET /actuator/health` (existente) | `200` `UP` | — | Existente |
-| SM-02 | `POST /campaigns` sin `metadata` | `400` | [T-006](../backlog/tasks/T-006-humo-endpoints-kafka.md), [T-023](../backlog/tasks/T-023-ajustar-humo-rutas-sin-api-v1.md) | Implementado |
-| SM-03 | `POST /notifications` sin `metadata` | `400` | [T-006](../backlog/tasks/T-006-humo-endpoints-kafka.md), [T-023](../backlog/tasks/T-023-ajustar-humo-rutas-sin-api-v1.md) | Implementado |
+| SM-02 | `POST /campaigns` sin `metadata` | `400` | [T-006](../backlog/tasks/T-006-humo-endpoints-kafka.md), [T-024](../backlog/tasks/T-024-eliminar-humo-campaigns-notifications.md) | Eliminado |
+| SM-03 | `POST /notifications` sin `metadata` | `400` | [T-006](../backlog/tasks/T-006-humo-endpoints-kafka.md), [T-024](../backlog/tasks/T-024-eliminar-humo-campaigns-notifications.md) | Eliminado |
 
-Los escenarios de humo no publican en Kafka: todos cortan en la validación del payload.
+SM-02 y SM-03 se eliminaron en [T-024](../backlog/tasks/T-024-eliminar-humo-campaigns-notifications.md): la suite de humo solo valida el health (SM-01). La exposición de `/campaigns` y `/notifications` queda cubierta por la suite de aceptación. El humo no publica en Kafka.
 
 ### Casos que no se automatizan por ahora
 
