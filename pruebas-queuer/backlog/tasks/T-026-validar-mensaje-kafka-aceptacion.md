@@ -2,7 +2,7 @@
 id: T-026
 aliases: [T-026]
 title: "Validar en Kafka el mensaje publicado en los escenarios 202 de aceptación"
-status: backlog
+status: blocked
 priority: P1
 epic: E-aceptacion
 estimate: L
@@ -47,19 +47,19 @@ Diferencias respecto a `transcribe_ms`:
 - `pruebas-queuer/docs/pruebas.md`
 
 ## Tareas
-- [ ] `build.gradle`: agregar `kafka-clients` y `secretsmanager` (BOM `software.amazon.awssdk:bom`), con versiones compatibles con Karate `1.0.1` y el JDK del pipeline. Revisar que no reintroducen CVE ya corregidos en el archivo.
-- [ ] `Memory.java` y `SecretManager.java`: adaptar los de `transcribe_ms` a un solo secreto (`kafkaSecretName`). Región `us-east-1`. Mensajes y comentarios en español sin tildes.
-- [ ] `KafkaManager.java`: solo consumo. Método `consumeMessageByKey(topic, key, timeoutSeconds)` que devuelve el `value` (o `null`). Usar `assign()`, `offsetsForTimes(ahora - lookback)`, `enable.auto.commit=false`, `group.id` efímero (`queuer-acceptance-<uuid>`) solo si el cliente lo exige. No imprimir credenciales: el `System.out.println(props)` de `transcribe_ms` incluye `sasl.jaas.config` con la contraseña y **no se copia**.
-- [ ] Helpers: `secret-manager.feature@setSecrets` y `kafka-manager.feature@consume_message_by_key`.
-- [ ] `karate-config.js`: nuevas propiedades `kafkaSecretName`, `campaignsTopicName`, `notificationsTopicName`, `kafkaMessageWaitSeconds` (por defecto `60`) y `kafkaValidate` (por defecto `true`). Si `kafkaValidate` es `true` y falta alguna obligatoria, fallar con un mensaje claro como en `transcribe_ms`. `truststorePassword` y `aws.*` se leen como propiedades del sistema desde Java.
-- [ ] Features de aceptación: en AC-C01, AC-C02, AC-N01 y AC-N02, después del `202`, leer los secretos con `callonce` y consumir por key = `metadata.Id`. Validar:
+- [x] `build.gradle`: agregar `kafka-clients` y `secretsmanager` (BOM `software.amazon.awssdk:bom`), con versiones compatibles con Karate `1.0.1` y el JDK del pipeline. Revisar que no reintroducen CVE ya corregidos en el archivo.
+- [x] `Memory.java` y `SecretManager.java`: adaptar los de `transcribe_ms` a un solo secreto (`kafkaSecretName`). Región `us-east-1`. Mensajes y comentarios en español sin tildes.
+- [x] `KafkaManager.java`: solo consumo. Método `consumeMessageByKey(topic, key, timeoutSeconds)` que devuelve el `value` (o `null`). Usar `assign()`, `offsetsForTimes(ahora - lookback)`, `enable.auto.commit=false`, `group.id` efímero (`queuer-acceptance-<uuid>`) solo si el cliente lo exige. No imprimir credenciales: el `System.out.println(props)` de `transcribe_ms` incluye `sasl.jaas.config` con la contraseña y **no se copia**.
+- [x] Helpers: `secret-manager.feature@setSecrets` y `kafka-manager.feature@consume_message_by_key`.
+- [x] `karate-config.js`: nuevas propiedades `kafkaSecretName`, `kafkaBatchTopic` (campañas) y `kafkaOnlineTopic` (notificaciones), con los mismos nombres que las variables del release de `platform_campaigns_ms` (ver T-025), `kafkaMessageWaitSeconds` (por defecto `60`) y `kafkaValidate` (por defecto `true`). Si `kafkaValidate` es `true` y falta alguna obligatoria, fallar con un mensaje claro como en `transcribe_ms`. `truststorePassword` y `aws.*` se leen como propiedades del sistema desde Java.
+- [x] Features de aceptación: en AC-C01, AC-C02, AC-N01 y AC-N02, después del `202`, leer los secretos con `callonce` y consumir por key = `metadata.Id`. Validar:
   - que el mensaje existe (si no, `karate.fail` con la key y el tópico);
   - `data` del mensaje contiene el `data` enviado (`applicationIdentifier`, `userIdentifier`, `sourceChannel`, identificadores y `message` en notificaciones; en AC-C02 los opcionales quitados llegan como `null` o ausentes);
   - el id de `metadata` es el enviado, aceptando `Id` o `id` (`(msg.metadata.Id || msg.metadata.id) == metadataId`) para que el escenario no dependa de la corrección de la observación 1. Registrar con `karate.log` el casing observado como evidencia.
-- [ ] Los escenarios `400`, `403` y `422` no cambian: no publican y no consultan Kafka.
-- [ ] README de `acceptanceTest`: documentar las propiedades nuevas, cuáles son secretas y el ejemplo de ejecución.
-- [ ] `docs/pruebas.md`: indicar que AC-C01, AC-C02, AC-N01 y AC-N02 validan el mensaje en Kafka y las propiedades nuevas del release.
-- [ ] Avisar al usuario de las variables nuevas que hay que crear en el release de aceptación (no se crean desde aquí).
+- [x] Los escenarios `400`, `403` y `422` no cambian: no publican y no consultan Kafka.
+- [x] README de `acceptanceTest`: documentar las propiedades nuevas, cuáles son secretas y el ejemplo de ejecución.
+- [x] `docs/pruebas.md`: indicar que AC-C01, AC-C02, AC-N01 y AC-N02 validan el mensaje en Kafka y las propiedades nuevas del release.
+- [x] Avisar al usuario de las variables nuevas que hay que crear en el release de aceptación (no se crean desde aquí).
 
 ## Criterios de aceptación
 - [ ] En `dev`, AC-C01, AC-C02, AC-N01 y AC-N02 encuentran su mensaje en el tópico correcto por `metadata.Id` y validan su contenido.
@@ -77,7 +77,7 @@ cd /mnt/c/Users/AndersonElitArrietaR/repos/NU0284001_Artemis_Chatbots_Platform_M
 # dev (con la rama desplegada): esta es la validacion que cierra la tarjeta
 ./gradlew clean test -Dendpoint="$URL_EXT/queuer" -DkafkaAppId="$KAFKA_APP_ID" \
   -DcognitoEndpoint="$COGNITO_URL" -DclientId="$CLIENT_ID" -DclientSecret="$CLIENT_SECRET" \
-  -DkafkaSecretName="$KAFKA_SECRET_NAME" -DcampaignsTopicName="$CAMPAIGNS_TOPIC" -DnotificationsTopicName="$NOTIFICATIONS_TOPIC" \
+  -DkafkaSecretName="$KAFKA_SECRET_NAME" -DkafkaBatchTopic="$KAFKA_BATCH_TOPIC" -DkafkaOnlineTopic="$KAFKA_ONLINE_TOPIC" \
   -DtruststorePassword="$TRUSTSTORE_PASSWORD" \
   -Daws.accessKeyId="$AWS_ACCESS_KEY_ID" -Daws.secretKey="$AWS_SECRET_ACCESS_KEY" -Daws.sessionToken="$AWS_SESSION_TOKEN" \
   -i | grep -E "scenarios|passed|failed"
@@ -90,3 +90,16 @@ grep -rEi "password=|sasl.jaas|secretKey|sessionToken" target/karate.log build/ 
 - Depende de T-022 porque los features ya tienen que usar `/campaigns` y `/notifications`.
 - T-004 y T-005 son `done` y no se editan. Esta tarjeta las enlaza con `affects`.
 - Cada corrida sigue publicando 2 campañas y 2 notificaciones en `dev`. `platform_campaigns_ms` las procesa como hoy.
+- Alternativa para el truststore (ver notas de [[T-025-datos-validacion-kafka-aceptacion|T-025]]): tomar el CA de la clave `certificate.cer` del secreto con `ssl.truststore.type=PEM`, como `Platform_test/.../utils/aws/service/Kafka.java`. Así no hace falta `cacerts` ni `truststorePassword`. Confirmar en T-025 que el secreto de `dev` trae esa clave.
+- 2026-10-26 — Ejecutada con T-022 en `blocked`, igual que T-022 y T-023: misma rama (`feature/7978702_queuer_acceptance_tests`) y mismo despliegue. Sin commit.
+- Archivos nuevos: `components/kafka/KafkaManager.java`, `components/aws/SecretManager.java`, `models/Memory.java`, `helpers/kafka-manager.feature` (`@ignore`) y `certificates/cacerts` (copia del de `platform_campaigns_ms`, md5 `d8b6a2194ec18c8a8f080df84928f3ab`). Modificados: `build.gradle` (BOM `software.amazon.awssdk:bom:2.36.0`, `secretsmanager`, `kafka-clients:4.1.0`, mismas versiones que `transcribe_ms`; el pipeline usa JDK 21), `karate-config.js`, los dos features de aceptación y el README.
+- Decisiones de implementación:
+  - Un solo helper (`kafka-manager.feature`) consume y valida; el secreto se lee una vez desde Java y queda en caché en `Memory`, así que no se creó `secret-manager.feature`.
+  - Truststore: primero `certificate.cer` del secreto en PEM (como `Platform_test`); si no viene, `cacerts` con `-DtruststorePassword`.
+  - Credenciales AWS: `-Daws.accessKeyId`, `-Daws.secretKey` o `-Daws.secretAccessKey`, `-Daws.sessionToken`; si no llegan, la cadena por defecto de AWS.
+  - Consumidor con `assign()`, `offsetsForTimes(ahora - 5 min)`, `group.id` `queuer-acceptance-<uuid>`, `enable.auto.commit=false`. No imprime `sasl.jaas.config` ni credenciales.
+  - Validación: mensaje con key = `metadata.Id`, id de `metadata` igual (acepta `Id` o `id`, se registra en el log qué claves trae) y `data` `contains deep` el `data` enviado.
+  - `kafkaValidate=false` desactiva la validación en Kafka. Con `true` (por defecto), `karate-config.js` falla si faltan `kafkaSecretName`, `kafkaBatchTopic` u `kafkaOnlineTopic`: **el release de aceptación necesita esas variables antes de desplegar esta rama**, o pasar `-DkafkaValidate=false` mientras tanto.
+- Verificación local: `compileTestJava` OK (con VPN). En un feature temporal del scratchpad se comprobó con Karate 1.0.1 que `json x = <string>`, `karate.keysOf`, `contains deep`, `if (...) karate.call(...)` y `Java.type` funcionan, que un `data` distinto hace fallar al escenario que llama y que un tópico vacío falla con `El topico es obligatorio`.
+- Variables nuevas para el release de aceptación de `queuer_ms`: `kafkaSecretName`, `kafkaBatchTopic`, `kafkaOnlineTopic` (enlazar las de `platform_campaigns_ms`) y las credenciales `aws.*` (secretas). `truststorePassword` solo si el secreto no trae `certificate.cer`.
+- **blocked:** falta crear las variables del release, desplegar en `dev` y correr la suite (37/37), revisar que no se filtran secretos y que el consumer group de `platform_campaigns_ms` no cambia.

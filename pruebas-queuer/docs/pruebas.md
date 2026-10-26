@@ -21,6 +21,7 @@ Definidos en [T-003](../backlog/tasks/T-003-datos-prueba-kafka-dev.md) y verific
 - El primer `POST /campaigns` tras un tiempo sin tráfico tardó ~4 s (lectura del secreto y creación del productor); por eso los escenarios Kafka usan `kafkaReadTimeout`.
 - No se leyó el item de segmentos en DynamoDB ni el secreto en Secrets Manager (sin sesión de AWS); el segmento concreto de `others-test` y los nombres de tópicos no están confirmados.
 - Cada ejecución de la suite de aceptación publica en los tópicos de `dev`.
+- Para leer de Kafka el mensaje publicado, la suite de aceptación toma los nombres de los tópicos y del secreto de las mismas variables del release que la aceptación de `platform_campaigns_ms`: `kafkaBatchTopic` (campañas), `kafkaOnlineTopic` (notificaciones) y `kafkaSecretName`. Ese secreto ya publica y consume en esos tópicos con `others-test`. Ver [T-025](../backlog/tasks/T-025-datos-validacion-kafka-aceptacion.md).
 
 ## Casos de prueba
 
@@ -164,12 +165,22 @@ Agregadas en [T-001](../backlog/tasks/T-001-parametrizar-karate-config.md) a los
 | `kafkaReadTimeout` | `30000` ms | `readTimeout` de los escenarios Kafka; el global sigue en `2000` ms |
 | `kafkaAppId` | — (se define en [T-003](../backlog/tasks/T-003-datos-prueba-kafka-dev.md)) | `applicationIdentifier` de prueba de los escenarios `202` |
 
+Agregadas en [T-026](../backlog/tasks/T-026-validar-mensaje-kafka-aceptacion.md) al `karate-config.js` de `acceptanceTest` para validar en Kafka el mensaje publicado:
+
+| Propiedad | Por defecto | Uso |
+|---|---|---|
+| `kafkaValidate` | `true` | Activa la validación en Kafka de los escenarios `202`; con `false` solo se valida la respuesta HTTP |
+| `kafkaSecretName`, `kafkaBatchTopic`, `kafkaOnlineTopic` | — (obligatorias si `kafkaValidate`) | Secreto de Kafka y tópicos de campañas y notificaciones; mismas variables del release que la aceptación de `platform_campaigns_ms` |
+| `kafkaMessageWaitSeconds` | `60` | Tiempo máximo para encontrar el mensaje |
+| `aws.accessKeyId`, `aws.secretKey`/`aws.secretAccessKey`, `aws.sessionToken` | — | Credenciales para leer el secreto (secretas) |
+| `truststorePassword` | — | Solo si el secreto no trae `certificate.cer` (secreta) |
+
 ### Aceptación — `queuer_ms/deployment/acceptanceTest`
 
 | Escenario | Caso | Esperado | Tarjeta | Estado |
 |---|---|---|---|---|
-| AC-C01 | C-01 | `202` | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Implementado |
-| AC-C02 | C-02 | `202` | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Implementado |
+| AC-C01 | C-01 | `202` + mensaje en `kafkaBatchTopic` (key = `metadata.Id`, `data` igual al enviado) | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md), [T-026](../backlog/tasks/T-026-validar-mensaje-kafka-aceptacion.md) | Implementado |
+| AC-C02 | C-02 | `202` + mensaje en `kafkaBatchTopic` | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md), [T-026](../backlog/tasks/T-026-validar-mensaje-kafka-aceptacion.md) | Implementado |
 | AC-C03 | C-03 | `400` sin `metadata` | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Implementado |
 | AC-C04 | C-04 | `400` `metadata.Id` en blanco | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Implementado |
 | AC-C05 | — | `400` sin `data.applicationIdentifier` | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Implementado |
@@ -178,8 +189,8 @@ Agregadas en [T-001](../backlog/tasks/T-001-parametrizar-karate-config.md) a los
 | AC-C08 | C-05 | `400` `metadata` en camelCase | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Implementado |
 | AC-C09 | C-08 | `422` appId sin segmento | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Implementado |
 | AC-C10 | — | `403` RBAC | [T-004](../backlog/tasks/T-004-aceptacion-campaigns.md) | Implementado |
-| AC-N01 | N-01 | `202` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Implementado |
-| AC-N02 | — | `202` sin `messageContext` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Implementado |
+| AC-N01 | N-01 | `202` + mensaje en `kafkaOnlineTopic` (key = `metadata.Id`, `data` igual al enviado) | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md), [T-026](../backlog/tasks/T-026-validar-mensaje-kafka-aceptacion.md) | Implementado |
+| AC-N02 | — | `202` sin `messageContext` + mensaje en `kafkaOnlineTopic` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md), [T-026](../backlog/tasks/T-026-validar-mensaje-kafka-aceptacion.md) | Implementado |
 | AC-N03 | — | `400` sin `metadata` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Implementado |
 | AC-N04 | — | `400` `metadata.Id` en blanco | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Implementado |
 | AC-N05 | N-03 | `400` sin `data.notification` | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Implementado |
