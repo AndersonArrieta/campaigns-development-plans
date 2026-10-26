@@ -69,6 +69,7 @@ pruebas-queuer/
 - [[E-trazabilidad]] — ejecución en `dev`, evidencias y trazabilidad con `docs/`.
 - [[E-modular]] — pruebas modulares de rendimiento (JMeter, QA) en el repo PE, con validación en Kafka.
 - [[E-e2e]] — E2E funcionales (Serenity, QA): del queuer a la entrega en el fakechannel.
+- [[E-seguridad]] — hallazgos del análisis de contenedor (DevSecOps) que bloquean el release de `queuer_ms`.
 
 ### Bugs y backlog vivo
 - **`done` es inmutable.** Un bug o mejora sobre trabajo ya cerrado crea una tarjeta nueva que enlaza la anterior con `affects:` y `[[T-0NN-slug|T-0NN]]`.
