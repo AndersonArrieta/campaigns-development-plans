@@ -26,7 +26,9 @@ Definidos en [T-003](../backlog/tasks/T-003-datos-prueba-kafka-dev.md) y verific
 
 Base URL local: `http://localhost:8080`.
 
-### `POST /api/v1/campaigns`
+<a id="post-apiv1campaigns"></a>
+
+### `POST /campaigns`
 
 | # | Caso | Preparación / payload | Esperado |
 |---|---|---|---|
@@ -49,7 +51,9 @@ Base URL local: `http://localhost:8080`.
 | C-17 | `retries` numérico | `"retries": 3` | `202`; Jackson lo convierte a `"3"` |
 | C-18 | Rotación de credenciales | Rotar password del secreto con el pod corriendo | Primer envío falla autenticación, se invalida cache y se reintenta: `202` |
 
-### `POST /api/v1/notifications`
+<a id="post-apiv1notifications"></a>
+
+### `POST /notifications`
 
 | # | Caso | Preparación / payload | Esperado |
 |---|---|---|---|
@@ -156,7 +160,7 @@ Agregadas en [T-001](../backlog/tasks/T-001-parametrizar-karate-config.md) a los
 
 | Propiedad | Por defecto | Uso |
 |---|---|---|
-| `baseUrl` | `endpoint` sin `/queuer` (aceptación) o sin `/actuator/health` (humo) | URL base para `/api/v1/campaigns` y `/api/v1/notifications` |
+| `baseUrl` | `endpoint` sin `/queuer` (aceptación) o sin `/actuator/health` (humo) | URL base para `/campaigns` y `/notifications` |
 | `kafkaReadTimeout` | `30000` ms | `readTimeout` de los escenarios Kafka; el global sigue en `2000` ms |
 | `kafkaAppId` | — (se define en [T-003](../backlog/tasks/T-003-datos-prueba-kafka-dev.md)) | `applicationIdentifier` de prueba de los escenarios `202` |
 
@@ -189,8 +193,8 @@ Agregadas en [T-001](../backlog/tasks/T-001-parametrizar-karate-config.md) a los
 | Escenario | Request | Esperado | Tarjeta | Estado |
 |---|---|---|---|---|
 | SM-01 | `GET /actuator/health` (existente) | `200` `UP` | — | Existente |
-| SM-02 | `POST /api/v1/campaigns` sin `metadata` | `400` | [T-006](../backlog/tasks/T-006-humo-endpoints-kafka.md) | Implementado |
-| SM-03 | `POST /api/v1/notifications` sin `metadata` | `400` | [T-006](../backlog/tasks/T-006-humo-endpoints-kafka.md) | Implementado |
+| SM-02 | `POST /campaigns` sin `metadata` | `400` | [T-006](../backlog/tasks/T-006-humo-endpoints-kafka.md), [T-023](../backlog/tasks/T-023-ajustar-humo-rutas-sin-api-v1.md) | Implementado |
+| SM-03 | `POST /notifications` sin `metadata` | `400` | [T-006](../backlog/tasks/T-006-humo-endpoints-kafka.md), [T-023](../backlog/tasks/T-023-ajustar-humo-rutas-sin-api-v1.md) | Implementado |
 
 Los escenarios de humo no publican en Kafka: todos cortan en la validación del payload.
 
@@ -240,7 +244,7 @@ queuer (HTTP) → Kafka → platform_campaigns_ms → adaptador de salida → fa
 
 El código vive en el repo `NU0284001_Artemis_Chatbots_Platform_MR_Test`. Los escenarios se escriben en `Platform_test/`, un proyecto Serenity + Cucumber + Screenplay compartido. `queuer_ms_test/azure-pipeline.yaml` elige qué runners y features se empaquetan (hoy solo `IntegratorNode`). El trabajo está en la épica [E-e2e](../backlog/epics/E-e2e.md).
 
-Se reutiliza la suite `Notifications` existente (`PrepareNotificationEvent`, `VerifyChannelDelivery`, `Cognito`, datasets `notifications_e2e_flow` / `campaigns_e2e_flow`). La diferencia es que el evento entra por `POST /api/v1/*` del queuer en lugar de publicarse directo en Kafka.
+Se reutiliza la suite `Notifications` existente (`PrepareNotificationEvent`, `VerifyChannelDelivery`, `Cognito`, datasets `notifications_e2e_flow` / `campaigns_e2e_flow`). La diferencia es que el evento entra por `POST /campaigns` o `POST /notifications` del queuer en lugar de publicarse directo en Kafka.
 
 ### Datos y propiedades
 

@@ -2,7 +2,7 @@
 id: T-022
 aliases: [T-022]
 title: "Ajustar las pruebas de aceptación a /campaigns y /notifications"
-status: backlog
+status: blocked
 priority: P1
 epic: E-aceptacion
 estimate: S
@@ -31,17 +31,17 @@ Va en la **misma rama y PR** que T-021.
 - `pruebas-queuer/docs/pruebas.md` (rutas en las secciones de aceptación y en la tabla de propiedades)
 
 ## Tareas
-- [ ] `campaigns_acceptance_test.feature`: `path '/api/v1/campaigns'` → `path '/campaigns'` y `Feature: Acceptance Test POST /api/v1/campaigns` → `Feature: Acceptance Test POST /campaigns`.
-- [ ] `notifications_acceptance_test.feature`: `path '/api/v1/notifications'` → `path '/notifications'` y el nombre del `Feature` igual.
-- [ ] No tocar tags (`@acceptanceTest @campaigns`, `@acceptanceTest @notifications`), `karate-config.js` ni los JSON de `data/`.
-- [ ] README de `acceptanceTest`: en la fila `baseUrl`, "rutas `/api/v1/campaigns` y `/api/v1/notifications`" → "rutas `/campaigns` y `/notifications`".
-- [ ] `docs/pruebas.md`: actualizar las rutas que citan las secciones de aceptación y la tabla de propiedades. Los anclajes `#post-apiv1campaigns` y `#post-apiv1notifications` cambian si cambia el encabezado; actualizar los enlaces que los usan o conservar el encabezado con una nota.
-- [ ] Confirmar que no queda `/api/v1` en el proyecto: `grep -rn "api/v1" queuer_ms/deployment/acceptanceTest` sin resultados.
+- [x] `campaigns_acceptance_test.feature`: `path '/api/v1/campaigns'` → `path '/campaigns'` y `Feature: Acceptance Test POST /api/v1/campaigns` → `Feature: Acceptance Test POST /campaigns`.
+- [x] `notifications_acceptance_test.feature`: `path '/api/v1/notifications'` → `path '/notifications'` y el nombre del `Feature` igual.
+- [x] No tocar tags (`@acceptanceTest @campaigns`, `@acceptanceTest @notifications`), `karate-config.js` ni los JSON de `data/`.
+- [x] README de `acceptanceTest`: en la fila `baseUrl`, "rutas `/api/v1/campaigns` y `/api/v1/notifications`" → "rutas `/campaigns` y `/notifications`".
+- [x] `docs/pruebas.md`: actualizar las rutas que citan las secciones de aceptación y la tabla de propiedades. Los anclajes `#post-apiv1campaigns` y `#post-apiv1notifications` cambian si cambia el encabezado; actualizar los enlaces que los usan o conservar el encabezado con una nota.
+- [x] Confirmar que no queda `/api/v1` en el proyecto: `grep -rn "api/v1" queuer_ms/deployment/acceptanceTest` sin resultados.
 
 ## Criterios de aceptación
 - [ ] Con T-021 desplegada en `dev`: `--tags @campaigns` 10/10 y `--tags @notifications` 9/9.
 - [ ] Suite completa de aceptación en verde: 37/37 (17 `/queuer` + 10 campañas + 9 notificaciones + `get-token`).
-- [ ] El release de aceptación no necesita variables nuevas: `baseUrl` se sigue derivando de `endpoint`.
+- [x] El release de aceptación no necesita variables nuevas: `baseUrl` se sigue derivando de `endpoint`.
 
 ## Verificación
 ```bash
@@ -58,3 +58,7 @@ grep -rn "api/v1" . --include=*.feature --include=*.md --include=*.js   # sin re
 - T-004 y T-005 son `done` y no se editan. Esta tarjeta las enlaza con `affects`.
 - Sin `-DbaseUrl`, la verificación ejercita la `baseUrl` derivada, que es la que usa el release.
 - Cada corrida sigue publicando 2 campañas y 2 notificaciones en `dev` (AC-C01, AC-C02, AC-N01 y AC-N02).
+- 2026-10-26 — Ejecutada con T-021 en `blocked`, por decisión del usuario, porque ambas van en el mismo PR. Rama `feature/7978702_queuer_acceptance_tests`, sin commit.
+- Cambios: `path` y nombre del `Feature` en `campaigns_acceptance_test.feature` y `notifications_acceptance_test.feature`, conservando CRLF, y la fila `baseUrl` del README de `acceptanceTest`. Tags, `karate-config.js` y `data/` sin cambios. `grep "api/v1"` sobre las fuentes de `acceptanceTest` no da resultados (solo aparece en `build/`, que es una copia de una compilación previa).
+- `docs/pruebas.md`: los encabezados pasan a `### POST /campaigns` y `### POST /notifications`, con `<a id="post-apiv1campaigns">` y `<a id="post-apiv1notifications">` antes de cada uno para no romper los enlaces de T-004 y T-005. También se actualizan la fila `baseUrl` y una mención de `/api/v1/*` en la sección E2E que T-021 no había cambiado.
+- **blocked:** falta desplegar T-021 en `dev` y correr la suite (10/10 `@campaigns`, 9/9 `@notifications`, 37/37 completa).
