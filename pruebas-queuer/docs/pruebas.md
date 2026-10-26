@@ -189,8 +189,8 @@ Agregadas en [T-001](../backlog/tasks/T-001-parametrizar-karate-config.md) a los
 | Escenario | Request | Esperado | Tarjeta | Estado |
 |---|---|---|---|---|
 | SM-01 | `GET /actuator/health` (existente) | `200` `UP` | — | Existente |
-| SM-02 | `POST /api/v1/campaigns` sin `metadata` | `400` | [T-006](../backlog/tasks/T-006-humo-endpoints-kafka.md) | Planeado |
-| SM-03 | `POST /api/v1/notifications` sin `metadata` | `400` | [T-006](../backlog/tasks/T-006-humo-endpoints-kafka.md) | Planeado |
+| SM-02 | `POST /api/v1/campaigns` sin `metadata` | `400` | [T-006](../backlog/tasks/T-006-humo-endpoints-kafka.md) | Implementado |
+| SM-03 | `POST /api/v1/notifications` sin `metadata` | `400` | [T-006](../backlog/tasks/T-006-humo-endpoints-kafka.md) | Implementado |
 
 Los escenarios de humo no publican en Kafka: todos cortan en la validación del payload.
 

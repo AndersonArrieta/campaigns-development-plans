@@ -2,7 +2,7 @@
 id: T-006
 aliases: [T-006]
 title: "Escenarios de humo para /api/v1/campaigns y /api/v1/notifications"
-status: backlog
+status: done
 priority: P1
 epic: E-humo
 estimate: S
@@ -25,9 +25,9 @@ Agregar a `smokeTest` escenarios que confirmen tras cada despliegue que las dos 
 - `queuer_ms/deployment/smokeTest/src/test/resources/co/com/bancolombia/smoke_test.feature`
 
 ## Tareas
-- [ ] Agregar tag `@smokeTest` al feature (si no lo tiene) sin cambiar el escenario `Validate health`.
-- [ ] Agregar los escenarios de la tabla usando `url baseUrl` + `path`.
-- [ ] Payloads en línea en el feature, con `applicationIdentifier: 'smoke-test'` y sin `metadata` (no hace falta `kafkaAppId`).
+- [x] Agregar tag `@smokeTest` al feature (si no lo tiene) sin cambiar el escenario `Validate health`.
+- [x] Agregar los escenarios de la tabla usando `url baseUrl` + `path`.
+- [x] Payloads en línea en el feature, con `applicationIdentifier: 'smoke-test'` y sin `metadata` (no hace falta `kafkaAppId`).
 
 | Id | Escenario | Request | Esperado |
 |---|---|---|---|
@@ -36,9 +36,9 @@ Agregar a `smokeTest` escenarios que confirmen tras cada despliegue que las dos 
 | SM-03 | Validate notifications route is exposed | `POST /api/v1/notifications`, body sin `metadata` | `400`, `response.error == "El objeto 'metadata' es obligatorio"` |
 
 ## Criterios de aceptación
-- [ ] Los 3 escenarios pasan en `dev`.
-- [ ] Ningún escenario de humo produce mensajes en Kafka (todos cortan en validación).
-- [ ] Un `404` en SM-02/SM-03 hace fallar la suite (detecta rutas no expuestas por el VirtualService).
+- [x] Los 3 escenarios pasan en `dev`.
+- [x] Ningún escenario de humo produce mensajes en Kafka (todos cortan en validación).
+- [x] Un `404` en SM-02/SM-03 hace fallar la suite (detecta rutas no expuestas por el VirtualService).
 
 ## Verificación
 ```bash
@@ -50,3 +50,7 @@ cd /mnt/c/Users/AndersonElitArrietaR/repos/NU0284001_Artemis_Chatbots_Platform_M
 
 ## Notas
 - Riesgo conocido para SM-01: si una publicación previa falló, el `KafkaHealthIndicator` queda en `DOWN` y `/actuator/health` responde `503` hasta el siguiente envío exitoso ([observación 8](../../docs/observaciones.md#8-health-global-y-sensible-a-errores-de-negocio)). No se modifica el escenario; si ocurre, registrar un bug.
+- 2026-10-23 — Implementado en la rama `feature/7978714_queuer_smoke_tests` (sin commit del feature). Esa rama sale de `trunk` y no tenía la parametrización de `karate-config.js`; por decisión del usuario se hizo cherry-pick del commit de parametrización (`d77fb4ebf` → `b40665e29`).
+- Verificación en `dev` solo con los parámetros actuales del release (`endpoint` de health + Cognito, `baseUrl` derivada): 4/4 (`get-token` + SM-01, SM-02, SM-03).
+- Con `-DbaseUrl="$URL_EXT/ruta-no-expuesta"`: SM-02 y SM-03 fallan con `status code was: 404, expected: 400` y el build falla, así que un `404` sí hace fallar la suite.
+- Los payloads no llevan `metadata`, así que cortan en la validación y no publican en Kafka. El release de humo no necesita variables nuevas.
