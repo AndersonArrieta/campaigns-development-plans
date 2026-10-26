@@ -170,10 +170,9 @@ Agregadas en [T-026](../backlog/tasks/T-026-validar-mensaje-kafka-aceptacion.md)
 | Propiedad | Por defecto | Uso |
 |---|---|---|
 | `kafkaValidate` | `true` | Activa la validación en Kafka de los escenarios `202`; con `false` solo se valida la respuesta HTTP |
-| `kafkaSecretName`, `kafkaBatchTopic`, `kafkaOnlineTopic` | — (obligatorias si `kafkaValidate`) | Secreto de Kafka y tópicos de campañas y notificaciones; mismas variables del release que la aceptación de `platform_campaigns_ms` |
+| `kafkaSecretName`, `kafkaBatchTopic`, `kafkaOnlineTopic` | — (obligatorias si `kafkaValidate`) | Secreto de Kafka y tópicos de campañas y notificaciones; mismas variables del release que la aceptación de `platform_campaigns_ms`. El secreto debe traer `certificate.cer` (CA del broker): el truststore se arma solo con él |
 | `kafkaMessageWaitSeconds` | `60` | Tiempo máximo para encontrar el mensaje |
 | `aws.accessKeyId`, `aws.secretKey`/`aws.secretAccessKey`, `aws.sessionToken` | — | Credenciales para leer el secreto (secretas) |
-| `truststorePassword` | — | Solo si el secreto no trae `certificate.cer` (secreta) |
 
 ### Aceptación — `queuer_ms/deployment/acceptanceTest`
 
