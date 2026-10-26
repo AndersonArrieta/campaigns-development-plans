@@ -21,7 +21,7 @@ Definidos en [T-003](../backlog/tasks/T-003-datos-prueba-kafka-dev.md) y verific
 - El primer `POST /campaigns` tras un tiempo sin tráfico tardó ~4 s (lectura del secreto y creación del productor); por eso los escenarios Kafka usan `kafkaReadTimeout`.
 - No se leyó el item de segmentos en DynamoDB ni el secreto en Secrets Manager (sin sesión de AWS); el segmento concreto de `others-test` y los nombres de tópicos no están confirmados.
 - Cada ejecución de la suite de aceptación publica en los tópicos de `dev`.
-- Para leer de Kafka el mensaje publicado, la suite de aceptación toma los nombres de los tópicos y del secreto de las mismas variables del release que la aceptación de `platform_campaigns_ms`: `kafkaBatchTopic` (campañas), `kafkaOnlineTopic` (notificaciones) y `kafkaSecretName`. Ese secreto ya publica y consume en esos tópicos con `others-test`. Ver [T-025](../backlog/tasks/T-025-datos-validacion-kafka-aceptacion.md).
+- Para leer de Kafka el mensaje publicado, la suite usa los tópicos y el secreto del segmento de `kafkaAppId`. `others-test` está en el segmento `others`: `kafkaBatchTopic` = `thirdpartycampaignexecution.initiatecampaignv1`, `kafkaOnlineTopic` = `thirdpartycampaignmanagement.executenotificationv1`, `kafkaSecretName` = `nu0284001-artemis-dev-secret-operative-eda-experiencia-trv` (clúster `strimzi-exp-trv-dev`). **No** son las variables de la aceptación de `platform_campaigns_ms`, que corresponden al segmento `client-countries`. Ver [B-003](../backlog/bugs/B-003-topico-kafka-queuer-no-coincide.md); el segmento de un app se consulta con [`scripts/leer_segmento_kafka.py`](../scripts/README.md).
 
 ## Casos de prueba
 
@@ -170,7 +170,7 @@ Agregadas en [T-026](../backlog/tasks/T-026-validar-mensaje-kafka-aceptacion.md)
 | Propiedad | Por defecto | Uso |
 |---|---|---|
 | `kafkaValidate` | `true` | Activa la validación en Kafka de los escenarios `202`; con `false` solo se valida la respuesta HTTP |
-| `kafkaSecretName`, `kafkaBatchTopic`, `kafkaOnlineTopic` | — (obligatorias si `kafkaValidate`) | Secreto de Kafka y tópicos de campañas y notificaciones; mismas variables del release que la aceptación de `platform_campaigns_ms`. El secreto debe traer `certificate.cer` (CA del broker): el truststore se arma solo con él |
+| `kafkaSecretName`, `kafkaBatchTopic`, `kafkaOnlineTopic` | — (obligatorias si `kafkaValidate`) | Secreto y tópicos del segmento de `kafkaAppId` (para `others-test`, los del segmento `others`; variables propias del release del queuer). El secreto debe traer `certificate.cer` (CA del broker): el truststore se arma solo con él |
 | `kafkaMessageWaitSeconds` | `60` | Tiempo máximo para encontrar el mensaje |
 | `aws.accessKeyId`, `aws.secretKey`/`aws.secretAccessKey`, `aws.sessionToken` | — | Credenciales para leer el secreto (secretas) |
 

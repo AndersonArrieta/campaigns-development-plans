@@ -64,7 +64,7 @@ Diferencias respecto a `transcribe_ms`:
 ## Criterios de aceptación
 - [ ] En `dev`, AC-C01, AC-C02, AC-N01 y AC-N02 encuentran su mensaje en el tópico correcto por `metadata.Id` y validan su contenido.
 - [ ] Si se cambia un tópico por otro que no recibe el mensaje, el escenario falla por timeout con un mensaje que indica key y tópico.
-- [ ] Suite completa en verde en `dev`: 37/37.
+- [ ] Suite completa en verde en `dev`: 36/36 (desde B-002 `get-token` y el helper ya no corren como features propios).
 - [ ] Ningún log ni reporte muestra contraseñas, `sasl.jaas.config`, credenciales AWS ni la contraseña del truststore.
 - [ ] El consumidor no aparece como miembro del consumer group de `platform_campaigns_ms`.
 
@@ -103,3 +103,5 @@ grep -rEi "password=|sasl.jaas|secretKey|sessionToken" target/karate.log build/ 
 - Verificación local: `compileTestJava` OK (con VPN). En un feature temporal del scratchpad se comprobó con Karate 1.0.1 que `json x = <string>`, `karate.keysOf`, `contains deep`, `if (...) karate.call(...)` y `Java.type` funcionan, que un `data` distinto hace fallar al escenario que llama y que un tópico vacío falla con `El topico es obligatorio`.
 - Variables nuevas para el release de aceptación de `queuer_ms`: `kafkaSecretName`, `kafkaBatchTopic`, `kafkaOnlineTopic` (enlazar las de `platform_campaigns_ms`) y las credenciales `aws.*` (secretas). `truststorePassword` solo si el secreto no trae `certificate.cer`.
 - **blocked:** falta crear las variables del release, desplegar en `dev` y correr la suite (37/37), revisar que no se filtran secretos y que el consumer group de `platform_campaigns_ms` no cambia.
+- 2026-10-26 — **Corrección ([[B-003-topico-kafka-queuer-no-coincide|B-003]]):** los valores de `kafkaBatchTopic`, `kafkaOnlineTopic` y `kafkaSecretName` no se enlazan con las variables de `platform_campaigns_ms` (son del segmento `client-countries`). Para `others-test` son los del segmento `others`: `thirdpartycampaignexecution.initiatecampaignv1`, `thirdpartycampaignmanagement.executenotificationv1` y `nu0284001-artemis-dev-secret-operative-eda-experiencia-trv`, como variables propias del release. Corrida local con esos valores: 35/36 (el único fallo fue de red); con B-001 y B-002 el total es 36, no 37.
+

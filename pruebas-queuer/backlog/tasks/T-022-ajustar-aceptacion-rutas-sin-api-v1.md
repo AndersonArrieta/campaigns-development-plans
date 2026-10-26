@@ -40,7 +40,7 @@ Va en la **misma rama y PR** que T-021.
 
 ## Criterios de aceptación
 - [ ] Con T-021 desplegada en `dev`: `--tags @campaigns` 10/10 y `--tags @notifications` 9/9.
-- [ ] Suite completa de aceptación en verde: 37/37 (17 `/queuer` + 10 campañas + 9 notificaciones + `get-token`).
+- [ ] Suite completa de aceptación en verde: 36/36 (17 `/queuer` + 10 campañas + 9 notificaciones; desde B-002 `get-token` ya no corre como feature propio).
 - [x] El release de aceptación no necesita variables nuevas: `baseUrl` se sigue derivando de `endpoint`.
 
 ## Verificación

@@ -41,7 +41,7 @@ Así la suite no versiona un truststore ni necesita la variable secreta `trustst
 ## Criterios de aceptación
 - [x] `compileTestJava` pasa en local.
 - [x] No queda `cacerts` en `acceptanceTest` ni referencias a `truststorePassword`.
-- [ ] En `dev`, AC-C01, AC-C02, AC-N01 y AC-N02 encuentran su mensaje en Kafka con el CA del secreto. Suite completa 37/37.
+- [ ] En `dev`, AC-C01, AC-C02, AC-N01 y AC-N02 encuentran su mensaje en Kafka con el CA del secreto. Suite completa 36/36.
 - [ ] Si el secreto no trae `certificate.cer`, el escenario falla con un mensaje que nombra la clave faltante y no muestra secretos.
 
 ## Verificación
