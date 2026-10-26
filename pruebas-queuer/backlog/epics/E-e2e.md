@@ -8,7 +8,7 @@ type: epic
 
 Flujo completo en **QA**:
 
-1. Petición HTTP a `queuer_ms` (`POST /api/v1/notifications` o `POST /api/v1/campaigns`).
+1. Petición HTTP a `queuer_ms` (`POST /notifications` o `POST /campaigns`).
 2. Tópico Kafka.
 3. `platform_campaigns_ms`.
 4. Adaptador de salida.

@@ -1,11 +1,11 @@
-# `POST /api/v1/campaigns`
+# `POST /campaigns`
 
 Publica un evento de **campaña masiva** en el tópico Kafka `campaigns` del segmento al que pertenece `data.applicationIdentifier`.
 
 | Propiedad | Valor |
 |---|---|
 | Método | `POST` |
-| Ruta | `/api/v1/campaigns` |
+| Ruta | `/campaigns` (hasta T-021: `/api/v1/campaigns`) |
 | Handler | `Handler#handleCampaignRequest` |
 | Caso de uso | `PublishCampaignUseCase` |
 | Request DTO | `CampaignEventRequest` |
@@ -182,7 +182,7 @@ El consumidor de este tópico es `platform_campaigns_ms` (tópico `...campaignex
 ## Ejemplo cURL
 
 ```bash
-curl -i -X POST "http://localhost:8080/api/v1/campaigns" \
+curl -i -X POST "http://localhost:8080/campaigns" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
   -d @campaign.json

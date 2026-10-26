@@ -6,7 +6,7 @@ type: epic
 
 # Pruebas modulares de rendimiento (JMeter)
 
-Carga sobre `POST /api/v1/campaigns` y `POST /api/v1/notifications` en el script modular de `queuer_ms`: `Back/Modular/queuer_ms/SC_queuer.jmx` del repo `NU0284001_Artemis_Chatbots_Platform_PE`. Corre en **QA** con el Throughput Shaping Timer y envía los resultados a Elasticsearch por el Backend Listener (`ID_PRUEBA`). Al cerrar, comprueba que cada `202` quedó publicado en Kafka.
+Carga sobre `POST /campaigns` y `POST /notifications` en el script modular de `queuer_ms`: `Back/Modular/queuer_ms/SC_queuer.jmx` del repo `NU0284001_Artemis_Chatbots_Platform_PE`. Corre en **QA** con el Throughput Shaping Timer y envía los resultados a Elasticsearch por el Backend Listener (`ID_PRUEBA`). Al cerrar, comprueba que cada `202` quedó publicado en Kafka.
 
 El grupo existente `GH_queuer` (`POST /queuer`, VariableSetter) no se modifica.
 

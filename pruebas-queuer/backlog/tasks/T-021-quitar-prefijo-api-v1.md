@@ -2,7 +2,7 @@
 id: T-021
 aliases: [T-021]
 title: "Quitar el prefijo /api/v1 de las rutas de campaigns y notifications en RouterRest"
-status: backlog
+status: blocked
 priority: P1
 epic: E-entorno
 estimate: S
@@ -31,14 +31,14 @@ El cambio rompe las pruebas ya cerradas: [[T-004-aceptacion-campaigns|T-004]], [
 - `pruebas-queuer/docs/`: `README.md`, `endpoints/POST-api-v1-campaigns.md`, `endpoints/POST-api-v1-notifications.md`, `pruebas.md` (secciones de contrato y curl locales)
 
 ## Tareas
-- [ ] Definir la rama con el usuario. Los features que ajustan T-022 y T-023 **todavía no están en `trunk`**: viven en `feature/7978702_queuer_acceptance_tests`, que ya incluye la rama de humo por el merge `73f59c186`. Hay dos opciones: integrar esas ramas a `trunk` y crear la rama de T-021 desde `trunk`, o crearla desde `feature/7978702_queuer_acceptance_tests`. El work item también se confirma con el usuario.
-- [ ] En `RouterRest`, cambiar `"/api/v1/campaigns"` → `"/campaigns"` y `"/api/v1/notifications"` → `"/notifications"`.
-- [ ] En `HandlerTest`, actualizar `URI_CAMPAIGNS = "/campaigns"` y `URI_NOTIFICATIONS = "/notifications"`.
-- [ ] Agregar en `RouterRestTest` (o `HandlerTest`) un caso que confirme que `POST /api/v1/campaigns` y `POST /api/v1/notifications` ya **no** están registradas (`404`), para que la regresión quede cubierta.
-- [ ] Buscar otras referencias a `/api/v1` en `queuer_ms` (`grep -rn "api/v1" queuer_ms --include=*.java --include=*.yaml --include=*.md`) y ajustarlas. Hoy solo aparecen `RouterRest`, `HandlerTest`, los features y los README de `acceptanceTest`/`smokeTest`; los dos últimos son de T-022 y T-023. `docs/swagger.yaml` no documenta estas rutas.
-- [ ] Confirmar con el usuario si algún consumidor ya llama `/api/v1/*` en `dev`/QA. Si existe, **detenerse**: quitar la ruta vieja es un cambio de contrato con efecto fuera de este repo.
-- [ ] Actualizar `docs/` de este vault a las rutas nuevas. Se conservan los nombres de archivo `POST-api-v1-*.md` para no romper los enlaces de las tarjetas `done`; el título y la fila `Ruta` se actualizan, con una nota de que la ruta anterior era `/api/v1/...` hasta T-021.
-- [ ] Ajustar las tarjetas **no `done`** que citan `/api/v1/*`: [[T-008-exposicion-rutas-qa|T-008]], [[T-009-datos-carga-kafka-qa|T-009]], [[T-011-carga-campaigns-jmeter|T-011]], [[T-012-carga-notifications-jmeter|T-012]], [[T-015-prerrequisitos-e2e-qa|T-015]], [[T-016-interaccion-envio-queuer|T-016]], [[T-017-e2e-notificaciones-queuer|T-017]] y [[T-018-e2e-campanas-queuer|T-018]], y las épicas `E-entorno`, `E-aceptacion`, `E-humo`, `E-modular` y `E-e2e`. Las tarjetas `done` no se tocan.
+- [x] Definir la rama con el usuario. Los features que ajustan T-022 y T-023 **todavía no están en `trunk`**: viven en `feature/7978702_queuer_acceptance_tests`, que ya incluye la rama de humo por el merge `73f59c186`. Hay dos opciones: integrar esas ramas a `trunk` y crear la rama de T-021 desde `trunk`, o crearla desde `feature/7978702_queuer_acceptance_tests`. El work item también se confirma con el usuario.
+- [x] En `RouterRest`, cambiar `"/api/v1/campaigns"` → `"/campaigns"` y `"/api/v1/notifications"` → `"/notifications"`.
+- [x] En `HandlerTest`, actualizar `URI_CAMPAIGNS = "/campaigns"` y `URI_NOTIFICATIONS = "/notifications"`.
+- [x] Agregar en `RouterRestTest` (o `HandlerTest`) un caso que confirme que `POST /api/v1/campaigns` y `POST /api/v1/notifications` ya **no** están registradas (`404`), para que la regresión quede cubierta.
+- [x] Buscar otras referencias a `/api/v1` en `queuer_ms` (`grep -rn "api/v1" queuer_ms --include=*.java --include=*.yaml --include=*.md`) y ajustarlas. Hoy solo aparecen `RouterRest`, `HandlerTest`, los features y los README de `acceptanceTest`/`smokeTest`; los dos últimos son de T-022 y T-023. `docs/swagger.yaml` no documenta estas rutas.
+- [x] Confirmar con el usuario si algún consumidor ya llama `/api/v1/*` en `dev`/QA. Si existe, **detenerse**: quitar la ruta vieja es un cambio de contrato con efecto fuera de este repo.
+- [x] Actualizar `docs/` de este vault a las rutas nuevas. Se conservan los nombres de archivo `POST-api-v1-*.md` para no romper los enlaces de las tarjetas `done`; el título y la fila `Ruta` se actualizan, con una nota de que la ruta anterior era `/api/v1/...` hasta T-021.
+- [x] Ajustar las tarjetas **no `done`** que citan `/api/v1/*`: [[T-008-exposicion-rutas-qa|T-008]], [[T-009-datos-carga-kafka-qa|T-009]], [[T-011-carga-campaigns-jmeter|T-011]], [[T-012-carga-notifications-jmeter|T-012]], [[T-015-prerrequisitos-e2e-qa|T-015]], [[T-016-interaccion-envio-queuer|T-016]], [[T-017-e2e-notificaciones-queuer|T-017]] y [[T-018-e2e-campanas-queuer|T-018]], y las épicas `E-entorno`, `E-aceptacion`, `E-humo`, `E-modular` y `E-e2e`. Las tarjetas `done` no se tocan.
 - [ ] Desplegar en `dev` y verificar con curl (bloque `## Verificación`).
 
 ## Criterios de aceptación
@@ -79,3 +79,8 @@ done
 - Es un cambio en el microservicio, no en las pruebas. Se registra aquí porque impacta directamente las suites de este backlog.
 - No hace falta cambiar el VirtualService. Según las notas de T-002, el prefijo externo `/artemis/platform/queuer/v1` se reescribe a la raíz del servicio, así que `/campaigns` y `/notifications` llegan al pod igual que `/queuer`. La `baseUrl` de Karate (`endpoint` sin `/queuer` o sin `/actuator/health`) tampoco cambia.
 - Riesgo: la URL externa queda como `.../queuer/v1/campaigns`. La versión la sigue dando el prefijo del gateway, no la ruta del servicio.
+- 2026-10-26 — Rama: se trabaja directamente en `feature/7978702_queuer_acceptance_tests`, por decisión del usuario. El usuario confirmó que ningún consumidor usa `/api/v1/*`.
+- Cambios sin commit en `queuer_ms`: `RouterRest` (`/campaigns`, `/notifications`), constantes de `HandlerTest` y un test parametrizado `shouldNotRouteLegacyApiV1Paths` en `RouterRestTest` (las dos rutas `/api/v1/*` → `404` sin invocar el handler). En `queuer_ms`, `/api/v1` solo queda en ese test y en los archivos de T-022/T-023.
+- Vault: `docs/README.md` y `docs/endpoints/POST-api-v1-*.md` pasan a las rutas nuevas, con una nota sobre la ruta anterior. En `docs/pruebas.md` se actualizan contrato, curl locales y filas modulares. Los encabezados `### POST /api/v1/...` (sus anclas las usan tarjetas `done`), la fila `baseUrl` y SM-02/SM-03 quedan para T-022/T-023. Se ajustan T-008, T-009, T-011, T-012, T-015 a T-018 y las épicas `E-entorno`, `E-aceptacion`, `E-humo`, `E-modular` y `E-e2e`.
+- Pruebas locales (`clean test` con VPN, por el jar del wrapper: `gradlew` tiene CRLF y no corre en WSL): `reactive-web` 15/16. Falla `HandlerTest > Retorna 422 cuando use case de campana falla con error controlado` con `TimeoutException` (HandlerTest.java:142). Es la primera prueba de la clase: tardó 7,4 s contra el timeout de 5 s del `WebTestClient`, y la siguiente de `/campaigns` tardó 2,2 s. Apunta a arranque en frío sobre `/mnt/c`, no a la ruta; falta confirmarlo corriendo en Windows (`.\gradlew.bat clean test`) o en el pipeline. Sin VPN, `pitest` no resuelve dependencias del Artifactory.
+- **blocked:** falta (1) confirmar el timeout de `HandlerTest` fuera de WSL, (2) commit y push (requieren confirmación del usuario) junto con T-022/T-023, y (3) desplegar en `dev` y correr la verificación.

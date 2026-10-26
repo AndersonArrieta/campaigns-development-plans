@@ -14,7 +14,7 @@ created: 2026-10-22
 # T-017 — Escenarios E2E de notificaciones en línea por el queuer (WhatsApp y Teams)
 
 ## Objetivo
-Crear la suite `Queuer` con los escenarios de notificación en línea: enviar por `POST /api/v1/notifications` y verificar en el fakechannel que el usuario recibió exactamente el texto enviado.
+Crear la suite `Queuer` con los escenarios de notificación en línea: enviar por `POST /notifications` y verificar en el fakechannel que el usuario recibió exactamente el texto enviado.
 
 ## Documentación relacionada
 - [Contrato de notificaciones](../../docs/endpoints/POST-api-v1-notifications.md)

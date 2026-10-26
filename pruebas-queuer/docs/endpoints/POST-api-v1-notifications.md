@@ -1,11 +1,11 @@
-# `POST /api/v1/notifications`
+# `POST /notifications`
 
 Publica un evento de **notificación en línea** (texto ya construido) en el tópico Kafka `notifications` del segmento al que pertenece `data.applicationIdentifier`.
 
 | Propiedad | Valor |
 |---|---|
 | Método | `POST` |
-| Ruta | `/api/v1/notifications` |
+| Ruta | `/notifications` (hasta T-021: `/api/v1/notifications`) |
 | Handler | `Handler#handleNotificationRequest` |
 | Caso de uso | `PublishNotificationUseCase` |
 | Request DTO | `NotificationEventRequest` |
@@ -63,7 +63,7 @@ NotificationEventRequest
 | `data.notification.message` | string | Sí | `El campo 'data.notification.message' es obligatorio` |
 | `data.notification.messageContext` | object | No | — |
 
-Las reglas generales (`@NotBlank`, PascalCase en `metadata`, campos desconocidos ignorados, una sola violación reportada) son las mismas que en [`/api/v1/campaigns`](POST-api-v1-campaigns.md#campos).
+Las reglas generales (`@NotBlank`, PascalCase en `metadata`, campos desconocidos ignorados, una sola violación reportada) son las mismas que en [`/campaigns`](POST-api-v1-campaigns.md#campos).
 
 ### Ejemplo
 
@@ -142,7 +142,7 @@ El consumidor de este tópico es `platform_campaigns_ms` (tópico `...campaignma
 ## Ejemplo cURL
 
 ```bash
-curl -i -X POST "http://localhost:8080/api/v1/notifications" \
+curl -i -X POST "http://localhost:8080/notifications" \
   -H "Content-Type: application/json" \
   -H "Accept: application/json" \
   -d @notification.json

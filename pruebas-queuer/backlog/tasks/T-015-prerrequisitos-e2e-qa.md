@@ -36,9 +36,9 @@ La suite `Notifications` actual publica directo en el tópico `-DonlineNotificat
 - [ ] Identificar el tópico `kafka.campaigns` de ese segmento y averiguar qué necesita `platform_campaigns_ms` para entregar un `initiatecampaign` recibido por Kafka:
   - si la campaña o la notificación deben existir previamente en DynamoDB, o basta el `node`;
   - qué `identifier` y `node` usar (el dataset `campaigns_e2e_flow` usa el nodo `N-03-99-10`, con texto esperado `Campaig_e2e_test_delivered_successfully`).
-- [ ] Definir la propiedad del endpoint del queuer para Serenity (propuesta: `-DendpointQueuer=<host><prefijo>`, sin `/api/v1/...`).
+- [ ] Definir la propiedad del endpoint del queuer para Serenity (propuesta: `-DendpointQueuer=<host><prefijo>`, sin la ruta del recurso).
 - [ ] Confirmar que el `clientId` de Cognito de las E2E (el mismo de `get-messages`) está autorizado en la `AuthorizationPolicy` del queuer.
-- [ ] Prueba manual de notificación por WhatsApp: `curl POST <endpointQueuer>/api/v1/notifications` con `userIdentifier` = `57` + 10 dígitos y `message` único → `202` → `GET <endpointGetMessageFake>/whatsapp/get-messages/<user>` devuelve el texto.
+- [ ] Prueba manual de notificación por WhatsApp: `curl POST <endpointQueuer>/notifications` con `userIdentifier` = `57` + 10 dígitos y `message` único → `202` → `GET <endpointGetMessageFake>/whatsapp/get-messages/<user>` devuelve el texto.
 - [ ] Repetir con campaña. Si no se entrega, anotar en el consumidor si el motivo es el casing de `metadata` (observación 1).
 
 ## Criterios de aceptación
@@ -50,7 +50,7 @@ La suite `Notifications` actual publica directo en el tópico `-DonlineNotificat
 ```bash
 # TOKEN de Cognito QA con el clientId de las E2E; Q = endpointQueuer; F = endpointGetMessageFake
 U="57$(shuf -i 1000000000-9999999999 -n1)"; MSG="Notif_e2e_test_queuer_$(date +%s)"; ID=$(uuidgen)
-curl -s -w ' -> %{http_code}\n' -X POST "$Q/api/v1/notifications" -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
+curl -s -w ' -> %{http_code}\n' -X POST "$Q/notifications" -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
   -d '{"metadata":{"Id":"'"$ID"'","Source":"platform-e2e-test","SpecVersion":"1.0","Type":"notification","DataContentType":"application/json","DataSchema":"https://schema-registry.com","Time":"'"$(date -u +%FT%TZ)"'"},"data":{"userIdentifier":"'"$U"'","sourceChannel":"WhatsApp","applicationIdentifier":"others-test","notification":{"identifier":"'"$ID"'","dataTime":"'"$(date '+%F %T')"'","message":"'"$MSG"'","messageContext":{}}}}'
 sleep 20
 curl -s "$F/whatsapp/get-messages/$U" -H "Authorization: Bearer $TOKEN" | grep -c "$MSG"   # esperado: 1

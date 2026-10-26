@@ -14,7 +14,7 @@ created: 2026-10-22
 # T-016 — Interacción Screenplay para enviar eventos por el queuer y validar el `202`
 
 ## Objetivo
-Agregar a `Platform_test` las piezas reutilizables para que una suite E2E envíe un evento de notificación o de campaña a `POST /api/v1/notifications` o `POST /api/v1/campaigns` del queuer con el token de Cognito, y compruebe el `202 accepted`. Deben seguir el estilo de `PublishNotificationEvent` / `CheckNotificationPublished`.
+Agregar a `Platform_test` las piezas reutilizables para que una suite E2E envíe un evento de notificación o de campaña a `POST /notifications` o `POST /campaigns` del queuer con el token de Cognito, y compruebe el `202 accepted`. Deben seguir el estilo de `PublishNotificationEvent` / `CheckNotificationPublished`.
 
 ## Documentación relacionada
 - [Contrato de notificaciones](../../docs/endpoints/POST-api-v1-notifications.md)
@@ -31,7 +31,7 @@ Repo `NU0284001_Artemis_Chatbots_Platform_MR_Test`, carpeta `Platform_test/`:
 
 ## Tareas
 - [ ] Crear `SendEventThroughQueuer.notifications()` / `.campaigns()`:
-  - hace un POST con Unirest a `System.getProperty("endpointQueuer") + "/api/v1/..."` con `Authorization: Bearer ExecutionMemory.getCognitoAC()`;
+  - hace un POST con Unirest a `System.getProperty("endpointQueuer") + "/notifications"` o `"/campaigns"` con `Authorization: Bearer ExecutionMemory.getCognitoAC()`;
   - si falta `-DendpointQueuer`, lanza `GeneralException`;
   - guarda status y body en `QueuerMemory`.
 - [ ] Para notificaciones, reutilizar `PrepareNotificationEvent`: usuario, mensaje único y `appId`. Crear `PrepareQueuerCampaignEvent`, que lee `campaigns_e2e_flow` del dataset (nodo y `expectedBody`) y genera `campaign.identifier` y `notification.identifier` según [[T-015-prerrequisitos-e2e-qa|T-015]].

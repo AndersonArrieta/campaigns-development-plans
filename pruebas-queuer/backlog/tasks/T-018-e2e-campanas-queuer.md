@@ -14,7 +14,7 @@ created: 2026-10-22
 # T-018 — Escenarios E2E de campañas por el queuer (WhatsApp y Teams)
 
 ## Objetivo
-Agregar a `queuer.feature` los escenarios de campaña: enviar un `initiatecampaign` por `POST /api/v1/campaigns` y verificar en el fakechannel que el usuario recibió el texto del nodo de campaña. Es lo mismo que valida hoy la suite `Campaigns`, pero sin pasar por CSV, S3 ni Lambda.
+Agregar a `queuer.feature` los escenarios de campaña: enviar un `initiatecampaign` por `POST /campaigns` y verificar en el fakechannel que el usuario recibió el texto del nodo de campaña. Es lo mismo que valida hoy la suite `Campaigns`, pero sin pasar por CSV, S3 ni Lambda.
 
 ## Documentación relacionada
 - [Contrato de campañas](../../docs/endpoints/POST-api-v1-campaigns.md)

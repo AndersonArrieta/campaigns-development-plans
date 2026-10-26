@@ -13,12 +13,12 @@ Definidos en [T-003](../backlog/tasks/T-003-datos-prueba-kafka-dev.md) y verific
 
 | Dato | Valor | Estado |
 |---|---|---|
-| `kafkaAppId` (escenarios `202`) | `others-test` | Aprobado. `POST /api/v1/campaigns` y `/api/v1/notifications` responden `202` (el segmento tiene tópico y secreto Kafka) |
+| `kafkaAppId` (escenarios `202`) | `others-test` | Aprobado. `POST /campaigns` y `/notifications` responden `202` (el segmento tiene tópico y secreto Kafka) |
 | `userIdentifier` ficticio | `573000000000` | Aprobado |
 | `appId` sin segmento (escenarios `422`) | `queuer-acceptance-sin-segmento` | Verificado: `422 No existe segmento configurado para applicationIdentifier: queuer-acceptance-sin-segmento` |
 | `metadata.Id` | `qacc-<runId>-<c\|n>` | Recomendado, para identificar en el tópico los mensajes de cada corrida |
 
-- El primer `POST /api/v1/campaigns` tras un tiempo sin tráfico tardó ~4 s (lectura del secreto y creación del productor); por eso los escenarios Kafka usan `kafkaReadTimeout`.
+- El primer `POST /campaigns` tras un tiempo sin tráfico tardó ~4 s (lectura del secreto y creación del productor); por eso los escenarios Kafka usan `kafkaReadTimeout`.
 - No se leyó el item de segmentos en DynamoDB ni el secreto en Secrets Manager (sin sesión de AWS); el segmento concreto de `others-test` y los nombres de tópicos no están confirmados.
 - Cada ejecución de la suite de aceptación publica en los tópicos de `dev`.
 
@@ -57,7 +57,7 @@ Base URL local: `http://localhost:8080`.
 | N-02 | Falta `data.notification.message` | Omitir `message` | `400`, `El campo 'data.notification.message' es obligatorio` |
 | N-03 | Falta `data.notification` | Omitir `notification` | `400`, `El objeto 'data.notification' es obligatorio` |
 | N-04 | `appId` sin segmento | `applicationIdentifier: "no_existe"` | `422` |
-| N-05 | Segmento sin `kafka.notifications` (pero con `campaigns`) | Quitar `notifications` | `422`, `No existe topico Kafka configurado para el segmento: <seg>`; `/api/v1/campaigns` sigue funcionando |
+| N-05 | Segmento sin `kafka.notifications` (pero con `campaigns`) | Quitar `notifications` | `422`, `No existe topico Kafka configurado para el segmento: <seg>`; `/campaigns` sigue funcionando |
 | N-06 | JSON mal formado | Body truncado | `500`, `Error tecnico al publicar la notificacion` |
 
 ### Health
@@ -131,11 +131,11 @@ Base URL local: `http://localhost:8080`.
 
 ```bash
 # Campaña
-curl -i -X POST http://localhost:8080/api/v1/campaigns \
+curl -i -X POST http://localhost:8080/campaigns \
   -H "Content-Type: application/json" -d @campaign.json
 
 # Notificación
-curl -i -X POST http://localhost:8080/api/v1/notifications \
+curl -i -X POST http://localhost:8080/notifications \
   -H "Content-Type: application/json" -d @notification.json
 
 # Health
@@ -223,8 +223,8 @@ Se definen en [T-009](../backlog/tasks/T-009-datos-carga-kafka-qa.md). Hasta que
 
 | Escenario | Transacción | Qué mide | Tarjeta | Estado |
 |---|---|---|---|---|
-| MOD-C01 | `Tx_modQueuerCampaigns` | Carga por TPS sobre `POST /api/v1/campaigns`: `202`, `$.status == accepted`, duración ≤ `assertionTimeout` | [T-011](../backlog/tasks/T-011-carga-campaigns-jmeter.md) | Planeado |
-| MOD-N01 | `Tx_modQueuerNotifications` | Lo mismo sobre `POST /api/v1/notifications` | [T-012](../backlog/tasks/T-012-carga-notifications-jmeter.md) | Planeado |
+| MOD-C01 | `Tx_modQueuerCampaigns` | Carga por TPS sobre `POST /campaigns`: `202`, `$.status == accepted`, duración ≤ `assertionTimeout` | [T-011](../backlog/tasks/T-011-carga-campaigns-jmeter.md) | Planeado |
+| MOD-N01 | `Tx_modQueuerNotifications` | Lo mismo sobre `POST /notifications` | [T-012](../backlog/tasks/T-012-carga-notifications-jmeter.md) | Planeado |
 | MOD-K01 | `Tx_validateQueuerTopics` | Al cierre, los mensajes con key `qmod-<runId>-*` en cada tópico coinciden con los `202` | [T-013](../backlog/tasks/T-013-validacion-kafka-modular.md) | Planeado |
 | MOD-K02 | `Chk_metadataCasing` | Informativo: casing de `metadata` en el mensaje publicado ([observación 1](observaciones.md#1-el-mensaje-publicado-cambia-el-casing-de-metadata)) | [T-013](../backlog/tasks/T-013-validacion-kafka-modular.md) | Planeado |
 

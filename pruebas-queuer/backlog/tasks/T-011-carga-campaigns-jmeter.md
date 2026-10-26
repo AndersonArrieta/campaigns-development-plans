@@ -1,7 +1,7 @@
 ---
 id: T-011
 aliases: [T-011]
-title: "Grupo de carga JMeter para POST /api/v1/campaigns"
+title: "Grupo de carga JMeter para POST /campaigns"
 status: backlog
 priority: P1
 epic: E-modular
@@ -11,13 +11,13 @@ type: task
 created: 2026-10-22
 ---
 
-# T-011 — Grupo de carga JMeter para `POST /api/v1/campaigns`
+# T-011 — Grupo de carga JMeter para `POST /campaigns`
 
 ## Objetivo
-Agregar a `SC_queuer.jmx` un grupo que genere carga controlada por TPS sobre `POST /api/v1/campaigns`. Cada petición debe llevar un `metadata.Id` único, que es la key del mensaje en Kafka y permite verificarlo en [[T-013-validacion-kafka-modular|T-013]]. El grupo valida tres cosas: `202`, el body de aceptación y el tiempo de respuesta.
+Agregar a `SC_queuer.jmx` un grupo que genere carga controlada por TPS sobre `POST /campaigns`. Cada petición debe llevar un `metadata.Id` único, que es la key del mensaje en Kafka y permite verificarlo en [[T-013-validacion-kafka-modular|T-013]]. El grupo valida tres cosas: `202`, el body de aceptación y el tiempo de respuesta.
 
 ## Documentación relacionada
-- [Contrato de `POST /api/v1/campaigns`](../../docs/endpoints/POST-api-v1-campaigns.md)
+- [Contrato de `POST /campaigns`](../../docs/endpoints/POST-api-v1-campaigns.md)
 - [Latencia atada a los reintentos de Kafka](../../docs/observaciones.md#5-latencia-del-endpoint-atada-a-los-reintentos-de-kafka)
 
 ## Archivos a crear/modificar

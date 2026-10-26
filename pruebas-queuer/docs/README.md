@@ -8,15 +8,17 @@ La rama convierte a `queuer_ms` en un **proxy HTTP → Kafka**: recibe eventos d
 
 | Método | Ruta | Descripción | Tópico destino (clave en `segments_destinies.<segmento>.kafka`) | Doc |
 |---|---|---|---|---|
-| `POST` | `/api/v1/campaigns` | Publica un evento de campaña masiva | `campaigns` | [POST-api-v1-campaigns.md](endpoints/POST-api-v1-campaigns.md) |
-| `POST` | `/api/v1/notifications` | Publica un evento de notificación en línea | `notifications` | [POST-api-v1-notifications.md](endpoints/POST-api-v1-notifications.md) |
+| `POST` | `/campaigns` | Publica un evento de campaña masiva | `campaigns` | [POST-api-v1-campaigns.md](endpoints/POST-api-v1-campaigns.md) |
+| `POST` | `/notifications` | Publica un evento de notificación en línea | `notifications` | [POST-api-v1-notifications.md](endpoints/POST-api-v1-notifications.md) |
+
+Hasta [T-021](../backlog/tasks/T-021-quitar-prefijo-api-v1.md) las rutas eran `/api/v1/campaigns` y `/api/v1/notifications`; T-021 quitó el prefijo `/api/v1` y las rutas viejas responden `404`. Los archivos de `endpoints/` conservan el nombre `POST-api-v1-*.md` para no romper enlaces.
 
 El endpoint existente `POST /queuer` (operación `VariableSetter`) no cambia de comportamiento; solo se reescribió el `switch` como un `if`.
 
 ## Índice
 
-- [Endpoint `POST /api/v1/campaigns`](endpoints/POST-api-v1-campaigns.md)
-- [Endpoint `POST /api/v1/notifications`](endpoints/POST-api-v1-notifications.md)
+- [Endpoint `POST /campaigns`](endpoints/POST-api-v1-campaigns.md)
+- [Endpoint `POST /notifications`](endpoints/POST-api-v1-notifications.md)
 - [Publicación en Kafka: enrutamiento, secretos, resiliencia y health](publicacion-kafka.md)
 - [Guía de pruebas y casos de prueba](pruebas.md)
 - [Observaciones de la revisión](observaciones.md)
@@ -35,11 +37,11 @@ El trabajo para automatizar estos casos en las pruebas de despliegue de `queuer_
 | [T-005](../backlog/tasks/T-005-aceptacion-notifications.md) | Aceptación de `POST /api/v1/notifications` |
 | [T-006](../backlog/tasks/T-006-humo-endpoints-kafka.md) | Humo de las dos rutas sin publicar en Kafka |
 | [T-007](../backlog/tasks/T-007-evidencias-y-trazabilidad.md) | Ejecución en `dev`, evidencias y trazabilidad |
-| [T-008](../backlog/tasks/T-008-exposicion-rutas-qa.md) | Exposición de `/api/v1/*` en QA para las pruebas modulares |
+| [T-008](../backlog/tasks/T-008-exposicion-rutas-qa.md) | Exposición de `/campaigns` y `/notifications` en QA para las pruebas modulares |
 | [T-009](../backlog/tasks/T-009-datos-carga-kafka-qa.md) | Datos de carga y destino Kafka en QA |
 | [T-010](../backlog/tasks/T-010-parametrizar-sc-queuer.md) | Variables nuevas en `SC_queuer.jmx`, retrocompatibles con `GH_queuer` |
-| [T-011](../backlog/tasks/T-011-carga-campaigns-jmeter.md) | Grupo de carga JMeter de `POST /api/v1/campaigns` |
-| [T-012](../backlog/tasks/T-012-carga-notifications-jmeter.md) | Grupo de carga JMeter de `POST /api/v1/notifications` |
+| [T-011](../backlog/tasks/T-011-carga-campaigns-jmeter.md) | Grupo de carga JMeter de `POST /campaigns` |
+| [T-012](../backlog/tasks/T-012-carga-notifications-jmeter.md) | Grupo de carga JMeter de `POST /notifications` |
 | [T-013](../backlog/tasks/T-013-validacion-kafka-modular.md) | Validación en Kafka al cierre de la carga |
 | [T-014](../backlog/tasks/T-014-ejecucion-modular-qa.md) | Ejecución en QA, línea base y evidencias |
 | [T-015](../backlog/tasks/T-015-prerrequisitos-e2e-qa.md) | Prerrequisitos E2E en QA: del queuer al fakechannel |
@@ -65,7 +67,7 @@ sequenceDiagram
     participant SM as Secrets Manager
     participant K as Kafka
 
-    C->>H: POST /api/v1/campaigns | /api/v1/notifications
+    C->>H: POST /campaigns | /notifications
     H->>H: Deserializa DTO + Bean Validation
     alt Payload inválido
         H-->>C: 400 {"error": "..."}
@@ -94,7 +96,7 @@ sequenceDiagram
 
 | Capa | Módulo | Clase | Rol |
 |---|---|---|---|
-| Entry point | `reactive-web` | `RouterRest` | Registra las rutas `/api/v1/campaigns` y `/api/v1/notifications` |
+| Entry point | `reactive-web` | `RouterRest` | Registra las rutas `/campaigns` y `/notifications` |
 | Entry point | `reactive-web` | `Handler#handleCampaignRequest` / `#handleNotificationRequest` | Valida el payload, mapea a dominio y traduce errores a HTTP |
 | Entry point | `reactive-web` | `dto/kafka/*` | DTOs de entrada con Bean Validation |
 | Dominio | `model` | `CampaignEvent`, `NotificationEvent`, `ResolvedKafkaTarget` | Modelos de dominio |

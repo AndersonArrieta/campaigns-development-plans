@@ -1,7 +1,7 @@
 ---
 id: T-012
 aliases: [T-012]
-title: "Grupo de carga JMeter para POST /api/v1/notifications"
+title: "Grupo de carga JMeter para POST /notifications"
 status: backlog
 priority: P1
 epic: E-modular
@@ -11,13 +11,13 @@ type: task
 created: 2026-10-22
 ---
 
-# T-012 — Grupo de carga JMeter para `POST /api/v1/notifications`
+# T-012 — Grupo de carga JMeter para `POST /notifications`
 
 ## Objetivo
-Es el equivalente de [[T-011-carga-campaigns-jmeter|T-011]] para notificaciones en línea: un grupo con TPS independiente sobre `POST /api/v1/notifications`, con `metadata.Id` único y marcado con el `runId`. Así se puede medir cada endpoint por separado o los dos a la vez.
+Es el equivalente de [[T-011-carga-campaigns-jmeter|T-011]] para notificaciones en línea: un grupo con TPS independiente sobre `POST /notifications`, con `metadata.Id` único y marcado con el `runId`. Así se puede medir cada endpoint por separado o los dos a la vez.
 
 ## Documentación relacionada
-- [Contrato de `POST /api/v1/notifications`](../../docs/endpoints/POST-api-v1-notifications.md)
+- [Contrato de `POST /notifications`](../../docs/endpoints/POST-api-v1-notifications.md)
 
 ## Archivos a crear/modificar
 - `Back/Modular/queuer_ms/SC_queuer.jmx`

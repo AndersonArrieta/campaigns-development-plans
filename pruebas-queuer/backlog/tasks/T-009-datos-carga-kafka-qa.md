@@ -55,7 +55,7 @@ La prueba modular de `campaigns_ms` (`Back/Modular/campaigns_ms/SC_campaigns.jmx
 ```bash
 # Una sola peticion manual con el appId elegido (TOKEN, HOST y PFX como en T-008)
 ID="qmod-check-$(date +%s)"
-curl -s -w ' -> %{http_code}\n' -X POST "$HOST$PFX/api/v1/campaigns" \
+curl -s -w ' -> %{http_code}\n' -X POST "$HOST$PFX/campaigns" \
   -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
   -d '{"metadata":{"Id":"'"$ID"'","Source":"performance:queuer-modular","SpecVersion":"1.0.2","Type":"initiatecampaign","DataContentType":"application/json","DataSchema":"https://schema-registry.com","Time":"2026-10-22T00:00:00Z"},"data":{"applicationIdentifier":"performance_test","sourceChannel":"WhatsApp","userIdentifier":"573000000000","campaign":{"identifier":"cmp-qmod","notification":{"identifier":"notif-qmod","dataTime":"2026-10-22 00:00:00"}}}}'
 # Esperado: {"status":"accepted",...} -> 202
