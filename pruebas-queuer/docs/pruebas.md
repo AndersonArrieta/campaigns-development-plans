@@ -14,7 +14,7 @@ Definidos en [T-003](../backlog/tasks/T-003-datos-prueba-kafka-dev.md) y verific
 | Dato | Valor | Estado |
 |---|---|---|
 | `kafkaAppId` (escenarios `202`) | `others-test` | Aprobado. `POST /campaigns` y `/notifications` responden `202` (el segmento tiene tópico y secreto Kafka) |
-| `userIdentifier` ficticio | `573000000000` | Aprobado |
+| `userIdentifier` ficticio | `57300000` + 4 dígitos aleatorios por escenario (`573000000000`–`573000009999`) | Aprobado (rango ficticio, [T-032](../backlog/tasks/T-032-user-identifier-aleatorio-ficticio.md)) |
 | `appId` sin segmento (escenarios `422`) | `queuer-acceptance-sin-segmento` | Verificado: `422 No existe segmento configurado para applicationIdentifier: queuer-acceptance-sin-segmento` |
 | `metadata.Id` | `qacc-<runId>-<c\|n>` | Recomendado, para identificar en el tópico los mensajes de cada corrida |
 
