@@ -224,14 +224,17 @@ Pruebas de carga de los endpoints Kafka. Viven en el repo `NU0284001_Artemis_Cha
 
 ### Datos de prueba en QA
 
-Se definen en [T-009](../backlog/tasks/T-009-datos-carga-kafka-qa.md). Hasta que esa tarjeta se cierre, estos valores son propuestas:
+Se definen en [T-009](../backlog/tasks/T-009-datos-carga-kafka-qa.md) y [T-008](../backlog/tasks/T-008-exposicion-rutas-qa.md):
 
 | Dato | Valor | Estado |
 |---|---|---|
-| `kafkaAppId` | `performance_test` (el mismo de la prueba modular de `campaigns_ms`) | Propuesto, falta confirmar segmento y efecto en el consumidor |
-| `userIdentifier` | `57` + 10 dígitos aleatorios, o un valor fijo ficticio si el consumidor entrega al canal | Por definir |
+| `kafkaAppId` | `performance_test` (el mismo de la prueba modular de `campaigns_ms`). En QA está en el segmento `others`, que publica en `thirdpartycampaignexecution.initiatecampaignv1` (campañas) y `thirdpartycampaignmanagement.executenotificationv1` (notificaciones) | Confirmado en DynamoDB y con `202` manual (2026-10-28) |
+| `userIdentifier` | `57` + 10 dígitos aleatorios: en QA el consumidor entrega en `fakechannel`, no en un canal real | Definido |
 | `metadata.Id` | `qmod-<runId>-<uuid>`, que es la key Kafka y permite filtrar la corrida | Propuesto |
-| `pathCampaigns` / `pathNotifications` | se obtiene en [T-008](../backlog/tasks/T-008-exposicion-rutas-qa.md) | Por verificar |
+| `pathCampaigns` / `pathNotifications` | `/artemis/platform/queuer/v1/campaigns` / `/artemis/platform/queuer/v1/notifications` (sin `/api/v1`) | Verificado en [T-008](../backlog/tasks/T-008-exposicion-rutas-qa.md) |
+| `path` de `GH_queuer` | `/artemis/platform/queuer/v1/queuer`. El valor por defecto del script (`/artemis/platform/queuer/testing/queuer`) responde `404` en QA | Verificado en [T-008](../backlog/tasks/T-008-exposicion-rutas-qa.md) |
+
+Efecto aguas abajo: cada `202` es un mensaje real en los tópicos `thirdparty*` de QA, que consume `platform_campaigns_ms` y entrega en `fakechannel`. Para validar los mensajes ([T-013](../backlog/tasks/T-013-validacion-kafka-modular.md)) hace falta leer `secret_campaigns`. El rol SSO `FullStackQARole` no tiene `secretsmanager:GetSecretValue` sobre ese secreto.
 
 ### Escenarios
 

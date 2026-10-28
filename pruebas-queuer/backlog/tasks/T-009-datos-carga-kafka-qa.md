@@ -2,7 +2,7 @@
 id: T-009
 aliases: [T-009]
 title: "Datos de prueba y destino Kafka en QA para la carga"
-status: todo
+status: done
 priority: P1
 epic: E-modular
 estimate: M
@@ -40,16 +40,16 @@ La prueba modular de `campaigns_ms` (`Back/Modular/campaigns_ms/SC_campaigns.jmx
 - `docs/pruebas.md`, sección [Pruebas modulares](../../docs/pruebas.md#pruebas-modulares-jmeter): tabla de datos de QA.
 
 ## Tareas
-- [ ] Leer (sin modificar) el item de configuración de segmentos en DynamoDB de QA. Confirmar en qué segmento está `performance_test` y que su bloque `kafka` trae `campaigns`, `notifications` y `secret_campaigns`.
+- [x] Leer (sin modificar) el item de configuración de segmentos en DynamoDB de QA. Confirmar en qué segmento está `performance_test` y que su bloque `kafka` trae `campaigns`, `notifications` y `secret_campaigns`.
 - [ ] Confirmar que los tópicos de ese bloque son los mismos que consume `platform_campaigns_ms` en QA.
 - [ ] Confirmar que la identidad AWS de las pruebas modulares puede leer el secreto `secret_campaigns`, porque lo necesita [[T-013-validacion-kafka-modular|T-013]]. Anotar solo si tiene acceso, nunca el valor.
-- [ ] Con el equipo de `platform_campaigns_ms`, confirmar qué hace el consumidor con `performance_test` en QA: si entrega al canal, la carga no puede llegar a números reales. Si hace falta, usar un `userIdentifier` fijo ficticio en lugar del aleatorio.
-- [ ] Definir el `appId` de la carga y el criterio de `userIdentifier`, y registrarlos en `docs/pruebas.md`.
+- [x] Con el equipo de `platform_campaigns_ms`, confirmar qué hace el consumidor con `performance_test` en QA: si entrega al canal, la carga no puede llegar a números reales. Si hace falta, usar un `userIdentifier` fijo ficticio en lugar del aleatorio.
+- [x] Definir el `appId` de la carga y el criterio de `userIdentifier`, y registrarlos en `docs/pruebas.md`.
 
 ## Criterios de aceptación
-- [ ] Hay un `appId` de QA que resuelve a un segmento con tópicos y secreto, comprobado con `202` en una petición manual.
+- [x] Hay un `appId` de QA que resuelve a un segmento con tópicos y secreto, comprobado con `202` en una petición manual.
 - [ ] Está documentado el efecto aguas abajo de la carga y aceptado por el equipo consumidor.
-- [ ] No queda ningún secreto ni valor sensible en el vault.
+- [x] No queda ningún secreto ni valor sensible en el vault.
 
 ## Verificación
 ```bash
@@ -63,3 +63,8 @@ curl -s -w ' -> %{http_code}\n' -X POST "$HOST$PFX/campaigns" \
 
 ## Notas
 - Leer DynamoDB y Secrets Manager en QA es solo lectura. Cualquier cambio en la configuración de segmentos o en secretos requiere confirmación del usuario.
+- 2026-10-28 — Lectura (solo lectura, rol SSO `FullStackQARole`, cuenta de QA) del item de segmentos en DynamoDB de QA. La clave real no es la de `docs/publicacion-kafka.md`: `component` = `platform-segments-destinies-config-map-v1` y `config_name` = `-config.json` (sale del default `${CONFIG-TARGET-NAME:-config.json}` de Spring, que deja el `-` inicial). `performance_test` (y `others-test`) están en el segmento `others`, cuyo bloque `kafka` trae `campaigns` = `thirdpartycampaignexecution.initiatecampaignv1`, `notifications` = `thirdpartycampaignmanagement.executenotificationv1` y `secret_campaigns` con valor. Coinciden con los de `SC_campaigns.jmx`. Hay un séptimo segmento `pilots` que `queuer_ms` no modela; `prototype` y `pilots` tienen `campaigns`/`notifications` en `PENDIENTE`.
+- 2026-10-28 — `secretsmanager:GetSecretValue` sobre `secret_campaigns` con el rol `FullStackQARole` → `AccessDeniedException`. Falta comprobarlo con la identidad que usan las pruebas modulares (la de [[T-013-validacion-kafka-modular|T-013]]).
+- 2026-10-28 — `platform_campaigns_ms` toma sus tópicos de las variables `#{<segment>-batch-campaign-kafka-topic-name}#` / `#{<segment>-online-campaign-kafka-topic-name}#` de la library del release (`platform_campaigns_Conf/platform-campaigns.yaml`); el repo no trae los valores de QA, así que la coincidencia con los tópicos `thirdparty*` queda sin confirmar. El consumidor tiene `WHATSAPP-OUT-TOPIC`, `WEBCHAT-OUT-TOPIC` y `TEAMS-OUT-TOPIC`: reenvía al canal, por lo que el `userIdentifier` aleatorio `57XXXXXXXXXX` de `SC_campaigns.jmx` puede corresponder a números reales. Falta la confirmación del equipo de `platform_campaigns_ms`.
+- 2026-10-28 — El usuario indica que en QA el consumidor entrega en `fakechannel`, así que el `userIdentifier` puede ser aleatorio (`57` + 10 dígitos). Con su aprobación se publicó **una** campaña en QA: `metadata.Id` `qmod-check-1793201320`, `applicationIdentifier` `performance_test`, `userIdentifier` aleatorio → `202 {"message":"Campaign event accepted for Kafka publication","status":"accepted"}` en 2,4 s. Datos registrados en `docs/pruebas.md` (Pruebas modulares → Datos de prueba en QA).
+- 2026-10-28 — Cerrada como `done` con la verificación funcional, por decisión del usuario (igual que [[T-008-exposicion-rutas-qa|T-008]]). Quedan sin confirmar y sin marcar: que `platform_campaigns_ms` en QA consume los tópicos `thirdparty*` (sus valores viven en la library del release), que la identidad de las pruebas modulares puede leer `secret_campaigns` (necesario para [[T-013-validacion-kafka-modular|T-013]]) y la aceptación explícita del equipo consumidor.
