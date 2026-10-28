@@ -256,7 +256,7 @@ Agregadas en [T-010](../backlog/tasks/T-010-parametrizar-sc-queuer.md). Todas se
 
 | Escenario | Transacción | Qué mide | Tarjeta | Estado |
 |---|---|---|---|---|
-| MOD-C01 | `Tx_modQueuerCampaigns` | Carga por TPS sobre `POST /campaigns`: `202`, `$.status == accepted`, duración ≤ `assertionTimeout` | [T-011](../backlog/tasks/T-011-carga-campaigns-jmeter.md) | Planeado |
+| MOD-C01 | `Tx_modQueuerCampaigns` | Carga por TPS sobre `POST /campaigns`: `202`, `$.status == accepted`, duración ≤ `assertionTimeout` | [T-011](../backlog/tasks/T-011-carga-campaigns-jmeter.md) | Implementado (1 TPS × 60 s en QA: 57/57 `202`, 2 por encima de 2000 ms) |
 | MOD-N01 | `Tx_modQueuerNotifications` | Lo mismo sobre `POST /notifications` | [T-012](../backlog/tasks/T-012-carga-notifications-jmeter.md) | Planeado |
 | MOD-K01 | `Tx_validateQueuerTopics` | Al cierre, los mensajes con key `qmod-<runId>-*` en cada tópico coinciden con los `202` | [T-013](../backlog/tasks/T-013-validacion-kafka-modular.md) | Planeado |
 | MOD-K02 | `Chk_metadataCasing` | Informativo: casing de `metadata` en el mensaje publicado ([observación 1](observaciones.md#1-el-mensaje-publicado-cambia-el-casing-de-metadata)) | [T-013](../backlog/tasks/T-013-validacion-kafka-modular.md) | Planeado |

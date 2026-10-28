@@ -1,0 +1,20 @@
+2026-10-28 11:19:51,155 INFO o.a.j.u.JMeterUtils: Setting Locale to en_EN
+2026-10-28 11:19:51,176 INFO o.a.j.JMeter: Loading user properties from: /opt/apache-jmeter-5.5/bin/user.properties
+2026-10-28 11:19:51,178 INFO o.a.j.JMeter: Loading system properties from: /opt/apache-jmeter-5.5/bin/system.properties
+2026-10-28 11:19:51,187 INFO o.a.j.JMeter: Copyright (c) 1998-2022 The Apache Software Foundation
+2026-10-28 11:19:51,188 INFO o.a.j.JMeter: Version 5.5
+2026-10-28 11:19:51,189 INFO o.a.j.JMeter: java.version=21.0.12.1
+2026-10-28 11:19:51,191 INFO o.a.j.JMeter: java.vm.name=OpenJDK 64-Bit Server VM
+2026-10-28 11:19:51,192 INFO o.a.j.JMeter: os.name=Linux
+2026-10-28 11:19:51,193 INFO o.a.j.JMeter: os.arch=amd64
+2026-10-28 11:19:51,194 INFO o.a.j.JMeter: os.version=6.18.33.2-microsoft-standard-WSL2
+2026-10-28 11:19:51,195 INFO o.a.j.JMeter: file.encoding=UTF-8
+2026-10-28 11:19:51,196 INFO o.a.j.JMeter: java.awt.headless=null
+2026-10-28 11:19:51,197 INFO o.a.j.JMeter: Max memory     =1073741824
+2026-10-28 11:19:51,198 INFO o.a.j.JMeter: Available Processors =22
+2026-10-28 11:19:51,208 INFO o.a.j.JMeter: Default Locale=English (EN)
+2026-10-28 11:19:51,209 INFO o.a.j.JMeter: JMeter  Locale=English (EN)
+2026-10-28 11:19:51,210 INFO o.a.j.JMeter: JMeterHome=/opt/apache-jmeter-5.5
+2026-10-28 11:19:51,211 INFO o.a.j.JMeter: user.dir  =/mnt/c/Users/AndersonElitArrietaR/OneDrive - FINAIPRO TECHNOLOGIES SAS/Documentos/campaigns-development-plans/pruebas-queuer
+2026-10-28 11:19:51,212 INFO o.a.j.JMeter: PWD       =/mnt/c/Users/AndersonElitArrietaR/OneDrive - FINAIPRO TECHNOLOGIES SAS/Documentos/campaigns-development-plans/pruebas-queuer
+2026-10-28 11:19:51,213 INFO o.a.j.JMeter: IP: 127.0.1.1 Name: PRCR-ARODRIGUEZ FullName: PRCR-ARODRIGUEZ.localdomain
