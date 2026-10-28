@@ -236,6 +236,22 @@ Se definen en [T-009](../backlog/tasks/T-009-datos-carga-kafka-qa.md) y [T-008](
 
 Efecto aguas abajo: cada `202` es un mensaje real en los tópicos `thirdparty*` de QA, que consume `platform_campaigns_ms` y entrega en `fakechannel`. Para validar los mensajes ([T-013](../backlog/tasks/T-013-validacion-kafka-modular.md)) hace falta leer `secret_campaigns`. El rol SSO `FullStackQARole` no tiene `secretsmanager:GetSecretValue` sobre ese secreto.
 
+### Propiedades de `SC_queuer.jmx`
+
+Agregadas en [T-010](../backlog/tasks/T-010-parametrizar-sc-queuer.md). Todas se pasan con `-J<propiedad>=<valor>`; con los valores por defecto los grupos nuevos no generan carga y solo corre `GH_queuer`.
+
+| Propiedad | Por defecto | Uso |
+|---|---|---|
+| `pathCampaigns` / `pathNotifications` | `/artemis/platform/queuer/v1/campaigns` / `/artemis/platform/queuer/v1/notifications` | Rutas en QA |
+| `kafkaAppId` | `performance_test` | `applicationIdentifier` de la carga |
+| `campaignsTps` / `notificationsTps` | `0` | TPS por flujo |
+| `usersCampaigns` / `usersNotifications` | `0` | Hilos por flujo |
+| `rampUpCampaigns` / `rampUpNotifications` | `0` | Rampa por flujo (s) |
+| `durationCampaigns` / `durationNotifications` | `0` | Duración por flujo (s) |
+| `assertionTimeout` | `2000` | Tiempo máximo de respuesta aceptado (ms) |
+
+`V_runId` (`${__time(yyyyMMddHHmmss)}`) no es propiedad: marca los `metadata.Id` de la corrida (`qmod-<runId>-<uuid>`).
+
 ### Escenarios
 
 | Escenario | Transacción | Qué mide | Tarjeta | Estado |

@@ -2,7 +2,7 @@
 id: T-010
 aliases: [T-010]
 title: "Parametrizar SC_queuer.jmx para los endpoints Kafka sin romper GH_queuer"
-status: backlog
+status: done
 priority: P1
 epic: E-modular
 estimate: S
@@ -24,8 +24,8 @@ Agregar a `SC_queuer.jmx` las variables que necesitan los dos grupos de carga nu
 - `NU0284001_Artemis_Chatbots_Platform_PE/Back/Modular/queuer_ms/SC_queuer.jmx`, en el bloque `User Defined Variables`.
 
 ## Tareas
-- [ ] En el repo PE, crear la rama `feature/<id>-queuer-ms-kafka-modular` desde `trunk`.
-- [ ] Agregar estas variables con `${__P(...)}`:
+- [x] En el repo PE, crear la rama `feature/<id>-queuer-ms-kafka-modular` desde `trunk`.
+- [x] Agregar estas variables con `${__P(...)}`:
 
 | Variable | Propiedad | Valor por defecto |
 |---|---|---|
@@ -39,8 +39,8 @@ Agregar a `SC_queuer.jmx` las variables que necesitan los dos grupos de carga nu
 | `V_assertionTimeout` | `assertionTimeout` | `2000` (ms) |
 | `V_runId` | — | `${__time(yyyyMMddHHmmss)}`, para marcar los `metadata.Id` de la corrida |
 
-- [ ] No cambiar `V_path`, `users`, `rampUp`, `duration`, `contextVarsTps` ni `testAppId`, que son los que usa `GH_queuer`.
-- [ ] No versionar credenciales: `clientId` y `clientSecret` siguen en `xxx`.
+- [x] No cambiar `V_path`, `users`, `rampUp`, `duration`, `contextVarsTps` ni `testAppId`, que son los que usa `GH_queuer`.
+- [x] No versionar credenciales: `clientId` y `clientSecret` siguen en `xxx`.
 
 ## Criterios de aceptación
 - [ ] El `.jmx` es XML válido y abre en JMeter 5.5.
@@ -57,3 +57,8 @@ git diff --stat
 
 ## Notas
 - La convención de commits del repo PE es `perf(queuer_ms): ...` / `test(queuer_ms): ...`. Los commits y el push requieren confirmación del usuario.
+- 2026-10-28 — Rama `feature/7993195-queuer-ms-kafka-modular` (ya existía, en el mismo commit que `trunk`). Se agregaron 13 variables al bloque `User Defined Variables` de `SC_queuer.jmx` (+65 líneas, CRLF como el resto del archivo), después de `timeoutTrx`: `V_pathCampaigns` / `V_pathNotifications` con los paths de [[T-008-exposicion-rutas-qa|T-008]], `V_kafkaAppId` = `performance_test` de [[T-009-datos-carga-kafka-qa|T-009]], TPS/usuarios/rampa/duración por flujo en `0`, `V_assertionTimeout` = `2000` y `V_runId`. Sin cambios en `V_path`, `duration`, `contextVarsTps`, `testAppId`, `clientId`/`clientSecret` (siguen en `xxx`). El script no tiene variables `users` ni `rampUp`.
+- Verificación: `XML OK` y las 7 variables `OK`. Los grupos de hilos siguen siendo solo `GH_setUp` y `GH_queuer` (esta tarjeta no agrega grupos), así que con las propiedades actuales del release el plan solo genera esas muestras.
+- No se cargó el plan en JMeter: la instalación local (`C:\tools\apache-jmeter-5.6.3`) no tiene los plugins del plan (`kg.apc` Throughput Shaping Timer y el Backend Listener de Elasticsearch). Las variables nuevas tienen la misma estructura que las existentes. La carga real del `.jmx` queda para la primera corrida en el release o en [[T-011-carga-campaigns-jmeter|T-011]].
+- El repo PE muestra ~105 archivos modificados que son solo diferencias de fin de línea (CRLF por usar `git` de WSL); no son parte de este cambio. Al hacer commit, agregar solo `Back/Modular/queuer_ms/SC_queuer.jmx`.
+- Documentado en `docs/pruebas.md` (Pruebas modulares → Propiedades de `SC_queuer.jmx`).
