@@ -48,3 +48,4 @@ grep -rnE 'clientSecret=|password|awsSecretKey=' docs backlog | grep -v 'xxx' ||
 ## Notas
 - Las corridas en QA con TPS por encima del calentamiento son una acción con efecto real en el ambiente y aguas abajo (`platform_campaigns_ms`). Requieren confirmación explícita del usuario.
 - 2026-10-28 — Entrada de [[T-011-carga-campaigns-jmeter|T-011]]: en la corrida corta de `POST /campaigns` (1 TPS, 60 s) 2 de 57 peticiones superaron `assertionTimeout=2000` (2518 ms en la primera, en frío; 2177 ms a los 60 s). p50 132 ms, p95 544 ms. Tenerlo en cuenta al fijar el umbral y la rampa.
+- 2026-10-28 — Entrada de [[T-012-carga-notifications-jmeter|T-012]]: en `POST /notifications` la primera corrida tras unos 10 min sin tráfico tuvo 2 peticiones de ~30 s (una por hilo); la siguiente, 2 de 62 por encima de 2000 ms (2266 ms y 2113 ms), p95 199 ms. Conviene un calentamiento antes de medir, o excluirlo de los umbrales.
