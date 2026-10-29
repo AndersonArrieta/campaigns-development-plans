@@ -354,10 +354,12 @@ Se confirman en [T-015](../backlog/tasks/T-015-prerrequisitos-e2e-qa.md):
 
 | Propiedad / dato | Valor | Estado |
 |---|---|---|
-| `-DendpointQueuer` | host + prefijo del queuer en QA (de [T-008](../backlog/tasks/T-008-exposicion-rutas-qa.md)) | Propuesto |
-| `-DappId` | `others-test` (valor por defecto de la suite `Notifications`), segmento `others`: `notifications` = `thirdpartycampaignmanagement.executenotificationv1`, `campaigns` = `thirdpartycampaignexecution.initiatecampaignv1` ([T-009](../backlog/tasks/T-009-datos-carga-kafka-qa.md)) | Segmento confirmado. Falta comparar con el `onlineNotificationTopic` de la suite `Notifications` y confirmar que `platform_campaigns_ms` consume esos tópicos |
-| `-DendpointGetMessageFake`, `-DcognitoEndpoint`, `-DclientId`, `-DclientSecret` | los mismos de la suite `Notifications` | Existentes |
-| Nodo y texto de campaña | `N-03-99-10` / `Campaig_e2e_test_delivered_successfully` (dataset `campaigns_e2e_flow`) | Por confirmar con el consumidor |
+| `-DendpointQueuer` | `https://informacion-ext-qa.apps.ambientesbc.com/artemis/platform/queuer/v1` (host + prefijo de [T-008](../backlog/tasks/T-008-exposicion-rutas-qa.md), sin la ruta del recurso) | Confirmado |
+| `-DappId` | `others-test` (valor por defecto de la suite `Notifications`), segmento `others`: `notifications` = `thirdpartycampaignmanagement.executenotificationv1` (el mismo `onlineNotificationTopic` de la suite `Notifications`), `campaigns` = `thirdpartycampaignexecution.initiatecampaignv1` ([T-009](../backlog/tasks/T-009-datos-carga-kafka-qa.md)) | Confirmado con entrega en el fakechannel |
+| `-DendpointGetMessageFake`, `-DcognitoEndpoint`, `-DclientId`, `-DclientSecret` | los mismos de la suite `Notifications`; el `clientId` está autorizado en la `AuthorizationPolicy` del queuer | Confirmado |
+| Nodo y texto de campaña | `N-03-99-10` / `Campaig_e2e_test_delivered_successfully` (dataset `campaigns_e2e_flow`) | Confirmado con entrega en el fakechannel |
+
+Requisitos del consumidor para las campañas (`QueueValidatorUseCase` de `platform_campaigns_ms`): `campaign.identifier` y `notification.identifier` deben ser UUID, `notification.node` con formato `N-00-00-00` y `campaign.retries` entero ≥ 0. En el queuer `retries` y `node` son opcionales, así que las E2E de campañas deben enviarlos siempre. `userIdentifier` debe ser teléfono o correo y `sourceChannel` `WhatsApp` o `msteams`.
 
 ### Escenarios — `features/queuer.feature`, runner `Queuer`
 
