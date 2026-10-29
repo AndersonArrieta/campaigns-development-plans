@@ -240,6 +240,20 @@ Efecto aguas abajo: cada `202` es un mensaje real en los tópicos `thirdparty*` 
 
 Agregadas en [T-010](../backlog/tasks/T-010-parametrizar-sc-queuer.md). Todas se pasan con `-J<propiedad>=<valor>`; con los valores por defecto los grupos nuevos no generan carga y solo corre `GH_queuer`.
 
+Propiedades base del script, previas a T-010:
+
+| Propiedad | Por defecto | Uso |
+|---|---|---|
+| `clientId` / `clientSecret` | `xxx` | Credenciales del Cognito `chatbots-artemis-qa`. Obligatorias en toda corrida |
+| `server` / `protocol` | `informacion-ext-qa.apps.ambientesbc.com` / `https` | Host del queuer en QA |
+| `serverOauth` / `pathOauth` | `chatbots-artemis-qa.auth.us-east-1.amazoncognito.com` / `oauth2/token` | Endpoint del token |
+| `idPrueba` | `NU0284001_Artemis_Chatbots_Platform_MR_queuer_ms_modular` | Etiqueta de la corrida en Elasticsearch |
+| `duration` | `0` | Duración de `GH_queuer`; en las corridas se pasó con el mismo valor que la duración del flujo |
+| `users` / `rampUp` / `contextVarsTps` / `testAppId` / `path` | `0` / `0` / `0` / `client-test` / `/artemis/platform/queuer/testing/queuer` | Grupo `GH_queuer`. Si se activa, pasar `-Jpath=/artemis/platform/queuer/v1/queuer` (el valor por defecto responde `404` en QA) |
+| `timeoutTrx` | `60000` | Timeout de las transacciones (ms) |
+
+Propiedades de los grupos nuevos:
+
 | Propiedad | Por defecto | Uso |
 |---|---|---|
 | `pathCampaigns` / `pathNotifications` | `/artemis/platform/queuer/v1/campaigns` / `/artemis/platform/queuer/v1/notifications` | Rutas en QA |
@@ -249,6 +263,19 @@ Agregadas en [T-010](../backlog/tasks/T-010-parametrizar-sc-queuer.md). Todas se
 | `rampUpCampaigns` / `rampUpNotifications` | `0` | Rampa por flujo (s) |
 | `durationCampaigns` / `durationNotifications` | `0` | Duración por flujo (s) |
 | `assertionTimeout` | `2000` | Tiempo máximo de respuesta aceptado (ms) |
+
+Validación en Kafka ([T-013](../backlog/tasks/T-013-validacion-kafka-modular.md)), apagada por defecto:
+
+| Propiedad | Por defecto | Uso |
+|---|---|---|
+| `validateKafka` | `false` | Con `true` se lee el secreto en el setUp y se cuentan los mensajes de la corrida al cierre |
+| `awsAccessKey` / `awsSecretKey` / `awsSessionToken` | `xxx` | Credenciales con `secretsmanager:GetSecretValue` sobre `secret_campaigns` |
+| `secretKafka` | `xxx` | Nombre de `secret_campaigns` del segmento de `kafkaAppId` (no se versiona) |
+| `campaignsTopic` / `notificationsTopic` | `thirdpartycampaignexecution.initiatecampaignv1` / `thirdpartycampaignmanagement.executenotificationv1` | Tópicos del segmento `others` en QA |
+| `kafkaSaslMechanism` | `SCRAM-SHA-512` | Mecanismo SASL |
+| `kafkaValidationTimeout` | `90` | Segundos máximos de lectura por tópico |
+
+Las propiedades sensibles (`clientSecret`, `aws*`, `secretKafka`) deben pasarse en un archivo con `-q <archivo>.properties`: JMeter registra en `jmeter.log` el valor de cada `-J`.
 
 `V_runId` (`${__time(yyyyMMddHHmmss)}`) no es propiedad: marca los `metadata.Id` de la corrida (`qmod-<runId>-<uuid>`).
 
@@ -262,6 +289,52 @@ Agregadas en [T-010](../backlog/tasks/T-010-parametrizar-sc-queuer.md). Todas se
 | MOD-K02 | `Chk_metadataCasing` | Informativo: casing de `metadata` en el mensaje publicado ([observación 1](observaciones.md#1-el-mensaje-publicado-cambia-el-casing-de-metadata)) | [T-013](../backlog/tasks/T-013-validacion-kafka-modular.md) | Planeado |
 
 El perfil de carga (TPS, duración) y los umbrales (p95, % de error) se acuerdan en [T-014](../backlog/tasks/T-014-ejecucion-modular-qa.md), donde también se registra la línea base. El grupo `GH_queuer` y las propiedades que hoy usa el release no cambian: los grupos nuevos tienen `0` por defecto y la validación Kafka se activa solo con `-JvalidateKafka=true`.
+
+### Ejecución
+
+Desde `Back/Modular/queuer_ms`, en la rama `feature/7993195-queuer-ms-kafka-modular` del repo PE. Las propiedades sensibles van en un archivo que no se versiona:
+
+```properties
+# qmod-secrets.properties
+clientId=<client_id_cognito_qa>
+clientSecret=<client_secret_cognito_qa>
+# Solo con validateKafka=true:
+awsAccessKey=<...>
+awsSecretKey=<...>
+awsSessionToken=<...>
+secretKafka=<nombre_secret_campaigns>
+```
+
+Solo `POST /campaigns` (MOD-C01, [T-011](../backlog/tasks/T-011-carga-campaigns-jmeter.md)):
+
+```bash
+jmeter -n -t SC_queuer.jmx -l qmod-campaigns.jtl -q qmod-secrets.properties \
+  -JcampaignsTps=1 -JusersCampaigns=2 -JrampUpCampaigns=5 -JdurationCampaigns=60 -Jduration=60
+awk -F, 'NR>1 && $3=="Req_campaigns" {n++; if($4!="202") e++} END {print n" peticiones, "e+0" no-202"}' qmod-campaigns.jtl
+```
+
+Solo `POST /notifications` (MOD-N01, [T-012](../backlog/tasks/T-012-carga-notifications-jmeter.md)):
+
+```bash
+jmeter -n -t SC_queuer.jmx -l qmod-notifications.jtl -q qmod-secrets.properties \
+  -JnotificationsTps=1 -JusersNotifications=2 -JrampUpNotifications=5 -JdurationNotifications=60 -Jduration=60
+awk -F, 'NR>1 && $3=="Req_notifications" {n++; if($4!="202") e++} END {print n" peticiones, "e+0" no-202"}' qmod-notifications.jtl
+```
+
+Los dos flujos con validación en Kafka (MOD-K01/K02, [T-013](../backlog/tasks/T-013-validacion-kafka-modular.md)):
+
+```bash
+jmeter -n -t SC_queuer.jmx -l qmod-kafka.jtl -q qmod-secrets.properties -JvalidateKafka=true \
+  -JcampaignsTps=1 -JusersCampaigns=2 -JrampUpCampaigns=5 -JdurationCampaigns=60 \
+  -JnotificationsTps=1 -JusersNotifications=2 -JrampUpNotifications=5 -JdurationNotifications=60 \
+  -Jduration=60
+grep -E 'Tx_validateQueuerTopics|Chk_metadataCasing' qmod-kafka.jtl
+```
+
+Los valores (1 TPS, 2 hilos, 5 s de rampa, 60 s) son los de las corridas cortas de verificación; el perfil definitivo se fija en [T-014](../backlog/tasks/T-014-ejecucion-modular-qa.md). Antes de subir los TPS hay que coordinar con el equipo de `platform_campaigns_ms`: cada `202` es un mensaje real en QA.
+
+- La validación en Kafka necesita una identidad con `secretsmanager:GetSecretValue` sobre `secret_campaigns`. Con `FullStackQARole` el setUp falla con `AccessDeniedException` y detiene la prueba.
+- En local (WSL) se usó JMeter 5.5 con un JRE 17 (con Java 21 falla el Groovy de JMeter 5.5), los plugins jpgc (`jmeter-plugins-casutg`, `jmeter-plugins-tst`, `jmeter-plugins-cmn-jmeter`) cargados con `-Jsearch_paths`/`-Juser.classpath`, y el Backend Listener desactivado en una copia del plan, porque fuera del release no hay URL de Elasticsearch.
 
 ## Pruebas E2E (Serenity)
 
