@@ -24,34 +24,34 @@ La suite `Notifications` actual publica directo en el tópico `-DonlineNotificat
 
 ## Documentación relacionada
 - [Enrutamiento por segmento](../../docs/publicacion-kafka.md#1-enrutamiento-por-segmento-segmentroutingadapter)
-- [Observación 1 — casing de `metadata`](../../docs/observaciones.md#1-el-mensaje-publicado-cambia-el-casing-de-metadata): puede romper la deserialización en el consumidor.
+- [Observación 1 — casing de `metadata`](../../docs/observaciones.md#1-el-mensaje-publicado-cambia-el-casing-de-metadata): puede romper la deserialización en el consumidor. Afecta a campañas y a notificaciones: el queuer publica `metadata` en camelCase, mientras que la suite `Notifications` publica en PascalCase (`onlineNotificationEvent.json`).
 - [[T-008-exposicion-rutas-qa|T-008]]: host y paths del queuer en QA.
-- [[T-009-datos-carga-kafka-qa|T-009]]: configuración de segmentos en QA (mismo item de DynamoDB).
+- [[T-009-datos-carga-kafka-qa|T-009]]: configuración de segmentos en QA (mismo item de DynamoDB). Ya confirmó que `others-test` está en el segmento `others`, con `kafka.notifications` = `thirdpartycampaignmanagement.executenotificationv1` y `kafka.campaigns` = `thirdpartycampaignexecution.initiatecampaignv1`.
 
 ## Archivos a crear/modificar
 - Ninguno en el repo. Los resultados quedan en `## Notas` de esta tarjeta y en `docs/pruebas.md` (tabla de datos E2E).
 
 ## Tareas
-- [ ] Confirmar en la configuración de segmentos de QA (solo lectura) el segmento de `others-test` y que su `kafka.notifications` coincide con el `onlineNotificationTopic` de la suite `Notifications`.
-- [ ] Identificar el tópico `kafka.campaigns` de ese segmento y averiguar qué necesita `platform_campaigns_ms` para entregar un `initiatecampaign` recibido por Kafka:
+- [ ] Comparar el `kafka.notifications` del segmento `others` (`thirdpartycampaignmanagement.executenotificationv1`, de T-009) con el valor de `onlineNotificationTopic` que usa el release de la suite `Notifications`. El segmento ya está confirmado; solo falta esa comparación.
+- [ ] Confirmar que `platform_campaigns_ms` en QA consume `thirdpartycampaignexecution.initiatecampaignv1`. T-009 lo dejó sin confirmar porque los tópicos viven en la library del release. Averiguar también qué necesita el consumidor para entregar un `initiatecampaign` recibido por Kafka:
   - si la campaña o la notificación deben existir previamente en DynamoDB, o basta el `node`;
   - qué `identifier` y `node` usar (el dataset `campaigns_e2e_flow` usa el nodo `N-03-99-10`, con texto esperado `Campaig_e2e_test_delivered_successfully`).
 - [ ] Definir la propiedad del endpoint del queuer para Serenity (propuesta: `-DendpointQueuer=<host><prefijo>`, sin la ruta del recurso).
 - [ ] Confirmar que el `clientId` de Cognito de las E2E (el mismo de `get-messages`) está autorizado en la `AuthorizationPolicy` del queuer.
-- [ ] Prueba manual de notificación por WhatsApp: `curl POST <endpointQueuer>/notifications` con `userIdentifier` = `57` + 10 dígitos y `message` único → `202` → `GET <endpointGetMessageFake>/whatsapp/get-messages/<user>` devuelve el texto.
-- [ ] Repetir con campaña. Si no se entrega, anotar en el consumidor si el motivo es el casing de `metadata` (observación 1).
+- [ ] Prueba manual de notificación por WhatsApp: `curl POST <endpointQueuer>/notifications` con `userIdentifier` = `57` + 10 dígitos y `message` único → `202` → `GET <endpointGetMessageFake>/whatsapp/get-messages/<user>` devuelve el texto. Si no se entrega, anotar en el consumidor si el motivo es el casing de `metadata` (observación 1).
+- [ ] Repetir con campaña, con la misma revisión del casing de `metadata` si no se entrega.
 
 ## Criterios de aceptación
-- [ ] Hay evidencia de una notificación entregada al fakechannel entrando por el queuer.
+- [ ] Hay evidencia de una notificación entregada al fakechannel entrando por el queuer, o un motivo concreto de no entrega, registrado como bug `B-0NN` si es un defecto.
 - [ ] Para campañas hay evidencia de entrega o un motivo concreto de no entrega, registrado como bug `B-0NN` si es un defecto.
 - [ ] Están documentados `endpointQueuer`, `appId`, los tópicos y el nodo de campaña a usar.
 
 ## Verificación
 ```bash
 # TOKEN de Cognito QA con el clientId de las E2E; Q = endpointQueuer; F = endpointGetMessageFake
-U="57$(shuf -i 1000000000-9999999999 -n1)"; MSG="Notif_e2e_test_queuer_$(date +%s)"; ID=$(uuidgen)
+U="57$(shuf -i 1000000000-9999999999 -n1)"; MSG="Notif_e2e_test_queuer_$(date +%s)"; ID=$(cat /proc/sys/kernel/random/uuid)
 curl -s -w ' -> %{http_code}\n' -X POST "$Q/notifications" -H 'Content-Type: application/json' -H "Authorization: Bearer $TOKEN" \
-  -d '{"metadata":{"Id":"'"$ID"'","Source":"platform-e2e-test","SpecVersion":"1.0","Type":"notification","DataContentType":"application/json","DataSchema":"https://schema-registry.com","Time":"'"$(date -u +%FT%TZ)"'"},"data":{"userIdentifier":"'"$U"'","sourceChannel":"WhatsApp","applicationIdentifier":"others-test","notification":{"identifier":"'"$ID"'","dataTime":"'"$(date '+%F %T')"'","message":"'"$MSG"'","messageContext":{}}}}'
+  -d '{"metadata":{"Id":"'"$ID"'","Source":"platform-e2e-test","SpecVersion":"1.0","Type":"notification.execute","DataContentType":"application/json","DataSchema":"https://schema-registry.com","Time":"'"$(date -u +%FT%TZ)"'"},"data":{"userIdentifier":"'"$U"'","sourceChannel":"WhatsApp","applicationIdentifier":"others-test","notification":{"identifier":"'"$ID"'","dataTime":"'"$(date '+%F %T')"'","message":"'"$MSG"'","messageContext":{}}}}'
 sleep 20
 curl -s "$F/whatsapp/get-messages/$U" -H "Authorization: Bearer $TOKEN" | grep -c "$MSG"   # esperado: 1
 ```

@@ -355,7 +355,7 @@ Se confirman en [T-015](../backlog/tasks/T-015-prerrequisitos-e2e-qa.md):
 | Propiedad / dato | Valor | Estado |
 |---|---|---|
 | `-DendpointQueuer` | host + prefijo del queuer en QA (de [T-008](../backlog/tasks/T-008-exposicion-rutas-qa.md)) | Propuesto |
-| `-DappId` | `others-test` (valor por defecto de la suite `Notifications`) | Por confirmar que su segmento publica en los tópicos que consume el flujo |
+| `-DappId` | `others-test` (valor por defecto de la suite `Notifications`), segmento `others`: `notifications` = `thirdpartycampaignmanagement.executenotificationv1`, `campaigns` = `thirdpartycampaignexecution.initiatecampaignv1` ([T-009](../backlog/tasks/T-009-datos-carga-kafka-qa.md)) | Segmento confirmado. Falta comparar con el `onlineNotificationTopic` de la suite `Notifications` y confirmar que `platform_campaigns_ms` consume esos tópicos |
 | `-DendpointGetMessageFake`, `-DcognitoEndpoint`, `-DclientId`, `-DclientSecret` | los mismos de la suite `Notifications` | Existentes |
 | Nodo y texto de campaña | `N-03-99-10` / `Campaig_e2e_test_delivered_successfully` (dataset `campaigns_e2e_flow`) | Por confirmar con el consumidor |
 

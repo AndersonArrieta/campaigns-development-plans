@@ -23,7 +23,7 @@ Agregar a `queuer.feature` los escenarios de campaña: enviar un `initiatecampai
 
 ## Archivos a crear/modificar
 - `Platform_test/src/test/resources/features/queuer.feature`
-- Si hace falta un paso de verificación propio para campañas: `EngineAdapterStepDefinition.java`, reutilizando `VerifyChannelDelivery` con el `expectedBody` de `campaigns_e2e_flow`.
+- No hace falta un paso de verificación nuevo: `I verify the campaign was delivered successfully` ya existe (`VerifyCampaignDelivery` + `CheckCampaignResponse`) y se reutiliza sin cambios. El `CampaignMemory.reset()` en `@Before` lo agrega [[T-016-interaccion-envio-queuer|T-016]].
 
 ## Tareas
 - [ ] Agregar los escenarios:
@@ -46,7 +46,7 @@ Agregar a `queuer.feature` los escenarios de campaña: enviar un `initiatecampai
     And I verify the campaign was delivered successfully
 ```
 
-- [ ] Hacer que `PrepareQueuerCampaignEvent` deje en `CampaignMemory` lo que necesita `VerifyCampaignDelivery`: canal, usuario de verificación y `expectedBody`. Así se reutiliza el paso existente sin cambiarlo.
+- [ ] Hacer que `PrepareQueuerCampaignEvent` deje en `CampaignMemory` lo que necesita `VerifyCampaignDelivery`: canal (`csvCanal`), usuario de verificación y `expectedBody`. Así se reutiliza el paso existente sin cambiarlo. Si `expectedBody` queda vacío, `VerifyCampaignDelivery` lo toma del dataset por defecto, así que hay que fijarlo siempre.
 
 ## Criterios de aceptación
 - [ ] Los 2 escenarios pasan en QA, o fallan por un defecto confirmado que queda registrado como bug `B-0NN` con `affects` a esta tarjeta. Ejemplo: el consumidor no deserializa `metadata` por la observación 1.

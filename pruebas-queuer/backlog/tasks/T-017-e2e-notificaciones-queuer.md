@@ -19,6 +19,7 @@ Crear la suite `Queuer` con los escenarios de notificación en línea: enviar po
 ## Documentación relacionada
 - [Contrato de notificaciones](../../docs/endpoints/POST-api-v1-notifications.md)
 - Suite de referencia: `Platform_test/src/test/resources/features/notifications.feature`
+- [Observación 1 — casing de `metadata`](../../docs/observaciones.md#1-el-mensaje-publicado-cambia-el-casing-de-metadata): el queuer publica `NotificationEvent` con `metadata` en camelCase; la suite `Notifications` publica en PascalCase.
 
 ## Archivos a crear/modificar
 `Platform_test/`:
@@ -54,7 +55,7 @@ Feature: Validate queuer Kafka REST proxy end-to-end flow
 - [ ] Crear el runner `Queuer.java`.
 
 ## Criterios de aceptación
-- [ ] Los 2 escenarios pasan en QA.
+- [ ] Los 2 escenarios pasan en QA, o fallan por un defecto confirmado que queda registrado como bug `B-0NN` con `affects` a esta tarjeta. Ejemplo: el consumidor no deserializa `metadata` por la observación 1.
 - [ ] Los escenarios no usan `-DonlineNotificationTopic` ni `-DkafkaSecretName`: la publicación es responsabilidad del queuer.
 
 ## Verificación

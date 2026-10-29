@@ -28,10 +28,11 @@ created: 2026-10-22
   - `test-runners: IntegratorNode.java,Queuer.java`
   - `test-features: integrator_node.feature,queuer.feature`
 - [ ] Revisar que `pipelines/build.yaml` conserva ambos (los filtros comparan nombres exactos).
+- [ ] Lanzar el pipeline a mano sobre la rama: el trigger solo incluye `refs/heads/trunk` (`feature/*` está comentado). No se descomenta el trigger.
 - [ ] Listar en `## Notas` las propiedades `-D` que el release debe pasar a la suite `Queuer` y pedir al usuario que las configure.
 
 ## Criterios de aceptación
-- [ ] El build del pipeline en la rama muestra `Keeping: Queuer.java` y `Keeping: queuer.feature`.
+- [ ] El build lanzado a mano sobre la rama muestra `Keeping: Queuer.java` y `Keeping: queuer.feature`.
 - [ ] La suite `IntegratorNode` sigue incluida.
 
 ## Verificación
@@ -43,3 +44,4 @@ grep -A1 -E 'name: test-(runners|features)' azure-pipeline.yaml
 
 ## Notas
 - El trigger del pipeline incluye `Platform_test/*`: los cambios de [[T-016-interaccion-envio-queuer|T-016]] también disparan los pipelines de las demás suites. Es el comportamiento esperado del repo.
+- `deploy.yaml` solo corre en `trunk`: el artefacto que usa el release E2E se publica después del merge. Eso condiciona la ejecución desde el release en [[T-020-ejecucion-e2e-qa|T-020]].
