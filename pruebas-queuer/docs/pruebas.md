@@ -391,6 +391,29 @@ Se confirman en [T-033](../backlog/tasks/T-033-prerrequisitos-e2e-rendimiento-qa
 | Release y propiedades | El release que ejecuta los scripts no está versionado (`azure-pipelines.yaml` solo construye el artefacto); las propiedades `-J` se definen en el release clásico de Azure DevOps | Pendiente |
 | TPS y duración máximos | Por acordar con el equipo de `platform_campaigns_ms` | Pendiente |
 
+### Propiedades de los grupos del queuer — `SC_whatsappJMeterTest.jmx`
+
+Agregadas en [T-034](../backlog/tasks/T-034-e2e-rendimiento-queuer-whatsapp.md). Con los valores por defecto, los grupos no arrancan hilos.
+
+| Propiedad | Por defecto | Uso |
+|---|---|---|
+| `queuerServer` | `informacion-ext-qa.apps.ambientesbc.com` | Host del queuer (`V_queuerServer`); el fakechannel sigue en `server` |
+| `pathQueuerCampaigns` / `pathQueuerNotifications` | `/artemis/platform/queuer/v1/campaigns` / `.../notifications` | Rutas del queuer |
+| `usersCampaignsQueuer` / `rampUpCampaignsQueuer` / `campaignsQueuerDuration` / `campaignsQueuerTps` | `0` | Grupo `GH_campaignsQueuer` |
+| `usersNotificationsQueuer` / `rampUpNotificationsQueuer` / `notificationsQueuerDuration` / `notificationsQueuerTps` | `0` | Grupo `GH_notificationsQueuer` |
+
+- Cada iteración envía un `POST` con `metadata.Id` = `qe2e-<runId>-<uuid>` (la key del mensaje en Kafka), exige `202` y `$.status == accepted`, y verifica la entrega con `ReqInteraction2*`. Las transacciones son `Tx_campaignsQueuerTest` y `Tx_notificationsQueuerTest`.
+- Cada `202` se cuenta en `props` (`qe2e.campaigns.accepted`, `qe2e.notifications.accepted`) para la validación en Kafka de [T-036](../backlog/tasks/T-036-validacion-kafka-e2e-rendimiento.md).
+- El Throughput Shaping Timer limita solo el `POST`. Cada iteración espera la entrega (~1 s), así que hacen falta varios usuarios por TPS: 15 usuarios dieron ~0,7 TPS con `Tps=1`.
+- Sin acceso al secreto Kafka (`awsAccessKey` / `awsSecretKey` / `awsSessionToken`), `GH_setup` detiene la prueba, aunque solo corran los grupos del queuer.
+
+```bash
+cd Back/E2E/whatsapp
+jmeter -n -t SC_whatsappJMeterTest.jmx -l qe2e-whatsapp.jtl -q <secretos>.properties \
+  -JusersCampaignsQueuer=15 -JcampaignsQueuerTps=1 -JcampaignsQueuerDuration=60 \
+  -JusersNotificationsQueuer=15 -JnotificationsQueuerTps=1 -JnotificationsQueuerDuration=60
+```
+
 ## Pruebas unitarias de la rama
 
 Desde `queuer_ms/`:
