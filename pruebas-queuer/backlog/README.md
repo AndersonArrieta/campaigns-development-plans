@@ -69,6 +69,7 @@ pruebas-queuer/
 - [[E-trazabilidad]] — ejecución en `dev`, evidencias y trazabilidad con `docs/`.
 - [[E-modular]] — pruebas modulares de rendimiento (JMeter, QA) en el repo PE, con validación en Kafka.
 - [[E-e2e]] — E2E funcionales (Serenity, QA): del queuer a la entrega en el fakechannel.
+- [[E-e2e-rendimiento]] — E2E de rendimiento (JMeter, QA) en el repo PE: carga por el queuer hasta la entrega en el fakechannel, en los scripts E2E de WhatsApp y Teams.
 - [[E-seguridad]] — hallazgos del análisis de contenedor (DevSecOps) que bloquean el release de `queuer_ms`.
 
 ### Bugs y backlog vivo
@@ -124,5 +125,6 @@ modular (QA):    T-008 ─► T-010 ─► T-011, T-012
                  T-009 ─► T-011, T-012
                  T-011, T-012 ─► T-013 ─► T-014   (T-014 también depende de T-011, T-012)
 e2e (QA):        T-008 ─► T-015 ─► T-016 ─► T-017, T-018 ─► T-019 ─► T-020
+e2e rendimiento: T-033 ─► T-034 ─► T-035 ─► T-036 ─► T-037   (T-036 depende de T-034 y T-035)
 sin dependencias: T-001, T-002, T-003, T-008, T-009
 ```
