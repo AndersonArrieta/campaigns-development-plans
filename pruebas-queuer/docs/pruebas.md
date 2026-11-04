@@ -372,6 +372,25 @@ Requisitos del consumidor para las campañas (`QueueValidatorUseCase` de `platfo
 
 Los casos negativos (`400`, `422`) no se repiten en E2E: están cubiertos por la aceptación en Karate ([T-004](../backlog/tasks/T-004-aceptacion-campaigns.md), [T-005](../backlog/tasks/T-005-aceptacion-notifications.md)).
 
+## Pruebas E2E de rendimiento (JMeter)
+
+Carga E2E en **QA** que entra por `POST /campaigns` y `POST /notifications` del queuer y verifica la entrega en el fakechannel. Se agrega a los scripts existentes del repo `NU0284001_Artemis_Chatbots_Platform_PE`: `Back/E2E/whatsapp/SC_whatsappJMeterTest.jmx` y `Back/E2E/teams/SC_teamsJMeterTest.jmx`. Esos scripts ya tienen `GH_campaigns` y `GH_notifications`, que publican directo en Kafka. El trabajo está en la épica [E-e2e-rendimiento](../backlog/epics/E-e2e-rendimiento.md).
+
+### Datos y propiedades de rendimiento
+
+Se confirman en [T-033](../backlog/tasks/T-033-prerrequisitos-e2e-rendimiento-qa.md):
+
+| Propiedad / dato | Valor | Estado |
+|---|---|---|
+| Host del queuer (`V_queuerServer`) | `informacion-ext-qa.apps.ambientesbc.com`, prefijo `/artemis/platform/queuer/v1`. Los scripts usan `informacion-int-qa` (`V_server`) para el fakechannel; no se confirmó si el queuer responde por `int-qa` (su certificado es de la CA interna de Bancolombia) | Confirmado `ext-qa` |
+| Cliente Cognito (`cognitoId` del release E2E) | El mismo cliente `client_credentials` de `chatbots-artemis-qa` de [T-008](../backlog/tasks/T-008-exposicion-rutas-qa.md) y [T-015](../backlog/tasks/T-015-prerrequisitos-e2e-qa.md). Pasa la `AuthorizationPolicy` del queuer | Confirmado |
+| Token (`props.access_token` de `Tx_oauthToken`) | El mismo token sirve para el queuer y para `get-messages` | Confirmado |
+| `applicationIdentifier` | `performance_test` (`DT_Campaigns.txt`), segmento `others` ([T-009](../backlog/tasks/T-009-datos-carga-kafka-qa.md)) | Confirmado con entrega en el fakechannel |
+| Nodo y texto de campaña | `N-03-99-10` / `Campaig_e2e_test_delivered_successfully` (`DT_Campaigns.txt`) | Confirmado con entrega en el fakechannel |
+| Secreto Kafka | `GH_setup` ejecuta `Tx_secretManager` con `stoptest`: la identidad del release debe poder leer el secreto Kafka aunque los grupos directos estén en `0` | Pendiente |
+| Release y propiedades | El release que ejecuta los scripts no está versionado (`azure-pipelines.yaml` solo construye el artefacto); las propiedades `-J` se definen en el release clásico de Azure DevOps | Pendiente |
+| TPS y duración máximos | Por acordar con el equipo de `platform_campaigns_ms` | Pendiente |
+
 ## Pruebas unitarias de la rama
 
 Desde `queuer_ms/`:
