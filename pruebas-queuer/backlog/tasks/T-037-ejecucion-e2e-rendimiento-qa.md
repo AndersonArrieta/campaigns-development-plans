@@ -6,7 +6,7 @@ status: backlog
 priority: P2
 epic: E-e2e-rendimiento
 estimate: M
-depends_on: [T-034, T-035, T-036]
+depends_on: [T-034, T-035, T-036, T-038]
 type: task
 created: 2026-11-04
 ---
@@ -31,7 +31,7 @@ Ejecutar desde el release los grupos E2E por el queuer en WhatsApp y Teams con e
 - [ ] Registrar en `docs/pruebas.md` la línea base por transacción (p50, p95, p99, TPS, % de error), el resultado de [[T-036-validacion-kafka-e2e-rendimiento|T-036]] y la comparación queuer vs. directo.
 
 ## Criterios de aceptación
-- [ ] La ejecución desde el release termina con las métricas en Elasticsearch (`Tx_campaignsQueuerTest`, `Tx_notificationsQueuerTest`) y la validación en Kafka sin diferencias.
+- [ ] La ejecución desde el release termina con las métricas en Elasticsearch (WhatsApp: `Tx_campaignsQueuerTest`, `Tx_notificationsQueuerTest`; Teams: `Tx_campaignsQueuerTeamsTest`, `Tx_notificationsQueuerTeamsTest`) y la validación en Kafka sin diferencias.
 - [ ] La línea base y las evidencias quedan en `docs/pruebas.md`.
 
 ## Verificación
@@ -42,3 +42,4 @@ Ejecutar desde el release los grupos E2E por el queuer en WhatsApp y Teams con e
 
 ## Notas
 - Un desvío de latencia o de errores atribuible al servicio se registra como bug `B-0NN` sobre `queuer_ms`, no se corrige en el script.
+- 2026-11-05 — En Teams las transacciones siguen la convención `Tx_*TeamsTest` del script ([[T-035-e2e-rendimiento-queuer-teams|T-035]]). Depende también de [[T-038-secret-manager-opcional-e2e-rendimiento|T-038]] para que el release pueda correr los grupos del queuer.

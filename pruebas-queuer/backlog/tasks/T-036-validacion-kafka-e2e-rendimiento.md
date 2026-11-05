@@ -6,7 +6,7 @@ status: backlog
 priority: P2
 epic: E-e2e-rendimiento
 estimate: M
-depends_on: [T-034, T-035]
+depends_on: [T-034]
 type: task
 created: 2026-11-04
 ---
@@ -30,6 +30,7 @@ Hoy `Tx_validateCampaignsNotificationsTopics` (en `GH_tearDownKafkaValidation`) 
 - [ ] En el teardown, si `usersCampaignsQueuer` o `usersNotificationsQueuer` > 0, contar en cada tópico los mensajes con key `qe2e-<runId>-*` (el queuer usa `metadata.Id` como key; el productor directo publica sin key) y compararlos con los contadores `qe2e.*.accepted`.
 - [ ] Leer sin unirse a consumer groups ni confirmar offsets (`assign()` + `offsetsForTimes` + `seek()`), como en [[T-013-validacion-kafka-modular|T-013]].
 - [ ] Ajustar el conteo actual para que no falle ni se distorsione cuando corren a la vez los grupos directos y los del queuer.
+- [ ] Implementar y verificar primero en `SC_whatsappJMeterTest.jmx`; llevarlo a `SC_teamsJMeterTest.jmx` cuando [[T-035-e2e-rendimiento-queuer-teams|T-035]] se desbloquee.
 
 ## Criterios de aceptación
 - [ ] En una corrida corta, el número de mensajes `qe2e-<runId>-*` en cada tópico es igual al número de `202` del flujo.
@@ -44,3 +45,4 @@ Hoy `Tx_validateCampaignsNotificationsTopics` (en `GH_tearDownKafkaValidation`) 
 ## Notas
 - Más mensajes que `202` indica duplicados por reintentos del productor; menos indica pérdida. Cualquiera de los dos se registra como bug `B-0NN`.
 - `Tx_secretManager` lee el secreto `experiencia-trv` de QA; si la identidad del release no puede leerlo, la validación queda bloqueada como en [[T-013-validacion-kafka-modular|T-013]].
+- 2026-11-05 — Ya no depende de [[T-035-e2e-rendimiento-queuer-teams|T-035]]: la validación por key se puede construir y verificar en WhatsApp mientras Teams sigue bloqueada por el pool de usuarios. La parte de Teams queda como tarea aparte dentro de esta tarjeta.
