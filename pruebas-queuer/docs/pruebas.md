@@ -414,6 +414,14 @@ jmeter -n -t SC_whatsappJMeterTest.jmx -l qe2e-whatsapp.jtl -q <secretos>.proper
   -JusersNotificationsQueuer=15 -JnotificationsQueuerTps=1 -JnotificationsQueuerDuration=60
 ```
 
+### Prueba local sin JMeter
+
+`scripts/e2e_rendimiento_queuer.py` ([T-039](../backlog/tasks/T-039-script-local-e2e-rendimiento-queuer.md)) envía campañas y notificaciones por el queuer con los mismos bodies de `ReqCampaignsQueuer` / `ReqNotificationsQueuer` y verifica la entrega en el fakechannel de WhatsApp. Sirve para probar el flujo y la configuración desde WSL, contra QA o dev, sin el `.jmx`. Las variables (host, Cognito, fakechannel) las define el usuario con un `--env-file`, variables `QE2E_*` u opciones. Tiene un tope de 1 TPS y 60 s salvo `--forzar`. Uso y opciones en [scripts/README.md](../scripts/README.md#e2e_rendimiento_queuerpy).
+
+```bash
+python3 scripts/e2e_rendimiento_queuer.py --env-file queuer-qa.env --flujo ambos --tps 1 --duracion 10
+```
+
 ## Pruebas unitarias de la rama
 
 Desde `queuer_ms/`:
