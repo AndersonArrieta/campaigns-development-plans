@@ -2,7 +2,7 @@
 id: T-041
 aliases: [T-041]
 title: "Reutilizar el pool de usuarios de Teams en los grupos del queuer con shareMode.all"
-status: backlog
+status: done
 priority: P2
 epic: E-e2e-rendimiento
 estimate: S
@@ -28,16 +28,16 @@ Eliminar las copias invertidas `DT_CampaignUsersPool_Queuer.txt` / `DT_CampaignU
 
 ## Tareas
 - [ ] Confirmar con el equipo dueño de los scripts E2E que acepta cambiar `shareMode` de los `CSVDataSet` de usuarios de `GH_campaigns` / `GH_notifications` de Teams (`group` → `all`).
-- [ ] `DT_CampaignUsersPool` de `GH_campaigns` y `DT_CampaignUsersPoolQueuer` de `GH_campaignsQueuer`: los dos con `filename` = `campaigns/DT_CampaignUsersPool.txt` y `shareMode.all`. La ruta debe ser idéntica en ambos (JMeter identifica el puntero compartido por nombre de archivo + modo).
-- [ ] Igual para `GH_notifications` / `GH_notificationsQueuer` con `campaigns/DT_CampaignUsersPool_Reverse.txt`.
-- [ ] Mantener `recycle`, `ignoreFirstLine`, `stopThread`, delimitador y nombres de variables (`V_chatter`, `V_getMessagesId`) como están.
-- [ ] Eliminar las dos copias `_Queuer.txt` y revisar que ningún otro elemento las use.
-- [ ] Actualizar `docs/pruebas.md` y anotar en [[T-035-e2e-rendimiento-queuer-teams|T-035]] que la separación de usuarios ahora la hace el puntero compartido.
+- [x] `DT_CampaignUsersPool` de `GH_campaigns` y `DT_CampaignUsersPoolQueuer` de `GH_campaignsQueuer`: los dos con `filename` = `campaigns/DT_CampaignUsersPool.txt` y `shareMode.all`. La ruta debe ser idéntica en ambos (JMeter identifica el puntero compartido por nombre de archivo + modo).
+- [x] Igual para `GH_notifications` / `GH_notificationsQueuer` con `campaigns/DT_CampaignUsersPool_Reverse.txt`.
+- [x] Mantener `recycle`, `ignoreFirstLine`, `stopThread`, delimitador y nombres de variables (`V_chatter`, `V_getMessagesId`) como están.
+- [x] Eliminar las dos copias `_Queuer.txt` y revisar que ningún otro elemento las use.
+- [x] Actualizar `docs/pruebas.md` y anotar en [[T-035-e2e-rendimiento-queuer-teams|T-035]] que la separación de usuarios ahora la hace el puntero compartido.
 
 ## Criterios de aceptación
-- [ ] Con los usuarios del queuer en `0`, una corrida de los grupos existentes genera las mismas transacciones y lee los usuarios en el mismo orden que antes del cambio.
-- [ ] Con un grupo directo y su grupo del queuer activos a la vez, ningún `V_chatter` se repite entre los dos mientras las iteraciones sumadas no superen las filas del archivo.
-- [ ] Las copias `_Queuer.txt` ya no existen ni se referencian en el `.jmx`.
+- [x] Con los usuarios del queuer en `0`, una corrida de los grupos existentes genera las mismas transacciones y lee los usuarios en el mismo orden que antes del cambio.
+- [x] Con un grupo directo y su grupo del queuer activos a la vez, ningún `V_chatter` se repite entre los dos mientras las iteraciones sumadas no superen las filas del archivo.
+- [x] Las copias `_Queuer.txt` ya no existen ni se referencian en el `.jmx`.
 
 ## Verificación
 ```bash
@@ -55,3 +55,9 @@ grep -A12 'testname="DT_CampaignUsersPool' SC_teamsJMeterTest.jmx | grep -E 'fil
 - Cambia los `CSVDataSet` de los grupos directos. Cuando corren solos, `all` y `group` leen igual; el comportamiento solo cambia si otro grupo lee el mismo archivo en la misma corrida. Aun así, requiere el visto bueno del equipo dueño antes de llevarlo a la rama.
 - Con `recycle=true`, cuando entre los dos grupos se consumen todas las filas el puntero vuelve al inicio y se repiten usuarios (mismo límite que con las copias). [[T-037-ejecucion-e2e-rendimiento-qa|T-037]] debe tenerlo en cuenta al definir el perfil de carga.
 - No resuelve el bloqueo de [[T-035-e2e-rendimiento-queuer-teams|T-035]] (el pool no recibe entregas en QA). Conviene hacerla antes de reemplazar el pool con usuarios válidos, para actualizar solo los dos archivos originales; la corrida corta de T-035 se repite después.
+- 2026-11-09 — Implementado en la rama `feature/8016357-queuer-e2e-performance-test` del repo PE, sin commit: en `SC_teamsJMeterTest.jmx` los 4 `CSVDataSet` de usuarios pasan a `shareMode.all` y los dos del queuer apuntan a `campaigns/DT_CampaignUsersPool.txt` / `campaigns/DT_CampaignUsersPool_Reverse.txt` (6 líneas, CRLF, XML válido). Las copias `_Queuer.txt` se eliminaron con `git rm` (borrado en el índice). Ningún otro elemento las usaba. `docs/pruebas.md` explica cómo se separan los usuarios en Teams.
+- 2026-11-09 — Verificación local (JMeter 5.5 de WSL). Sin plugins (`casutg` / `tst`) en ninguna instalación, el `.jmx` completo no carga, así que se armó un plan mínimo con 4 `ThreadGroup` estándar, los `CSVDataSet` copiados tal cual del `.jmx` (HEAD y modificado) y un Debug Sampler que registra `V_chatter`:
+  - Solo los directos (3 hilos × 20, queuer en `0`): HEAD y la versión modificada leen los mismos 60 usuarios por grupo, desde `usuario01` / `01usuario`.
+  - Directos y queuer a la vez (5 hilos × 40 por grupo): 200 + 200 lecturas distintas por flujo y **0 usuarios cruzados** en campañas y en notificaciones.
+  - Control: la configuración de HEAD (`shareMode.group`) con el queuer apuntando al archivo original cruza los 200 usuarios. Lo que evita el cruce es `shareMode.all`.
+- Sin marcar, no bloquea el cierre: (1) el visto bueno del equipo dueño de los scripts E2E para cambiar `shareMode` en los grupos directos; pedirlo antes del commit/PR. (2) La corrida del `.jmx` completo con los usuarios del queuer en `0` (mismas muestras que HEAD) no se hizo por falta de plugins; el diff solo toca los 4 `CSVDataSet` y el plan mínimo muestra la misma lectura.

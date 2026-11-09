@@ -414,6 +414,8 @@ jmeter -n -t SC_whatsappJMeterTest.jmx -l qe2e-whatsapp.jtl -q <secretos>.proper
   -JusersNotificationsQueuer=15 -JnotificationsQueuerTps=1 -JnotificationsQueuerDuration=60
 ```
 
+En `SC_teamsJMeterTest.jmx` ([T-035](../backlog/tasks/T-035-e2e-rendimiento-queuer-teams.md)) los grupos del queuer leen los mismos pools que los directos: `GH_campaigns` / `GH_campaignsQueuer` leen `campaigns/DT_CampaignUsersPool.txt` y `GH_notifications` / `GH_notificationsQueuer` leen `campaigns/DT_CampaignUsersPool_Reverse.txt`, con `shareMode.all` ([T-041](../backlog/tasks/T-041-pool-teams-compartido-sharemode-all.md)). Con un solo puntero por archivo, cada usuario sale una vez entre los dos grupos de la corrida (`get-messages` de Teams consume el mensaje). Si las iteraciones sumadas de los dos grupos superan las filas del archivo, `recycle` vuelve al inicio y se repiten usuarios.
+
 ### Prueba local sin JMeter
 
 `scripts/e2e_rendimiento_queuer.py` ([T-039](../backlog/tasks/T-039-script-local-e2e-rendimiento-queuer.md)) envía campañas y notificaciones por el queuer con los mismos bodies de `ReqCampaignsQueuer` / `ReqNotificationsQueuer` y verifica la entrega en el fakechannel de WhatsApp. Sirve para probar el flujo y la configuración desde WSL, contra QA o dev, sin el `.jmx`. Las variables (host, Cognito, fakechannel) las define el usuario con un `--env-file`, variables `QE2E_*` u opciones. Tiene un tope de 1 TPS y 60 s salvo `--forzar`. Uso y opciones en [scripts/README.md](../scripts/README.md#e2e_rendimiento_queuerpy).
