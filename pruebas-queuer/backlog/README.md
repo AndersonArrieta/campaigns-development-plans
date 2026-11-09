@@ -126,5 +126,6 @@ modular (QA):    T-008 ─► T-010 ─► T-011, T-012
                  T-011, T-012 ─► T-013 ─► T-014   (T-014 también depende de T-011, T-012)
 e2e (QA):        T-008 ─► T-015 ─► T-016 ─► T-017, T-018 ─► T-019 ─► T-020
 e2e rendimiento: T-033 ─► T-034 ─► T-035, T-036, T-038 ─► T-037   (T-037 depende de T-034, T-035, T-036 y T-038)
+                 T-034 ─► T-041   (pool de Teams compartido con shareMode.all)
 sin dependencias: T-001, T-002, T-003, T-008, T-009
 ```
