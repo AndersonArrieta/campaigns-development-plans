@@ -128,5 +128,7 @@ e2e (QA):        T-008 ─► T-015 ─► T-016 ─► T-017, T-018 ─► T-01
                  T-019 ─► T-042   (ruta crítica de queuer_ms_test en el repo DOP)
 e2e rendimiento: T-033 ─► T-034 ─► T-035, T-036, T-038 ─► T-037   (T-037 depende de T-034, T-035, T-036 y T-038)
                  T-034 ─► T-041   (pool de Teams compartido con shareMode.all)
+                 T-041 ─► T-043   (pool de Teams por grupo de hilos, shareMode.group)
+                 T-034 ─► T-044   (samplers del queuer con el estándar Req_XXX)
 sin dependencias: T-001, T-002, T-003, T-008, T-009
 ```
