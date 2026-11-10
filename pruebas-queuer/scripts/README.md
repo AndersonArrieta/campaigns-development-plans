@@ -71,8 +71,8 @@ Código de salida: `0` si el destino está completo (y, con `--comparar`, todo c
 Prueba E2E de rendimiento por el queuer con llamadas HTTP directas, sin JMeter ([T-039](../backlog/tasks/T-039-script-local-e2e-rendimiento-queuer.md)). Hace lo mismo que los grupos `GH_campaignsQueuer` / `GH_notificationsQueuer` de `SC_whatsappJMeterTest.jmx`:
 
 1. Pide un token `client_credentials` a Cognito (igual que `Tx_oauthToken`).
-2. Envía `POST /campaigns` y `POST /notifications` al queuer con los bodies de `ReqCampaignsQueuer` / `ReqNotificationsQueuer`: `metadata.Id` = `qe2e-<runId>-<uuid>` y `userIdentifier` ficticio (`57` + 10 dígitos). Exige `202` y `status = accepted`.
-3. Verifica la entrega en `GET <fakechannel>/whatsapp/get-messages/<userIdentifier>`: el primer mensaje debe tener `to` = usuario, `type` = `text` y `text.body` = mensaje esperado (igual que `ReqInteraction2*`).
+2. Envía `POST /campaigns` y `POST /notifications` al queuer con los bodies de `Req_CampaignsQueuer` / `Req_NotificationsQueuer`: `metadata.Id` = `qe2e-<runId>-<uuid>` y `userIdentifier` ficticio (`57` + 10 dígitos). Exige `202` y `status = accepted`.
+3. Verifica la entrega en `GET <fakechannel>/whatsapp/get-messages/<userIdentifier>`: el primer mensaje debe tener `to` = usuario, `type` = `text` y `text.body` = mensaje esperado (igual que `Req_Interaction2*Queuer`).
 4. Imprime un resumen por flujo: peticiones, `202`, entregas, fallos por motivo, p50/p95/p99 del `POST` y de la transacción completa, y TPS efectivos.
 
 - **Cada `202` es un mensaje real** en el ambiente: pide confirmación antes de enviar (`--si` para no preguntar) y no supera 1 TPS ni 60 s salvo `--forzar` (hasta tener los límites acordados en [T-033](../backlog/tasks/T-033-prerrequisitos-e2e-rendimiento-qa.md)).

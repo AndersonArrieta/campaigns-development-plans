@@ -404,7 +404,7 @@ Agregadas en [T-034](../backlog/tasks/T-034-e2e-rendimiento-queuer-whatsapp.md).
 | `usersCampaignsQueuer` / `rampUpCampaignsQueuer` / `campaignsQueuerDuration` / `campaignsQueuerTps` | `0` | Grupo `GH_campaignsQueuer` |
 | `usersNotificationsQueuer` / `rampUpNotificationsQueuer` / `notificationsQueuerDuration` / `notificationsQueuerTps` | `0` | Grupo `GH_notificationsQueuer` |
 
-- Cada iteración envía un `POST` con `metadata.Id` = `qe2e-<runId>-<uuid>` (la key del mensaje en Kafka), exige `202` y `$.status == accepted`, y verifica la entrega con `ReqInteraction2*`. Las transacciones son `Tx_campaignsQueuerTest` y `Tx_notificationsQueuerTest`.
+- Cada iteración envía un `POST` con `metadata.Id` = `qe2e-<runId>-<uuid>` (la key del mensaje en Kafka), exige `202` y `$.status == accepted`, y verifica la entrega en el fakechannel. Los samplers siguen el estándar `Req_XXX` ([T-044](../backlog/tasks/T-044-nombres-req-grupos-queuer.md)): `Req_CampaignsQueuer` / `Req_NotificationsQueuer` para el `POST` y `Req_Interaction2CampaignsQueuer` / `Req_Interaction2NotificationsQueuer` para la verificación, distintos de los `ReqInteraction2*` de los grupos directos. Las transacciones son `Tx_campaignsQueuerTest` y `Tx_notificationsQueuerTest`.
 - Cada `202` se cuenta en `props` (`qe2e.campaigns.accepted`, `qe2e.notifications.accepted`) para la validación en Kafka de [T-036](../backlog/tasks/T-036-validacion-kafka-e2e-rendimiento.md).
 - El Throughput Shaping Timer limita solo el `POST`. Cada iteración espera la entrega (~1 s), así que hacen falta varios usuarios por TPS: 15 usuarios dieron ~0,7 TPS con `Tps=1`.
 - Sin acceso al secreto Kafka (`awsAccessKey` / `awsSecretKey` / `awsSessionToken`), `GH_setup` detiene la prueba, aunque solo corran los grupos del queuer.
@@ -420,7 +420,7 @@ En `SC_teamsJMeterTest.jmx` ([T-035](../backlog/tasks/T-035-e2e-rendimiento-queu
 
 ### Prueba local sin JMeter
 
-`scripts/e2e_rendimiento_queuer.py` ([T-039](../backlog/tasks/T-039-script-local-e2e-rendimiento-queuer.md)) envía campañas y notificaciones por el queuer con los mismos bodies de `ReqCampaignsQueuer` / `ReqNotificationsQueuer` y verifica la entrega en el fakechannel de WhatsApp. Sirve para probar el flujo y la configuración desde WSL, contra QA o dev, sin el `.jmx`. Las variables (host, Cognito, fakechannel) las define el usuario con un `--env-file`, variables `QE2E_*` u opciones. Tiene un tope de 1 TPS y 60 s salvo `--forzar`. Uso y opciones en [scripts/README.md](../scripts/README.md#e2e_rendimiento_queuerpy).
+`scripts/e2e_rendimiento_queuer.py` ([T-039](../backlog/tasks/T-039-script-local-e2e-rendimiento-queuer.md)) envía campañas y notificaciones por el queuer con los mismos bodies de `Req_CampaignsQueuer` / `Req_NotificationsQueuer` y verifica la entrega en el fakechannel de WhatsApp. Sirve para probar el flujo y la configuración desde WSL, contra QA o dev, sin el `.jmx`. Las variables (host, Cognito, fakechannel) las define el usuario con un `--env-file`, variables `QE2E_*` u opciones. Tiene un tope de 1 TPS y 60 s salvo `--forzar`. Uso y opciones en [scripts/README.md](../scripts/README.md#e2e_rendimiento_queuerpy).
 
 ```bash
 python3 scripts/e2e_rendimiento_queuer.py --env-file queuer-qa.env --flujo ambos --tps 1 --duracion 10

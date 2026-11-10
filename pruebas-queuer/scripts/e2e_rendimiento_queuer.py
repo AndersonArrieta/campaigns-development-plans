@@ -233,7 +233,7 @@ def es_aceptada(texto):
 
 
 def mensaje_entregado(texto, usuario, esperado):
-    """Mismas comprobaciones que ReqInteraction2*: primer elemento con to, type=text y text.body."""
+    """Mismas comprobaciones que Req_Interaction2*Queuer: primer elemento con to, type=text y text.body."""
     try:
         mensajes = json.loads(texto)
     except ValueError:
