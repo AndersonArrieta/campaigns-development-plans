@@ -344,7 +344,7 @@ Prueban el flujo completo en **QA**:
 queuer (HTTP) → Kafka → platform_campaigns_ms → adaptador de salida → fakechannel
 ```
 
-El código vive en el repo `NU0284001_Artemis_Chatbots_Platform_MR_Test`. Los escenarios se escriben en `Platform_test/`, un proyecto Serenity + Cucumber + Screenplay compartido. `queuer_ms_test/azure-pipeline.yaml` elige qué runners y features se empaquetan (hoy solo `IntegratorNode`). El trabajo está en la épica [E-e2e](../backlog/epics/E-e2e.md).
+El código vive en el repo `NU0284001_Artemis_Chatbots_Platform_MR_Test`. Los escenarios se escriben en `Platform_test/`, un proyecto Serenity + Cucumber + Screenplay compartido. `queuer_ms_test/azure-pipeline.yaml` elige qué runners y features se empaquetan (`IntegratorNode` y `Queuer`, desde [T-019](../backlog/tasks/T-019-pipeline-queuer-ms-test.md)). El trabajo está en la épica [E-e2e](../backlog/epics/E-e2e.md).
 
 Se reutiliza la suite `Notifications` existente (`PrepareNotificationEvent`, `VerifyChannelDelivery`, `Cognito`, datasets `notifications_e2e_flow` / `campaigns_e2e_flow`). La diferencia es que el evento entra por `POST /campaigns` o `POST /notifications` del queuer en lugar de publicarse directo en Kafka.
 
@@ -369,6 +369,8 @@ Requisitos del consumidor para las campañas (`QueueValidatorUseCase` de `platfo
 | E2E-N02 | Notificación en línea, Teams | `202` y mensaje entregado | [T-017](../backlog/tasks/T-017-e2e-notificaciones-queuer.md) | Planeado |
 | E2E-C01 | Campaña, WhatsApp | `202` y texto del nodo de campaña entregado | [T-018](../backlog/tasks/T-018-e2e-campanas-queuer.md) | Planeado |
 | E2E-C02 | Campaña, Teams | `202` y texto del nodo de campaña entregado | [T-018](../backlog/tasks/T-018-e2e-campanas-queuer.md) | Planeado |
+
+**Ruta crítica:** E2E-C01 (`Queuer campaign E2E WhatsApp flow`) y E2E-N02 (`Queuer online notification E2E TEAMS flow`) están declarados en la ruta crítica del componente `queuer_ms_test`, junto con los escenarios de `integrator_node.feature`. Se declaran en el repo `NU0007001_Control_Ruta_Critica_E2E_DOP`, archivo `NU0284001_Artemis_Chatbots_Platform_MR_Test/rutacritica.json` ([T-042](../backlog/tasks/T-042-ruta-critica-queuer-ms-test.md)). Los nombres deben coincidir literalmente con `queuer.feature`.
 
 Los casos negativos (`400`, `422`) no se repiten en E2E: están cubiertos por la aceptación en Karate ([T-004](../backlog/tasks/T-004-aceptacion-campaigns.md), [T-005](../backlog/tasks/T-005-aceptacion-notifications.md)).
 

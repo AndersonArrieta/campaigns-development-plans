@@ -2,7 +2,7 @@
 id: T-019
 aliases: [T-019]
 title: "Incluir la suite Queuer en el pipeline de queuer_ms_test"
-status: doing
+status: done
 priority: P1
 epic: E-e2e
 estimate: S
@@ -28,11 +28,11 @@ created: 2026-10-22
   - `test-runners: IntegratorNode.java,Queuer.java`
   - `test-features: integrator_node.feature,queuer.feature`
 - [x] Revisar que `pipelines/build.yaml` conserva ambos (los filtros comparan nombres exactos).
-- [ ] Lanzar el pipeline a mano sobre la rama: el trigger solo incluye `refs/heads/trunk` (`feature/*` está comentado). No se descomenta el trigger.
+- [x] ~~Lanzar el pipeline a mano sobre la rama~~: ya no hace falta. La rama se fusionó en `trunk` y el trigger de `trunk` ejecutó el build. No se descomenta el trigger.
 - [x] Listar en `## Notas` las propiedades `-D` que el release debe pasar a la suite `Queuer` y pedir al usuario que las configure.
 
 ## Criterios de aceptación
-- [ ] El build lanzado a mano sobre la rama muestra `Keeping: Queuer.java` y `Keeping: queuer.feature`.
+- [x] El build de `trunk` muestra `Keeping: Queuer.java` y `Keeping: queuer.feature`.
 - [x] La suite `IntegratorNode` sigue incluida.
 
 ## Verificación
@@ -55,3 +55,5 @@ grep -A1 -E 'name: test-(runners|features)' azure-pipeline.yaml
   - No hacen falta `-DonlineNotificationTopic` ni `-DkafkaSecretName`.
   - No usar `--info` en el comando de Gradle del release: imprime la línea del JVM de test con `-DclientSecret`.
 - Pendiente (requiere al usuario): commit y push de la rama, lanzar a mano el pipeline `queuer_ms_test` sobre la rama (no hay `az` en esta máquina) y configurar `endpointQueuer` / `endpointGetMessageFake` en las variables del release.
+- 2026-11-10 — La rama `feature/7999754-e2e-tests-campaigns-notifications-queuer` se fusionó en `trunk` de `_MR_Test` con el PR 1638381 (`1496833`, 2026-10-29). El usuario confirma que el build de `trunk` en Azure DevOps muestra `Keeping: Queuer.java` y `Keeping: queuer.feature`. La verificación local da `IntegratorNode.java,Queuer.java` / `integrator_node.feature,queuer.feature`. Se cierra.
+- Pendiente sin confirmar (no hay `az` en esta máquina): que el release E2E del queuer tenga configuradas `endpointQueuer` y `endpointGetMessageFake`. Se comprueba al ejecutar el release en [[T-020-ejecucion-e2e-qa|T-020]].

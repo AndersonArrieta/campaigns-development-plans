@@ -2,7 +2,7 @@
 id: T-042
 aliases: [T-042]
 title: "Agregar a la ruta crítica de queuer_ms_test la campaña WhatsApp y la notificación Teams por el queuer"
-status: backlog
+status: done
 priority: P1
 epic: E-e2e
 estimate: S
@@ -25,8 +25,8 @@ Nuevo requerimiento: la ruta crítica del componente `queuer_ms_test` debe inclu
 - `docs/pruebas.md`: indicar en la tabla de escenarios E2E cuáles están en la ruta crítica.
 
 ## Tareas
-- [ ] En el repo DOP, `git pull` de `trunk` y crear rama desde `trunk` (la rama y el PR requieren confirmación del usuario).
-- [ ] En el componente `queuer_ms_test`, agregar a `ruta` un segundo objeto después de `integrator_node.feature`:
+- [x] En el repo DOP, `git pull` de `trunk` y crear rama desde `trunk` (la rama y el PR requieren confirmación del usuario).
+- [x] En el componente `queuer_ms_test`, agregar a `ruta` un segundo objeto después de `integrator_node.feature`:
   ```json
   {
       "nombre_feature": "queuer.feature",
@@ -37,16 +37,16 @@ Nuevo requerimiento: la ruta crítica del componente `queuer_ms_test` debe inclu
   }
   ```
   Los nombres se copian literalmente de `queuer.feature`, incluido `TEAMS` en mayúsculas. La revisión `afec4d88` del repo DOP corrigió precisamente nombres de feature y escenarios que no coincidían.
-- [ ] Actualizar `fecha_definicion` de `queuer_ms_test` a la fecha del cambio (`dd/MM/yyyy`), como en `afec4d88`. Mantener `"activo": true` y no tocar los demás componentes.
-- [ ] Mantener el formato del archivo (4 espacios de sangría, fin de línea del repo) para que el diff muestre solo el bloque nuevo y la fecha.
+- [x] Actualizar `fecha_definicion` de `queuer_ms_test` a la fecha del cambio (`dd/MM/yyyy`), como en `afec4d88`. Mantener `"activo": true` y no tocar los demás componentes.
+- [x] Mantener el formato del archivo (4 espacios de sangría, fin de línea del repo) para que el diff muestre solo el bloque nuevo y la fecha.
 - [ ] Commit, push y PR hacia `trunk` del repo DOP (requieren confirmación del usuario).
-- [ ] Marcar en `docs/pruebas.md` las filas E2E-C01 y E2E-N02 como parte de la ruta crítica.
+- [x] Marcar en `docs/pruebas.md` las filas E2E-C01 y E2E-N02 como parte de la ruta crítica.
 
 ## Criterios de aceptación
-- [ ] `rutacritica.json` es JSON válido y el componente `queuer_ms_test` tiene `integrator_node.feature` (sin cambios) y `queuer.feature` con exactamente los 2 escenarios.
-- [ ] Cada escenario declarado existe con el mismo texto en `queuer.feature` de `trunk` de `_MR_Test`.
-- [ ] El artefacto de `queuer_ms_test` incluye `queuer.feature` y `Queuer.java` ([[T-019-pipeline-queuer-ms-test|T-019]]).
-- [ ] `git diff` en el repo DOP solo toca el componente `queuer_ms_test`.
+- [x] `rutacritica.json` es JSON válido y el componente `queuer_ms_test` tiene `integrator_node.feature` (sin cambios) y `queuer.feature` con exactamente los 2 escenarios.
+- [x] Cada escenario declarado existe con el mismo texto en `queuer.feature` de `trunk` de `_MR_Test`.
+- [x] El artefacto de `queuer_ms_test` incluye `queuer.feature` y `Queuer.java` ([[T-019-pipeline-queuer-ms-test|T-019]]).
+- [x] `git diff` en el repo DOP solo toca el componente `queuer_ms_test`.
 
 ## Verificación
 ```bash
@@ -73,3 +73,8 @@ git -C "$DOP" -c core.autocrlf=true diff --stat
 - Si la ruta crítica filtra la ejecución por nombre de escenario, E2E-N02 (Teams) ya no tendría antes a E2E-N01 en la misma corrida. No le afecta: su mensaje es aleatorio (`Notif_e2e_test_<uuid>`).
 - La ejecución que confirma que los escenarios de la ruta crítica pasan desde el release es la de [[T-020-ejecucion-e2e-qa|T-020]]. Si en el release no se puede confirmar, queda pendiente en `## Notas`, sin marcar.
 - El nombre del componente (`queuer_ms_test`) coincide con la carpeta del pipeline de `_MR_Test` y con la entrada que ya existe en el JSON. No se crea un componente nuevo.
+- 2026-11-10 — Rama `feature/7999754-ruta-critica-ms-queuer` del repo DOP (creada por el usuario). Tras `git.exe fetch` está en `dfd3349d`, igual que `origin/trunk` (0/0 commits de diferencia).
+- 2026-11-10 — En `rutacritica.json`, componente `queuer_ms_test`: `fecha_definicion` `16/09/2026` → `10/11/2026`, y bloque `queuer.feature` con `Queuer campaign E2E WhatsApp flow` y `Queuer online notification E2E TEAMS flow` después de `integrator_node.feature` (sus 20 escenarios no cambian). El archivo sigue con LF y 4 espacios.
+- 2026-11-10 — Verificación: JSON válido. `queuer_ms_test` → `integrator_node.feature` 20 escenarios + `queuer.feature` 2. Los 2 nombres aparecen con `OK` contra `queuer.feature` de `origin/trunk` de `_MR_Test`. `git -c core.autocrlf=true diff --stat`: solo `rutacritica.json`, 8 inserciones y 1 borrado, todo dentro de `queuer_ms_test`. El criterio del artefacto se cumple por [[T-019-pipeline-queuer-ms-test|T-019]] (el usuario confirmó el build de `trunk`).
+- `docs/pruebas.md`: nota de ruta crítica bajo la tabla de escenarios E2E.
+- Pendiente (requiere al usuario): commit, push (con `git.exe`) y PR hacia `trunk` del repo DOP. Que los escenarios pasen desde el release se confirma en [[T-020-ejecucion-e2e-qa|T-020]].
