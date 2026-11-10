@@ -18,6 +18,8 @@ El código vive en el repo `NU0284001_Artemis_Chatbots_Platform_MR_Test`:
 - `Platform_test/`: proyecto Serenity + Cucumber + Screenplay compartido por todas las suites.
 - `queuer_ms_test/`: solo el pipeline, que copia `Platform_test` y deja únicamente los runners y features listados en `test-runners` / `test-features`.
 
+La ruta crítica del componente `queuer_ms_test` se declara en el repo `NU0007001_Control_Ruta_Critica_E2E_DOP` (`NU0284001_Artemis_Chatbots_Platform_MR_Test/rutacritica.json`); incluye la campaña WhatsApp y la notificación Teams por el queuer ([[T-042-ruta-critica-queuer-ms-test|T-042]]).
+
 Se reutiliza la suite `Notifications` existente (que publica directo en Kafka): `PrepareNotificationEvent`, `VerifyChannelDelivery`, `Cognito` y los datasets `notifications_e2e_flow` / `campaigns_e2e_flow`. Lo nuevo es la entrada por el queuer en lugar de publicar en Kafka.
 
 Documentación: [guía de pruebas — E2E](../../docs/pruebas.md#pruebas-e2e-serenity) · [contrato de notificaciones](../../docs/endpoints/POST-api-v1-notifications.md) · [contrato de campañas](../../docs/endpoints/POST-api-v1-campaigns.md)
